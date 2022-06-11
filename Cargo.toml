@@ -1,0 +1,18 @@
+[package]
+name = "pt02"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+screen-13 = { path = "../screen-13" }
+screen-13-fx = { path = "../screen-13/contrib/screen-13-fx" }
+screen-13-egui = { path = "../screen-13/contrib/screen-13-egui" }
+pretty_env_logger = "0.4"
+egui = "0.18.0"
+inline-spirv = "*"
+bevy_ecs = "0.7.0"
+bytemuck = "*"
+tobj = "*"
+anyhow = "*"
