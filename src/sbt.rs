@@ -94,6 +94,7 @@ impl SbtBuffer {
                 data = &mut data[sbt_handle_size as _..];
             }
 
+            trace!("info.miss_indices: {}", info.miss_indices.len());
             for idx in info.miss_indices {
                 let handle = pipeline.group_handle(*idx)?;
                 data[0..handle.len()].copy_from_slice(handle);
