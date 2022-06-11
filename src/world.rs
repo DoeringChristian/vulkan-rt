@@ -50,9 +50,6 @@ pub struct Mesh {
     pub blas: Arc<AccelerationStructure>,
     // test with single instance.
     //pub instance: Arc<InstanceBuffer>,
-    device: Arc<Device>,
-    blas_size: screen_13::driver::AccelerationStructureSize,
-    triangle_count: u32,
 }
 
 impl Mesh {
@@ -129,7 +126,7 @@ impl Mesh {
                     vertex_data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(
                         &vertices,
                     )),
-                    vertex_format: vk::Format::R32G32_SFLOAT,
+                    vertex_format: vk::Format::R32G32B32_SFLOAT,
                     vertex_stride: 12,
                 },
             }],
@@ -187,9 +184,6 @@ impl Mesh {
             indices,
             blas,
             //instance,
-            device: device.clone(),
-            blas_size,
-            triangle_count: (mesh.positions.len() / 3) as u32,
         }
     }
 }
@@ -204,11 +198,11 @@ impl GpuWorld {
     pub fn load(device: &Arc<Device>, cache: &mut HashPool) -> Self {
         let mut rgraph = RenderGraph::new();
         let (models, materials, ..) = load_obj_buf(
-            &mut BufReader::new(include_bytes!("res/cube_scene.obj").as_slice()),
+            &mut BufReader::new(include_bytes!("res/onecube_scene.obj").as_slice()),
             &GPU_LOAD_OPTIONS,
             |_| {
                 load_mtl_buf(&mut BufReader::new(
-                    include_bytes!("res/cube_scene.mtl").as_slice(),
+                    include_bytes!("res/onecube_scene.mtl").as_slice(),
                 ))
             },
         )
@@ -290,10 +284,11 @@ impl GpuWorld {
                 .collect::<Vec<_>>();
             let primitive_count = blas_nodes.len() as _;
 
-            let mut pass = rgraph.begin_pass("Build TLAS");
+            let mut pass = rgraph.begin_pass("Build TLAS").read_node(instance_node);
             for blas_node in blas_nodes {
                 pass = pass.read_node(blas_node);
             }
+            trace!("TLAS: primitive_count. {}", primitive_count);
             pass.write_node(scratch_buf)
                 .write_node(tlas_node)
                 .record_acceleration(move |accel| {
