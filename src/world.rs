@@ -175,6 +175,15 @@ pub struct GpuWorld {
 }
 
 impl GpuWorld {
+    pub fn update_tlas(
+        &self,
+        device: &Arc<Device>,
+        cache: &mut HashPool,
+        rgraph: &mut RenderGraph,
+    ) {
+        //self.tlas.update_instance_buf(device, &self.instances);
+        self.tlas.update(cache, rgraph);
+    }
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
         for blas in self.blases.iter() {
             blas.build(cache, rgraph);

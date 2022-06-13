@@ -128,7 +128,7 @@ impl BlasInstance {
 }
 
 pub struct Tlas {
-    geometries: Arc<Vec<BlasInstance>>,
+    geometry: Arc<Vec<BlasInstance>>,
     instance_buf: InstanceBuffer,
     pub accel: Arc<AccelerationStructure>,
     geometry_info: AccelerationStructureGeometryInfo,
@@ -136,6 +136,49 @@ pub struct Tlas {
 }
 
 impl Tlas {
+    pub fn update(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
+        let scratch_buf = rgraph.bind_node(
+            cache
+                .lease(BufferInfo::new(
+                    self.size.build_size,
+                    vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+                        | vk::BufferUsageFlags::STORAGE_BUFFER,
+                ))
+                .unwrap(),
+        );
+        let accel_node = rgraph.bind_node(&self.accel);
+        let instance_node = rgraph.bind_node(&self.instance_buf.data);
+        let accel_node = rgraph.bind_node(&self.accel);
+        let geometry_info = self.geometry_info.clone();
+        let primitive_count = self.geometry.len();
+        let blas_nodes = self
+            .geometry
+            .iter()
+            .map(|g| rgraph.bind_node(&g.blas.accel))
+            .collect::<Vec<_>>();
+
+        let mut pass = rgraph.begin_pass("update TLAS").read_node(instance_node);
+        for blas_node in blas_nodes {
+            pass = pass.read_node(blas_node);
+        }
+        pass.read_node(accel_node)
+            .write_node(scratch_buf)
+            .write_node(accel_node)
+            .record_acceleration(move |accel| {
+                accel.update_structure(
+                    accel_node,
+                    accel_node,
+                    scratch_buf,
+                    geometry_info,
+                    &[vk::AccelerationStructureBuildRangeInfoKHR {
+                        primitive_count: primitive_count as _,
+                        primitive_offset: 0,
+                        first_vertex: 0,
+                        transform_offset: 0,
+                    }],
+                );
+            });
+    }
     pub fn build(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
         let scratch_buf = rgraph.bind_node(
             cache
@@ -150,10 +193,10 @@ impl Tlas {
         let instance_node = rgraph.bind_node(&self.instance_buf.data);
         let tlas_node = rgraph.bind_node(&self.accel);
         let geometry_info = self.geometry_info.clone();
-        let primitive_count = self.geometries.len();
+        let primitive_count = self.geometry.len();
         // TODO: this is only necesarry to generate blases before tlas.
         let blas_nodes = self
-            .geometries
+            .geometry
             .iter()
             .map(|g| rgraph.bind_node(&g.blas.accel))
             .collect::<Vec<_>>();
@@ -178,14 +221,39 @@ impl Tlas {
                 );
             });
     }
-    pub fn create(device: &Arc<Device>, geometries: &Arc<Vec<BlasInstance>>) -> Self {
-        let instances = geometries.iter().map(|g| g.as_vk()).collect::<Vec<_>>();
+    pub fn update_instance_buf(&mut self, device: &Arc<Device>, geometry: &Arc<Vec<BlasInstance>>) {
+        assert_ne!(self.geometry.len(), geometry.len());
+        let instances = geometry.iter().map(|g| g.as_vk()).collect::<Vec<_>>();
         let instance_buf = InstanceBuffer::create(device, &instances);
         let geometry_info = AccelerationStructureGeometryInfo {
             ty: vk::AccelerationStructureTypeKHR::TOP_LEVEL,
             flags: vk::BuildAccelerationStructureFlagsKHR::empty(),
             geometries: vec![AccelerationStructureGeometry {
-                max_primitive_count: geometries.len() as _,
+                max_primitive_count: geometry.len() as _,
+                flags: vk::GeometryFlagsKHR::OPAQUE,
+                geometry: AccelerationStructureGeometryData::Instances {
+                    array_of_pointers: false,
+                    data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(
+                        &instance_buf.data,
+                    )),
+                },
+            }],
+        };
+        // Should be the same
+        let size = AccelerationStructure::size_of(device, &geometry_info);
+
+        self.size = size;
+        self.instance_buf = instance_buf;
+        self.geometry_info = geometry_info;
+    }
+    pub fn create(device: &Arc<Device>, geometry: &Arc<Vec<BlasInstance>>) -> Self {
+        let instances = geometry.iter().map(|g| g.as_vk()).collect::<Vec<_>>();
+        let instance_buf = InstanceBuffer::create(device, &instances);
+        let geometry_info = AccelerationStructureGeometryInfo {
+            ty: vk::AccelerationStructureTypeKHR::TOP_LEVEL,
+            flags: vk::BuildAccelerationStructureFlagsKHR::empty(),
+            geometries: vec![AccelerationStructureGeometry {
+                max_primitive_count: geometry.len() as _,
                 flags: vk::GeometryFlagsKHR::OPAQUE,
                 geometry: AccelerationStructureGeometryData::Instances {
                     array_of_pointers: false,
@@ -207,7 +275,7 @@ impl Tlas {
 
         Self {
             instance_buf,
-            geometries: geometries.clone(),
+            geometry: geometry.clone(),
             size,
             geometry_info,
             accel,

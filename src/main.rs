@@ -70,7 +70,7 @@ fn main() -> anyhow::Result<()> {
     // Load the .obj cube scene
     // ------------------------------------------------------------------------------------------ //
 
-    let world = GpuWorld::load(&event_loop.device);
+    let mut world = GpuWorld::load(&event_loop.device);
 
     let img = Arc::new(
         Image::create(
@@ -88,8 +88,15 @@ fn main() -> anyhow::Result<()> {
         .unwrap(),
     );
 
+    let mut fc = 0;
+
     event_loop.run(|mut frame| {
-        world.build_accels(&mut cache, &mut frame.render_graph);
+        if fc == 0 {
+            world.build_accels(&mut cache, &mut frame.render_graph);
+        } else {
+            //world.instances[0].transform.matrix[3] += 0.01;
+            world.update_tlas(frame.device, &mut cache, &mut frame.render_graph);
+        }
 
         let image_node = frame.render_graph.bind_node(&img);
 
@@ -129,6 +136,7 @@ fn main() -> anyhow::Result<()> {
                 ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 100, 100, 1);
             });
         presenter.present_image(frame.render_graph, image_node, frame.swapchain_image);
+        fc += 1;
         //frame.exit();
     })?;
 
