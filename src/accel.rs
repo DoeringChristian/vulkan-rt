@@ -1,8 +1,10 @@
+use bevy_ecs::prelude::Component;
 use screen_13::prelude::*;
 use std::sync::Arc;
 
 use super::buffers::*;
 
+#[derive(Component)]
 pub struct BlasGeometry {
     positions: Arc<PositionsBuffer>,
     indices: Arc<IndexBuffer>,

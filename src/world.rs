@@ -9,6 +9,39 @@ use std::sync::{Arc, Weak};
 use std::{io::BufReader, mem::size_of};
 use tobj::*;
 
+pub struct RenderWorld {
+    world: World,
+}
+
+impl RenderWorld {
+    pub fn new() -> Self {
+        Self {
+            world: World::new(),
+        }
+    }
+    pub fn load(&mut self, device: &Arc<Device>) -> Self {
+        let (models, materials, ..) = load_obj_buf(
+            &mut BufReader::new(include_bytes!("res/onecube_scene.obj").as_slice()),
+            &GPU_LOAD_OPTIONS,
+            |_| {
+                load_mtl_buf(&mut BufReader::new(
+                    include_bytes!("res/onecube_scene.mtl").as_slice(),
+                ))
+            },
+        )
+        .unwrap();
+
+        for model in models.iter() {
+            self.world.spawn().insert(BlasGeometry::create(
+                device,
+                &model.mesh.indices,
+                &model.mesh.positions,
+            ));
+        }
+        todo!()
+    }
+}
+
 pub struct GpuWorld {
     pub geometries: Vec<Arc<BlasGeometry>>,
     pub blases: Vec<Arc<Blas>>,
@@ -33,7 +66,6 @@ impl GpuWorld {
         self.tlas.build(cache, rgraph);
     }
     pub fn load(device: &Arc<Device>) -> Self {
-        let mut rgraph = RenderGraph::new();
         let (models, materials, ..) = load_obj_buf(
             &mut BufReader::new(include_bytes!("res/onecube_scene.obj").as_slice()),
             &GPU_LOAD_OPTIONS,
