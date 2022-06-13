@@ -1,6 +1,9 @@
-use bevy_ecs::prelude::Component;
+use bevy_ecs::prelude::*;
 use screen_13::prelude::*;
+use slotmap::DefaultKey;
 use std::sync::Arc;
+
+use crate::world::Scene;
 
 use super::buffers::*;
 
@@ -20,16 +23,17 @@ impl BlasGeometry {
 }
 
 pub struct Blas {
-    geometry: Arc<BlasGeometry>,
+    geometry: DefaultKey,
     pub accel: Arc<AccelerationStructure>,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
 }
 
 impl Blas {
-    pub fn build(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
-        let index_node = rgraph.bind_node(&self.geometry.indices.data);
-        let vertex_node = rgraph.bind_node(&self.geometry.positions.data);
+    pub fn build(&self, scene: &Scene, cache: &mut HashPool, rgraph: &mut RenderGraph) {
+        let geometry = scene.geometries.get(self.geometry).unwrap();
+        let index_node = rgraph.bind_node(&geometry.indices.data);
+        let vertex_node = rgraph.bind_node(&geometry.positions.data);
         let accel_node = rgraph.bind_node(&self.accel);
 
         let scratch_buf = rgraph.bind_node(
@@ -42,7 +46,7 @@ impl Blas {
                 .unwrap(),
         );
 
-        let triangle_count = self.geometry.indices.count / 3;
+        let triangle_count = geometry.indices.count / 3;
         let geometry_info = self.geometry_info.clone();
 
         rgraph
@@ -65,7 +69,7 @@ impl Blas {
                 )
             });
     }
-    pub fn create(device: &Arc<Device>, geometry: &Arc<BlasGeometry>) -> Self {
+    pub fn create(device: &Arc<Device>, (gkey, geometry): (DefaultKey, &BlasGeometry)) -> Self {
         let triangle_count = geometry.indices.count / 3;
         let vertex_count = geometry.positions.count / 3;
 
@@ -100,7 +104,7 @@ impl Blas {
 
         let accel = AccelerationStructure::create(device, accel_info).unwrap();
         Self {
-            geometry: geometry.clone(),
+            geometry: gkey,
             accel: Arc::new(accel),
             geometry_info,
             size: accel_size,
@@ -109,28 +113,30 @@ impl Blas {
 }
 
 pub struct BlasInstance {
-    pub blas: Arc<Blas>,
+    pub blas: DefaultKey,
     pub transform: vk::TransformMatrixKHR,
     pub instance_custom_index_and_mask: vk::Packed24_8,
     pub instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8,
 }
 
 impl BlasInstance {
-    pub fn as_vk(&self) -> vk::AccelerationStructureInstanceKHR {
+    pub fn as_vk(&self, scene: &Scene) -> vk::AccelerationStructureInstanceKHR {
         vk::AccelerationStructureInstanceKHR {
             transform: self.transform,
             instance_custom_index_and_mask: self.instance_custom_index_and_mask,
             instance_shader_binding_table_record_offset_and_flags: self
                 .instance_shader_binding_table_record_offset_and_flags,
             acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
-                device_handle: AccelerationStructure::device_address(&self.blas.accel),
+                device_handle: AccelerationStructure::device_address(
+                    &scene.blases.get(self.blas).unwrap().accel,
+                ),
             },
         }
     }
 }
 
 pub struct Tlas {
-    geometry: Arc<Vec<BlasInstance>>,
+    geometry: Vec<DefaultKey>,
     instance_buf: InstanceBuffer,
     pub accel: Arc<AccelerationStructure>,
     geometry_info: AccelerationStructureGeometryInfo,
@@ -138,50 +144,7 @@ pub struct Tlas {
 }
 
 impl Tlas {
-    pub fn update(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
-        let scratch_buf = rgraph.bind_node(
-            cache
-                .lease(BufferInfo::new(
-                    self.size.build_size,
-                    vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
-                        | vk::BufferUsageFlags::STORAGE_BUFFER,
-                ))
-                .unwrap(),
-        );
-        let accel_node = rgraph.bind_node(&self.accel);
-        let instance_node = rgraph.bind_node(&self.instance_buf.data);
-        let accel_node = rgraph.bind_node(&self.accel);
-        let geometry_info = self.geometry_info.clone();
-        let primitive_count = self.geometry.len();
-        let blas_nodes = self
-            .geometry
-            .iter()
-            .map(|g| rgraph.bind_node(&g.blas.accel))
-            .collect::<Vec<_>>();
-
-        let mut pass = rgraph.begin_pass("update TLAS").read_node(instance_node);
-        for blas_node in blas_nodes {
-            pass = pass.read_node(blas_node);
-        }
-        pass.read_node(accel_node)
-            .write_node(scratch_buf)
-            .write_node(accel_node)
-            .record_acceleration(move |accel| {
-                accel.update_structure(
-                    accel_node,
-                    accel_node,
-                    scratch_buf,
-                    geometry_info,
-                    &[vk::AccelerationStructureBuildRangeInfoKHR {
-                        primitive_count: primitive_count as _,
-                        primitive_offset: 0,
-                        first_vertex: 0,
-                        transform_offset: 0,
-                    }],
-                );
-            });
-    }
-    pub fn build(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
+    pub fn build(&self, scene: &Scene, cache: &mut HashPool, rgraph: &mut RenderGraph) {
         let scratch_buf = rgraph.bind_node(
             cache
                 .lease(BufferInfo::new(
@@ -196,11 +159,12 @@ impl Tlas {
         let tlas_node = rgraph.bind_node(&self.accel);
         let geometry_info = self.geometry_info.clone();
         let primitive_count = self.geometry.len();
+
         // TODO: this is only necesarry to generate blases before tlas.
         let blas_nodes = self
             .geometry
             .iter()
-            .map(|g| rgraph.bind_node(&g.blas.accel))
+            .map(|g| rgraph.bind_node(&scene.blases.get(*g).unwrap().accel))
             .collect::<Vec<_>>();
 
         let mut pass = rgraph.begin_pass("build TLAS").read_node(instance_node);
@@ -223,33 +187,15 @@ impl Tlas {
                 );
             });
     }
-    pub fn update_instance_buf(&mut self, device: &Arc<Device>, geometry: &Arc<Vec<BlasInstance>>) {
-        assert_ne!(self.geometry.len(), geometry.len());
-        let instances = geometry.iter().map(|g| g.as_vk()).collect::<Vec<_>>();
-        let instance_buf = InstanceBuffer::create(device, &instances);
-        let geometry_info = AccelerationStructureGeometryInfo {
-            ty: vk::AccelerationStructureTypeKHR::TOP_LEVEL,
-            flags: vk::BuildAccelerationStructureFlagsKHR::empty(),
-            geometries: vec![AccelerationStructureGeometry {
-                max_primitive_count: geometry.len() as _,
-                flags: vk::GeometryFlagsKHR::OPAQUE,
-                geometry: AccelerationStructureGeometryData::Instances {
-                    array_of_pointers: false,
-                    data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(
-                        &instance_buf.data,
-                    )),
-                },
-            }],
-        };
-        // Should be the same
-        let size = AccelerationStructure::size_of(device, &geometry_info);
-
-        self.size = size;
-        self.instance_buf = instance_buf;
-        self.geometry_info = geometry_info;
-    }
-    pub fn create(device: &Arc<Device>, geometry: &Arc<Vec<BlasInstance>>) -> Self {
-        let instances = geometry.iter().map(|g| g.as_vk()).collect::<Vec<_>>();
+    pub fn create(
+        device: &Arc<Device>,
+        scene: &Scene,
+        geometry: Vec<(DefaultKey, &BlasInstance)>,
+    ) -> Self {
+        let instances = geometry
+            .iter()
+            .map(|g| g.1.as_vk(scene))
+            .collect::<Vec<_>>();
         let instance_buf = InstanceBuffer::create(device, &instances);
         let geometry_info = AccelerationStructureGeometryInfo {
             ty: vk::AccelerationStructureTypeKHR::TOP_LEVEL,
@@ -277,7 +223,7 @@ impl Tlas {
 
         Self {
             instance_buf,
-            geometry: geometry.clone(),
+            geometry: geometry.iter().map(|g| g.0).collect::<Vec<_>>(),
             size,
             geometry_info,
             accel,

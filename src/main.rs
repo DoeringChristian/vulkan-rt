@@ -70,7 +70,8 @@ fn main() -> anyhow::Result<()> {
     // Load the .obj cube scene
     // ------------------------------------------------------------------------------------------ //
 
-    let mut world = GpuWorld::load(&event_loop.device);
+    let mut scene = Scene::new();
+    scene.load(&event_loop.device);
 
     let img = Arc::new(
         Image::create(
@@ -92,20 +93,22 @@ fn main() -> anyhow::Result<()> {
 
     event_loop.run(|mut frame| {
         if fc == 0 {
-            world.build_accels(&mut cache, &mut frame.render_graph);
+            scene.build_accels(&mut cache, &mut frame.render_graph);
         } else {
             //world.instances[0].transform.matrix[3] += 0.01;
-            world.update_tlas(frame.device, &mut cache, &mut frame.render_graph);
+            //world.update_tlas(frame.device, &mut cache, &mut frame.render_graph);
         }
 
         let image_node = frame.render_graph.bind_node(&img);
 
-        let blas_nodes = world
+        let blas_nodes = scene
             .blases
-            .iter()
+            .values()
             .map(|b| frame.render_graph.bind_node(&b.accel))
             .collect::<Vec<_>>();
-        let tlas_node = frame.render_graph.bind_node(&world.tlas.accel);
+        let tlas_node = frame
+            .render_graph
+            .bind_node(&scene.tlas.as_ref().unwrap().accel);
         let sbt_node = frame.render_graph.bind_node(sbt.buffer());
 
         let sbt_rgen = sbt.rgen();
