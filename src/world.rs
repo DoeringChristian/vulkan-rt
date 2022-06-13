@@ -12,11 +12,14 @@ use std::sync::{Arc, Weak};
 use std::{io::BufReader, mem::size_of};
 use tobj::*;
 
-#[derive(Debug, Hash, Copy)]
+//#[derive(Copy)]
+
 pub struct SceneKey<V: 'static> {
     _ty: PhantomData<V>,
     key: DefaultKey,
 }
+
+impl<V: 'static> Copy for SceneKey<V> {}
 
 impl<V: 'static> Clone for SceneKey<V> {
     #[inline]
@@ -169,18 +172,18 @@ impl Scene {
         .unwrap();
 
         for model in models.iter() {
-            self.geometries.insert(BlasGeometry::create(
+            self.insert(BlasGeometry::create(
                 device,
                 &model.mesh.indices,
                 &model.mesh.positions,
             ));
         }
 
-        for geometry in self.geometries.iter() {
-            self.blases.insert(Blas::create(device, geometry));
+        for geometry in self.iter::<BlasGeometry>().unwrap() {
+            self.insert(Blas::create(device, geometry));
         }
 
-        for key in self.blases.keys() {
+        for key in self.keys().unwrap() {
             self.instances.insert(BlasInstance {
                 blas: key,
                 transform: vk::TransformMatrixKHR {

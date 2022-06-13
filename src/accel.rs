@@ -3,7 +3,7 @@ use screen_13::prelude::*;
 use slotmap::DefaultKey;
 use std::sync::Arc;
 
-use crate::world::Scene;
+use crate::world::*;
 
 use super::buffers::*;
 
@@ -23,7 +23,7 @@ impl BlasGeometry {
 }
 
 pub struct Blas {
-    geometry: DefaultKey,
+    geometry: SceneKey<BlasGeometry>,
     pub accel: Arc<AccelerationStructure>,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
@@ -31,7 +31,7 @@ pub struct Blas {
 
 impl Blas {
     pub fn build(&self, scene: &Scene, cache: &mut HashPool, rgraph: &mut RenderGraph) {
-        let geometry = scene.geometries.get(self.geometry).unwrap();
+        let geometry = self.geometry.get(scene).unwrap();
         let index_node = rgraph.bind_node(&geometry.indices.data);
         let vertex_node = rgraph.bind_node(&geometry.positions.data);
         let accel_node = rgraph.bind_node(&self.accel);
@@ -69,7 +69,10 @@ impl Blas {
                 )
             });
     }
-    pub fn create(device: &Arc<Device>, (gkey, geometry): (DefaultKey, &BlasGeometry)) -> Self {
+    pub fn create(
+        device: &Arc<Device>,
+        (gkey, geometry): (SceneKey<BlasGeometry>, &BlasGeometry),
+    ) -> Self {
         let triangle_count = geometry.indices.count / 3;
         let vertex_count = geometry.positions.count / 3;
 
@@ -113,7 +116,7 @@ impl Blas {
 }
 
 pub struct BlasInstance {
-    pub blas: DefaultKey,
+    pub blas: SceneKey<Blas>,
     pub transform: vk::TransformMatrixKHR,
     pub instance_custom_index_and_mask: vk::Packed24_8,
     pub instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8,
@@ -128,7 +131,7 @@ impl BlasInstance {
                 .instance_shader_binding_table_record_offset_and_flags,
             acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
                 device_handle: AccelerationStructure::device_address(
-                    &scene.blases.get(self.blas).unwrap().accel,
+                    &self.blas.get(scene).unwrap().accel,
                 ),
             },
         }
