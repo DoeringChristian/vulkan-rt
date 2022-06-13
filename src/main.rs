@@ -6,9 +6,13 @@ use {
     tobj::{load_mtl_buf, load_obj_buf, GPU_LOAD_OPTIONS},
 };
 
+mod accel;
+mod buffers;
 mod sbt;
-use sbt::*;
 mod world;
+use accel::*;
+use buffers::*;
+use sbt::*;
 use world::*;
 
 fn align_up(val: u32, atom: u32) -> u32 {
@@ -66,7 +70,7 @@ fn main() -> anyhow::Result<()> {
     // Load the .obj cube scene
     // ------------------------------------------------------------------------------------------ //
 
-    let world = GpuWorld::load(&event_loop.device, &mut cache);
+    let world = GpuWorld::load(&event_loop.device);
 
     let img = Arc::new(
         Image::create(
@@ -85,14 +89,16 @@ fn main() -> anyhow::Result<()> {
     );
 
     event_loop.run(|mut frame| {
+        world.build_accels(&mut cache, &mut frame.render_graph);
+
         let image_node = frame.render_graph.bind_node(&img);
 
         let blas_nodes = world
-            .meshes
+            .blases
             .iter()
-            .map(|m| frame.render_graph.bind_node(&m.blas))
+            .map(|b| frame.render_graph.bind_node(&b.accel))
             .collect::<Vec<_>>();
-        let tlas_node = frame.render_graph.bind_node(&world.tlas);
+        let tlas_node = frame.render_graph.bind_node(&world.tlas.accel);
         let sbt_node = frame.render_graph.bind_node(sbt.buffer());
 
         let sbt_rgen = sbt.rgen();
@@ -100,7 +106,7 @@ fn main() -> anyhow::Result<()> {
         let sbt_hit = sbt.hit();
         let sbt_callable = sbt.callable();
 
-        trace!("blas_coutn: {}", blas_nodes.len());
+        trace!("blas_count: {}", blas_nodes.len());
 
         let mut pass: PipelinePassRef<RayTracePipeline> = frame
             .render_graph
