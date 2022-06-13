@@ -122,12 +122,7 @@ impl GpuGeometry {
                 });
         }
     }
-    pub fn from_tobj(
-        device: &Arc<Device>,
-        mesh: tobj::Mesh,
-        rgraph: &mut RenderGraph,
-        cache: &mut HashPool,
-    ) -> Self {
+    pub fn from_tobj(device: &Arc<Device>, mesh: tobj::Mesh) -> Self {
         let triangle_count = mesh.indices.len() / 3;
         let vertex_count = mesh.positions.len() / 3;
         let indices = Arc::new({
@@ -212,12 +207,7 @@ impl RenderWorld {
     pub fn new() -> Self {
         Self(World::new())
     }
-    pub fn load_gpu(
-        &mut self,
-        device: &Arc<Device>,
-        cache: &mut HashPool,
-        rgraph: &mut RenderGraph,
-    ) {
+    pub fn load_gpu(&mut self, device: &Arc<Device>) {
         let (models, ..) = load_obj_buf(
             &mut BufReader::new(include_bytes!("res/onecube_scene.obj").as_slice()),
             &GPU_LOAD_OPTIONS,
@@ -230,7 +220,7 @@ impl RenderWorld {
         .unwrap();
         models
             .into_iter()
-            .map(|m| GpuGeometry::from_tobj(device, m.mesh, rgraph, cache))
+            .map(|m| GpuGeometry::from_tobj(device, m.mesh))
             .for_each(|g| {
                 self.0.spawn().insert(g);
             });
@@ -358,8 +348,12 @@ impl GpuWorld {
 
         let meshes = models
             .into_iter()
-            .map(|m| GpuGeometry::from_tobj(device, m.mesh, &mut rgraph, cache))
+            .map(|m| GpuGeometry::from_tobj(device, m.mesh))
             .collect::<Vec<_>>();
+
+        for geometry in meshes.iter() {
+            geometry.create_blas(device, &mut rgraph, cache);
+        }
 
         let materials = materials
             .unwrap()
