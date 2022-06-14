@@ -3,6 +3,8 @@ use screen_13::prelude::*;
 use std::mem::size_of;
 use std::sync::Arc;
 
+use crate::world::Scene;
+
 pub struct PositionsBuffer {
     pub data: Arc<Buffer>,
     pub count: u64,
@@ -102,8 +104,19 @@ impl InstanceBuffer {
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct VkMaterial {
+    pub diffuse: [f32; 4],
+}
 pub struct Material {
     pub diffuse: [f32; 4],
+}
+
+impl Material {
+    pub fn to_vk(&self, scene: &Scene) -> VkMaterial {
+        VkMaterial {
+            diffuse: self.diffuse,
+        }
+    }
 }
 
 pub struct MaterialBuffer {
@@ -112,7 +125,7 @@ pub struct MaterialBuffer {
 }
 
 impl MaterialBuffer {
-    pub fn create(device: &Arc<Device>, materials: &[Material]) -> Self {
+    pub fn create(device: &Arc<Device>, materials: &[VkMaterial]) -> Self {
         let buf = Arc::new({
             let data = cast_slice(materials);
             let mut buf = Buffer::create(

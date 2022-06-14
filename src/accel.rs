@@ -3,7 +3,7 @@ use screen_13::prelude::*;
 use slotmap::DefaultKey;
 use std::sync::Arc;
 
-use crate::world::{BlasKey, GeometryKey, InstanceKey, Scene};
+use crate::world::{BlasKey, GeometryKey, InstanceKey, MaterialKey, Scene};
 
 use super::buffers::*;
 
@@ -114,18 +114,27 @@ impl Blas {
 
 pub struct BlasInstance {
     pub blas: BlasKey,
+    pub material: MaterialKey,
     pub transform: vk::TransformMatrixKHR,
-    pub instance_custom_index_and_mask: vk::Packed24_8,
-    pub instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8,
 }
 
 impl BlasInstance {
-    pub fn as_vk(&self, scene: &Scene) -> vk::AccelerationStructureInstanceKHR {
+    pub fn to_vk(&self, scene: &Scene) -> vk::AccelerationStructureInstanceKHR {
+        // TODO: Maybee we should not use SlotMaps.
+        let mat_idx = scene
+            .materials
+            .keys()
+            .enumerate()
+            .find(|(i, k)| *k == self.material)
+            .map(|(i, k)| i)
+            .unwrap();
         vk::AccelerationStructureInstanceKHR {
             transform: self.transform,
-            instance_custom_index_and_mask: self.instance_custom_index_and_mask,
-            instance_shader_binding_table_record_offset_and_flags: self
-                .instance_shader_binding_table_record_offset_and_flags,
+            instance_custom_index_and_mask: vk::Packed24_8::new(mat_idx as _, 0xff),
+            instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
+                0,
+                vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
+            ),
             acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
                 device_handle: AccelerationStructure::device_address(
                     &scene.blases.get(self.blas).unwrap().accel,
@@ -136,8 +145,9 @@ impl BlasInstance {
 }
 
 pub struct Tlas {
-    instances: Vec<InstanceKey>,
+    //instances: Vec<InstanceKey>,
     instance_buf: InstanceBuffer,
+    material_buf: MaterialBuffer,
     pub accel: Arc<AccelerationStructure>,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
@@ -158,21 +168,13 @@ impl Tlas {
         let instance_node = rgraph.bind_node(&self.instance_buf.data);
         let tlas_node = rgraph.bind_node(&self.accel);
         let geometry_info = self.geometry_info.clone();
-        let primitive_count = self.instances.len();
+        let primitive_count = scene.instances.len();
 
         // TODO: this is only necesarry to generate blases before tlas.
-        let blas_nodes = self
-            .instances
-            .iter()
-            .map(|i| {
-                rgraph.bind_node(
-                    &scene
-                        .blases
-                        .get(scene.instances.get(*i).unwrap().blas)
-                        .unwrap()
-                        .accel,
-                )
-            })
+        let blas_nodes = scene
+            .blases
+            .values()
+            .map(|b| rgraph.bind_node(b.accel))
             .collect::<Vec<_>>();
 
         let mut pass = rgraph.begin_pass("build TLAS").read_node(instance_node);
@@ -199,9 +201,15 @@ impl Tlas {
         let instances = scene
             .instances
             .iter()
-            .map(|(_, i)| i.as_vk(scene))
+            .map(|(_, i)| i.to_vk(scene))
             .collect::<Vec<_>>();
         let instance_buf = InstanceBuffer::create(device, &instances);
+        let materials = scene
+            .materials
+            .iter()
+            .map(|(_, m)| m.to_vk(scene))
+            .collect::<Vec<_>>();
+        let material_buf = MaterialBuffer::create(device, &materials);
         let geometry_info = AccelerationStructureGeometryInfo {
             ty: vk::AccelerationStructureTypeKHR::TOP_LEVEL,
             flags: vk::BuildAccelerationStructureFlagsKHR::empty(),
@@ -228,7 +236,8 @@ impl Tlas {
 
         Self {
             instance_buf,
-            instances: scene.instances.iter().map(|g| g.0).collect::<Vec<_>>(),
+            //instances: scene.instances.iter().map(|g| g.0).collect::<Vec<_>>(),
+            material_buf,
             size,
             geometry_info,
             accel,
