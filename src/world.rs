@@ -14,23 +14,24 @@ new_key_type! {
 }
 
 pub struct Scene {
-    pub geometries: SlotMap<GeometryKey, BlasGeometry>,
-    pub blases: SlotMap<BlasKey, Blas>,
-    pub instances: SlotMap<InstanceKey, BlasInstance>,
-    pub materials: SlotMap<MaterialKey, Material>,
+    pub geometries: Vec<BlasGeometry>,
+    pub blases: Vec<Blas>,
+    pub instances: Vec<BlasInstance>,
+    pub materials: Vec<Material>,
     pub tlas: Option<Tlas>,
 }
 
 impl Scene {
     pub fn new() -> Self {
         Self {
-            geometries: SlotMap::default(),
-            blases: SlotMap::default(),
-            instances: SlotMap::default(),
-            materials: SlotMap::default(),
+            geometries: Vec::new(),
+            blases: Vec::new(),
+            instances: Vec::new(),
+            materials: Vec::new(),
             tlas: None,
         }
     }
+    /*
     pub fn render(
         &self,
         cache: &mut HashPool,
@@ -45,8 +46,9 @@ impl Scene {
         let material_node = rgraph.bind_node(&self.tlas.as_ref().unwrap().material_buf.data);
         let tlas_ndoe = rgraph.bind_node(&self.tlas.as_ref().unwrap().accel);
     }
+    */
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
-        for (_, blas) in self.blases.iter() {
+        for blas in self.blases.iter() {
             blas.build(self, cache, rgraph);
         }
         self.tlas.as_ref().unwrap().build(self, cache, rgraph);
@@ -67,30 +69,30 @@ impl Scene {
             .unwrap()
             .into_iter()
             .map(|m| {
-                self.materials.insert(Material {
+                self.materials.push(Material {
                     diffuse: [m.diffuse[0], m.diffuse[1], m.diffuse[2], 1.],
-                })
+                });
+                self.materials.len() - 1
             })
             .collect::<Vec<_>>();
 
         for model in models.iter() {
-            self.geometries.insert(BlasGeometry::create(
+            self.geometries.push(BlasGeometry::create(
                 device,
                 &model.mesh.indices,
                 &model.mesh.positions,
             ));
         }
 
-        for geometry in self.geometries.iter() {
-            self.blases.insert(Blas::create(device, geometry));
+        for geometry in self.geometries.iter().enumerate() {
+            self.blases.push(Blas::create(device, geometry));
         }
 
         // create a instance for every blas.
-        for (i, key) in self.blases.keys().enumerate() {
-            self.instances.insert(BlasInstance {
-                blas: key,
-                // TODO: better material indexing / instance loading
-                material: material_keys[models[i].mesh.material_id.unwrap_or_default()],
+        for (i, m) in models.iter().enumerate() {
+            self.instances.push(BlasInstance {
+                blas: i,
+                material: material_keys[m.mesh.material_id.unwrap_or_default()],
                 transform: vk::TransformMatrixKHR {
                     matrix: [
                         1.0, 0.0, 0.0, 0.0, //

@@ -103,7 +103,7 @@ fn main() -> anyhow::Result<()> {
 
         let blas_nodes = scene
             .blases
-            .values()
+            .iter()
             .map(|b| frame.render_graph.bind_node(&b.accel))
             .collect::<Vec<_>>();
         let material_node = frame

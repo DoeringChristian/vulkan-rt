@@ -23,7 +23,7 @@ impl BlasGeometry {
 }
 
 pub struct Blas {
-    geometry: GeometryKey,
+    geometry: usize,
     pub accel: Arc<AccelerationStructure>,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
@@ -69,7 +69,7 @@ impl Blas {
                 )
             });
     }
-    pub fn create(device: &Arc<Device>, (gkey, geometry): (GeometryKey, &BlasGeometry)) -> Self {
+    pub fn create(device: &Arc<Device>, (gkey, geometry): (usize, &BlasGeometry)) -> Self {
         let triangle_count = geometry.indices.count / 3;
         let vertex_count = geometry.positions.count / 3;
 
@@ -113,9 +113,9 @@ impl Blas {
 }
 
 pub struct BlasInstance {
-    pub blas: BlasKey,
+    pub blas: usize,
     // TODO: add shader references.
-    pub material: MaterialKey,
+    pub material: usize,
     pub transform: vk::TransformMatrixKHR,
 }
 
@@ -123,16 +123,9 @@ impl BlasInstance {
     pub fn to_vk(&self, scene: &Scene) -> vk::AccelerationStructureInstanceKHR {
         // TODO: Maybee we should not use SlotMaps. Or find a better way to get the indices of the
         // materials.
-        let mat_idx = scene
-            .materials
-            .keys()
-            .enumerate()
-            .find(|(i, k)| *k == self.material)
-            .map(|(i, k)| i)
-            .unwrap();
         vk::AccelerationStructureInstanceKHR {
             transform: self.transform,
-            instance_custom_index_and_mask: vk::Packed24_8::new(mat_idx as _, 0xff),
+            instance_custom_index_and_mask: vk::Packed24_8::new(self.material as _, 0xff),
             instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
                 0,
                 vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
@@ -186,7 +179,7 @@ impl Tlas {
         // TODO: this is only necesarry to generate blases before tlas.
         let blas_nodes = scene
             .blases
-            .values()
+            .iter()
             .map(|b| rgraph.bind_node(&b.accel))
             .collect::<Vec<_>>();
 
@@ -214,13 +207,13 @@ impl Tlas {
         let instances = scene
             .instances
             .iter()
-            .map(|(_, i)| i.to_vk(scene))
+            .map(|i| i.to_vk(scene))
             .collect::<Vec<_>>();
         let instance_buf = InstanceBuffer::create(device, &instances);
         let materials = scene
             .materials
             .iter()
-            .map(|(_, m)| m.to_vk(scene))
+            .map(|m| m.to_vk(scene))
             .collect::<Vec<_>>();
         let material_buf = MaterialBuffer::create(device, &materials);
         let geometry_info = AccelerationStructureGeometryInfo {
