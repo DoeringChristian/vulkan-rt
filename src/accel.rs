@@ -114,6 +114,7 @@ impl Blas {
 
 pub struct BlasInstance {
     pub blas: BlasKey,
+    // TODO: add shader references.
     pub material: MaterialKey,
     pub transform: vk::TransformMatrixKHR,
 }
@@ -147,7 +148,7 @@ impl BlasInstance {
 pub struct Tlas {
     //instances: Vec<InstanceKey>,
     instance_buf: InstanceBuffer,
-    material_buf: MaterialBuffer,
+    pub material_buf: MaterialBuffer,
     pub accel: Arc<AccelerationStructure>,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
@@ -174,7 +175,7 @@ impl Tlas {
         let blas_nodes = scene
             .blases
             .values()
-            .map(|b| rgraph.bind_node(b.accel))
+            .map(|b| rgraph.bind_node(&b.accel))
             .collect::<Vec<_>>();
 
         let mut pass = rgraph.begin_pass("build TLAS").read_node(instance_node);

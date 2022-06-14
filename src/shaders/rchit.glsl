@@ -6,10 +6,7 @@
 #define M_PI 3.1415926535897932384626433832795
 
 struct Material {
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    vec3 emission;
+    vec4 diffuse;
 };
 
 hitAttributeEXT vec2 hitCoordinate;
@@ -27,6 +24,9 @@ layout(location = 0) rayPayloadInEXT Payload {
 } payload;
 
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
+layout(binding = 2, set = 0) buffer Materials{
+    Material materials[];
+};
 
 float random(vec2 uv, float seed) {
     return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) *
@@ -53,7 +53,9 @@ void main() {
         return;
     }
 
-    payload.directColor = vec3(1., 0., 0.);
+    Material mat = materials[gl_InstanceCustomIndexEXT];
+
+    payload.directColor = mat.diffuse.xyz;
 
     payload.rayOrigin = vec3(0., 0., 0.);
     payload.rayDirection = vec3(0., 1., 0.);

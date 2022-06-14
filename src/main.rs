@@ -106,6 +106,9 @@ fn main() -> anyhow::Result<()> {
             .values()
             .map(|b| frame.render_graph.bind_node(&b.accel))
             .collect::<Vec<_>>();
+        let material_node = frame
+            .render_graph
+            .bind_node(&scene.tlas.as_ref().unwrap().material_buf.data);
         let tlas_node = frame
             .render_graph
             .bind_node(&scene.tlas.as_ref().unwrap().accel);
@@ -135,6 +138,7 @@ fn main() -> anyhow::Result<()> {
                 AccessType::RayTracingShaderReadAccelerationStructure,
             )
             .write_descriptor(1, image_node)
+            .read_descriptor(2, material_node)
             .record_ray_trace(move |ray_trace| {
                 ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 100, 100, 1);
             });

@@ -50,16 +50,15 @@ impl Scene {
         )
         .unwrap();
 
-        for material in materials.unwrap().iter() {
-            self.materials.insert(Material {
-                diffuse: [
-                    material.diffuse[0],
-                    material.diffuse[1],
-                    material.diffuse[2],
-                    1.,
-                ],
-            });
-        }
+        let material_keys = materials
+            .unwrap()
+            .into_iter()
+            .map(|m| {
+                self.materials.insert(Material {
+                    diffuse: [m.diffuse[0], m.diffuse[1], m.diffuse[2], 1.],
+                })
+            })
+            .collect::<Vec<_>>();
 
         for model in models.iter() {
             self.geometries.insert(BlasGeometry::create(
@@ -73,9 +72,12 @@ impl Scene {
             self.blases.insert(Blas::create(device, geometry));
         }
 
-        for key in self.blases.keys() {
+        // create a instance for every blas.
+        for (i, key) in self.blases.keys().enumerate() {
             self.instances.insert(BlasInstance {
                 blas: key,
+                // TODO: material indexing
+                material: material_keys[0],
                 transform: vk::TransformMatrixKHR {
                     matrix: [
                         1.0, 0.0, 0.0, 0.0, //
@@ -83,11 +85,6 @@ impl Scene {
                         0.0, 0.0, 1.0, 0.0, //
                     ],
                 },
-                instance_custom_index_and_mask: vk::Packed24_8::new(0, 0xff),
-                instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
-                    0,
-                    vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
-                ),
             });
         }
 
