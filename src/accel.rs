@@ -3,7 +3,7 @@ use screen_13::prelude::*;
 use slotmap::DefaultKey;
 use std::sync::Arc;
 
-use crate::world::Scene;
+use crate::world::{BlasKey, GeometryKey, InstanceKey, Scene};
 
 use super::buffers::*;
 
@@ -23,7 +23,7 @@ impl BlasGeometry {
 }
 
 pub struct Blas {
-    geometry: DefaultKey,
+    geometry: GeometryKey,
     pub accel: Arc<AccelerationStructure>,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
@@ -69,7 +69,7 @@ impl Blas {
                 )
             });
     }
-    pub fn create(device: &Arc<Device>, (gkey, geometry): (DefaultKey, &BlasGeometry)) -> Self {
+    pub fn create(device: &Arc<Device>, (gkey, geometry): (GeometryKey, &BlasGeometry)) -> Self {
         let triangle_count = geometry.indices.count / 3;
         let vertex_count = geometry.positions.count / 3;
 
@@ -113,7 +113,7 @@ impl Blas {
 }
 
 pub struct BlasInstance {
-    pub blas: DefaultKey,
+    pub blas: BlasKey,
     pub transform: vk::TransformMatrixKHR,
     pub instance_custom_index_and_mask: vk::Packed24_8,
     pub instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8,
@@ -136,7 +136,7 @@ impl BlasInstance {
 }
 
 pub struct Tlas {
-    geometry: Vec<DefaultKey>,
+    instances: Vec<InstanceKey>,
     instance_buf: InstanceBuffer,
     pub accel: Arc<AccelerationStructure>,
     geometry_info: AccelerationStructureGeometryInfo,
@@ -158,13 +158,21 @@ impl Tlas {
         let instance_node = rgraph.bind_node(&self.instance_buf.data);
         let tlas_node = rgraph.bind_node(&self.accel);
         let geometry_info = self.geometry_info.clone();
-        let primitive_count = self.geometry.len();
+        let primitive_count = self.instances.len();
 
         // TODO: this is only necesarry to generate blases before tlas.
         let blas_nodes = self
-            .geometry
+            .instances
             .iter()
-            .map(|g| rgraph.bind_node(&scene.blases.get(*g).unwrap().accel))
+            .map(|i| {
+                rgraph.bind_node(
+                    &scene
+                        .blases
+                        .get(scene.instances.get(*i).unwrap().blas)
+                        .unwrap()
+                        .accel,
+                )
+            })
             .collect::<Vec<_>>();
 
         let mut pass = rgraph.begin_pass("build TLAS").read_node(instance_node);
@@ -187,21 +195,18 @@ impl Tlas {
                 );
             });
     }
-    pub fn create(
-        device: &Arc<Device>,
-        scene: &Scene,
-        geometry: Vec<(DefaultKey, &BlasInstance)>,
-    ) -> Self {
-        let instances = geometry
+    pub fn create(device: &Arc<Device>, scene: &Scene) -> Self {
+        let instances = scene
+            .instances
             .iter()
-            .map(|g| g.1.as_vk(scene))
+            .map(|(_, i)| i.as_vk(scene))
             .collect::<Vec<_>>();
         let instance_buf = InstanceBuffer::create(device, &instances);
         let geometry_info = AccelerationStructureGeometryInfo {
             ty: vk::AccelerationStructureTypeKHR::TOP_LEVEL,
             flags: vk::BuildAccelerationStructureFlagsKHR::empty(),
             geometries: vec![AccelerationStructureGeometry {
-                max_primitive_count: geometry.len() as _,
+                max_primitive_count: instances.len() as _,
                 flags: vk::GeometryFlagsKHR::OPAQUE,
                 geometry: AccelerationStructureGeometryData::Instances {
                     array_of_pointers: false,
@@ -223,7 +228,7 @@ impl Tlas {
 
         Self {
             instance_buf,
-            geometry: geometry.iter().map(|g| g.0).collect::<Vec<_>>(),
+            instances: scene.instances.iter().map(|g| g.0).collect::<Vec<_>>(),
             size,
             geometry_info,
             accel,

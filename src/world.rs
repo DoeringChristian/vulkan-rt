@@ -1,153 +1,35 @@
 use crate::accel::{Blas, BlasGeometry, BlasInstance, Tlas};
+use crate::buffers::Material;
 
-use super::buffers;
-use bevy_ecs::prelude::*;
-use bytemuck::cast_slice;
 use screen_13::prelude::*;
 use slotmap::*;
-use std::any::{Any, TypeId};
-use std::collections::HashMap;
-use std::marker::PhantomData;
-use std::sync::{Arc, Weak};
-use std::{io::BufReader, mem::size_of};
+use std::io::BufReader;
+use std::sync::Arc;
 use tobj::*;
 
-#[derive(Debug, Hash, Copy)]
-pub struct SceneKey<V: 'static> {
-    _ty: PhantomData<V>,
-    key: DefaultKey,
-}
-
-impl<V: 'static> Clone for SceneKey<V> {
-    #[inline]
-    fn clone(&self) -> Self {
-        SceneKey {
-            _ty: PhantomData,
-            key: self.key,
-        }
-    }
-}
-
-impl<V: 'static> SceneKey<V> {
-    pub fn get(self, scene: &Scene) -> Option<&V> {
-        scene.get(self)
-    }
-    pub fn get_mut(self, scene: &mut Scene) -> Option<&mut V> {
-        scene.get_mut(self)
-    }
+new_key_type! {
+    pub struct GeometryKey;
+    pub struct InstanceKey;
+    pub struct BlasKey;
+    pub struct MaterialKey;
 }
 
 pub struct Scene {
-    pub data: HashMap<TypeId, Box<dyn Any>>,
-    pub geometries: SlotMap<DefaultKey, BlasGeometry>,
-    pub blases: SlotMap<DefaultKey, Blas>,
-    pub instances: SlotMap<DefaultKey, BlasInstance>,
+    pub geometries: SlotMap<GeometryKey, BlasGeometry>,
+    pub blases: SlotMap<BlasKey, Blas>,
+    pub instances: SlotMap<InstanceKey, BlasInstance>,
+    pub materials: SlotMap<MaterialKey, Material>,
     pub tlas: Option<Tlas>,
 }
 
 impl Scene {
-    pub fn insert<V: 'static>(&mut self, val: V) -> SceneKey<V> {
-        let ty_id = TypeId::of::<V>();
-        SceneKey {
-            key: self
-                .data
-                .entry(ty_id)
-                .or_insert(Box::new(SlotMap::<DefaultKey, V>::new()))
-                .downcast_mut::<SlotMap<DefaultKey, V>>()
-                .unwrap()
-                .insert(val),
-            _ty: PhantomData,
-        }
-    }
-    pub fn get<V: 'static>(&self, key: SceneKey<V>) -> Option<&V> {
-        let ty_id = TypeId::of::<V>();
-        self.data
-            .get(&ty_id)?
-            .downcast_ref::<SlotMap<DefaultKey, V>>()?
-            .get(key.key)
-    }
-    pub fn get_mut<V: 'static>(&mut self, key: SceneKey<V>) -> Option<&mut V> {
-        let ty_id = TypeId::of::<V>();
-        self.data
-            .get_mut(&ty_id)?
-            .downcast_mut::<SlotMap<DefaultKey, V>>()?
-            .get_mut(key.key)
-    }
-    pub fn iter<V: 'static>(&self) -> Option<impl Iterator<Item = (SceneKey<V>, &V)>> {
-        let ty_id = TypeId::of::<V>();
-        Some(
-            self.data
-                .get(&ty_id)?
-                .downcast_ref::<SlotMap<DefaultKey, V>>()?
-                .iter()
-                .map(|(k, v)| {
-                    (
-                        SceneKey {
-                            key: k,
-                            _ty: PhantomData,
-                        },
-                        v,
-                    )
-                }),
-        )
-    }
-    pub fn iter_mut<V: 'static>(&mut self) -> Option<impl Iterator<Item = (SceneKey<V>, &mut V)>> {
-        let ty_id = TypeId::of::<V>();
-        Some(
-            self.data
-                .get_mut(&ty_id)?
-                .downcast_mut::<SlotMap<DefaultKey, V>>()?
-                .iter_mut()
-                .map(|(k, v)| {
-                    (
-                        SceneKey {
-                            key: k,
-                            _ty: PhantomData,
-                        },
-                        v,
-                    )
-                }),
-        )
-    }
-    pub fn keys<V: 'static>(&self) -> Option<impl Iterator<Item = SceneKey<V>> + '_> {
-        let ty_id = TypeId::of::<V>();
-        Some(
-            self.data
-                .get(&ty_id)?
-                .downcast_ref::<SlotMap<DefaultKey, V>>()?
-                .keys()
-                .map(|k| SceneKey {
-                    key: k,
-                    _ty: PhantomData,
-                }),
-        )
-    }
-    pub fn values<V: 'static>(&self) -> Option<impl Iterator<Item = &V>> {
-        let ty_id = TypeId::of::<V>();
-        Some(
-            self.data
-                .get(&ty_id)?
-                .downcast_ref::<SlotMap<DefaultKey, V>>()?
-                .values(),
-        )
-    }
-    pub fn values_mut<V: 'static>(&mut self) -> Option<impl Iterator<Item = &mut V>> {
-        let ty_id = TypeId::of::<V>();
-        Some(
-            self.data
-                .get_mut(&ty_id)?
-                .downcast_mut::<SlotMap<DefaultKey, V>>()?
-                .values_mut(),
-        )
-    }
-
     pub fn new() -> Self {
         Self {
-            geometries: SlotMap::new(),
-            blases: SlotMap::new(),
-            instances: SlotMap::new(),
+            geometries: SlotMap::default(),
+            blases: SlotMap::default(),
+            instances: SlotMap::default(),
+            materials: SlotMap::default(),
             tlas: None,
-            data: HashMap::new(),
         }
     }
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
@@ -167,6 +49,17 @@ impl Scene {
             },
         )
         .unwrap();
+
+        for material in materials.unwrap().iter() {
+            self.materials.insert(Material {
+                diffuse: [
+                    material.diffuse[0],
+                    material.diffuse[1],
+                    material.diffuse[2],
+                    1.,
+                ],
+            });
+        }
 
         for model in models.iter() {
             self.geometries.insert(BlasGeometry::create(
@@ -198,10 +91,6 @@ impl Scene {
             });
         }
 
-        self.tlas = Some(Tlas::create(
-            device,
-            self,
-            self.instances.iter().collect::<Vec<_>>(),
-        ));
+        self.tlas = Some(Tlas::create(device, self));
     }
 }
