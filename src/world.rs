@@ -13,6 +13,9 @@ new_key_type! {
     pub struct MaterialKey;
 }
 
+// TODO: change add pipeline and sbt to scene.
+// where sbt indexes into shader groups of pipeline.
+// (maybee sbt should be part of tlas)
 pub struct Scene {
     pub geometries: Vec<BlasGeometry>,
     pub blases: Vec<Blas>,
