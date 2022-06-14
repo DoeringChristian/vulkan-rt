@@ -121,7 +121,8 @@ pub struct BlasInstance {
 
 impl BlasInstance {
     pub fn to_vk(&self, scene: &Scene) -> vk::AccelerationStructureInstanceKHR {
-        // TODO: Maybee we should not use SlotMaps.
+        // TODO: Maybee we should not use SlotMaps. Or find a better way to get the indices of the
+        // materials.
         let mat_idx = scene
             .materials
             .keys()
@@ -145,8 +146,19 @@ impl BlasInstance {
     }
 }
 
+pub struct Material {
+    pub diffuse: [f32; 4],
+}
+
+impl Material {
+    pub fn to_vk(&self, scene: &Scene) -> VkMaterial {
+        VkMaterial {
+            diffuse: self.diffuse,
+        }
+    }
+}
+
 pub struct Tlas {
-    //instances: Vec<InstanceKey>,
     instance_buf: InstanceBuffer,
     pub material_buf: MaterialBuffer,
     pub accel: Arc<AccelerationStructure>,
@@ -237,7 +249,6 @@ impl Tlas {
 
         Self {
             instance_buf,
-            //instances: scene.instances.iter().map(|g| g.0).collect::<Vec<_>>(),
             material_buf,
             size,
             geometry_info,

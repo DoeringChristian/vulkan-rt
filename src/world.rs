@@ -1,5 +1,4 @@
-use crate::accel::{Blas, BlasGeometry, BlasInstance, Tlas};
-use crate::buffers::Material;
+use crate::accel::{Blas, BlasGeometry, BlasInstance, Material, Tlas};
 
 use screen_13::prelude::*;
 use slotmap::*;
@@ -31,6 +30,20 @@ impl Scene {
             materials: SlotMap::default(),
             tlas: None,
         }
+    }
+    pub fn render(
+        &self,
+        cache: &mut HashPool,
+        rgraph: &mut RenderGraph,
+        image: impl Into<AnyImageNode>,
+    ) {
+        let blas_nodes = self
+            .blases
+            .values()
+            .map(|b| rgraph.bind_node(&b.accel))
+            .collect::<Vec<_>>();
+        let material_node = rgraph.bind_node(&self.tlas.as_ref().unwrap().material_buf.data);
+        let tlas_ndoe = rgraph.bind_node(&self.tlas.as_ref().unwrap().accel);
     }
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
         for (_, blas) in self.blases.iter() {
@@ -76,8 +89,8 @@ impl Scene {
         for (i, key) in self.blases.keys().enumerate() {
             self.instances.insert(BlasInstance {
                 blas: key,
-                // TODO: material indexing
-                material: material_keys[0],
+                // TODO: better material indexing / instance loading
+                material: material_keys[models[i].mesh.material_id.unwrap_or_default()],
                 transform: vk::TransformMatrixKHR {
                     matrix: [
                         1.0, 0.0, 0.0, 0.0, //
