@@ -116,6 +116,7 @@ pub struct BlasInstance {
     pub blas: usize,
     // TODO: add shader references.
     pub material: usize,
+    pub shader: usize,
     pub transform: vk::TransformMatrixKHR,
 }
 
@@ -141,12 +142,14 @@ impl BlasInstance {
 
 pub struct Material {
     pub diffuse: [f32; 4],
+    pub mra: [f32; 4],
 }
 
 impl Material {
     pub fn to_vk(&self, scene: &Scene) -> VkMaterial {
         VkMaterial {
             diffuse: self.diffuse,
+            mra: self.mra,
         }
     }
 }

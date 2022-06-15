@@ -1,10 +1,10 @@
 use crate::accel::{Blas, BlasGeometry, BlasInstance, Material, Tlas};
+use crate::model::Model;
 
 use screen_13::prelude::*;
 use slotmap::*;
 use std::io::BufReader;
 use std::sync::Arc;
-use tobj::*;
 
 new_key_type! {
     pub struct GeometryKey;
@@ -17,16 +17,18 @@ new_key_type! {
 // where sbt indexes into shader groups of pipeline.
 // (maybee sbt should be part of tlas)
 pub struct Scene {
+    pub models: Vec<Model>,
+    pub materials: Vec<Material>,
     pub geometries: Vec<BlasGeometry>,
     pub blases: Vec<Blas>,
     pub instances: Vec<BlasInstance>,
-    pub materials: Vec<Material>,
     pub tlas: Option<Tlas>,
 }
 
 impl Scene {
     pub fn new() -> Self {
         Self {
+            models: Vec::new(),
             geometries: Vec::new(),
             blases: Vec::new(),
             instances: Vec::new(),
@@ -56,46 +58,43 @@ impl Scene {
         }
         self.tlas.as_ref().unwrap().build(self, cache, rgraph);
     }
-    pub fn load(&mut self, device: &Arc<Device>) {
-        let (models, materials, ..) = load_obj_buf(
-            &mut BufReader::new(include_bytes!("res/onecube_scene.obj").as_slice()),
-            &GPU_LOAD_OPTIONS,
-            |_| {
-                load_mtl_buf(&mut BufReader::new(
-                    include_bytes!("res/onecube_scene.mtl").as_slice(),
-                ))
-            },
-        )
-        .unwrap();
-
-        let material_keys = materials
-            .unwrap()
-            .into_iter()
-            .map(|m| {
+    pub fn load_gltf(&mut self, device: &Arc<Device>) {
+        let (gltf, buffers, _) = gltf::import("./src/res/monkey.gltf").unwrap();
+        // Load to cpu
+        {
+            for material in gltf.materials() {
+                let mr = material.pbr_metallic_roughness();
                 self.materials.push(Material {
-                    diffuse: [m.diffuse[0], m.diffuse[1], m.diffuse[2], 1.],
+                    diffuse: mr.base_color_factor(),
+                    mra: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
                 });
-                self.materials.len() - 1
-            })
-            .collect::<Vec<_>>();
-
-        for model in models.iter() {
-            self.geometries.push(BlasGeometry::create(
-                device,
-                &model.mesh.indices,
-                &model.mesh.positions,
-            ));
-        }
-
-        for geometry in self.geometries.iter().enumerate() {
-            self.blases.push(Blas::create(device, geometry));
-        }
-
-        // create a instance for every blas.
-        for (i, m) in models.iter().enumerate() {
+            }
+            for mesh in gltf.meshes() {
+                let primitive = mesh.primitives().next().unwrap();
+                let mut model = Model {
+                    indices: Vec::new(),
+                    positions: Vec::new(),
+                    uvs: Vec::new(),
+                };
+                let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
+                if let Some(iter) = reader.read_positions() {
+                    for position in iter {
+                        model.positions.push(position[0]);
+                        model.positions.push(position[1]);
+                        model.positions.push(position[2]);
+                    }
+                }
+                if let Some(iter) = reader.read_indices() {
+                    for index in iter.into_u32() {
+                        model.indices.push(index)
+                    }
+                }
+                self.models.push(model);
+            }
             self.instances.push(BlasInstance {
-                blas: i,
-                material: material_keys[m.mesh.material_id.unwrap_or_default()],
+                blas: 0,
+                material: 0,
+                shader: 0,
                 transform: vk::TransformMatrixKHR {
                     matrix: [
                         1.0, 0.0, 0.0, 0.0, //
@@ -105,7 +104,19 @@ impl Scene {
                 },
             });
         }
-
-        self.tlas = Some(Tlas::create(device, self));
+        {
+            for model in self.models.iter() {
+                self.geometries.push(BlasGeometry::create(
+                    device,
+                    &model.indices,
+                    &model.positions,
+                ));
+            }
+            for geometry in self.geometries.iter().enumerate() {
+                self.blases.push(Blas::create(device, geometry));
+            }
+            // create instance for each model TODO: load instances from gltf nodes.
+            self.tlas = Some(Tlas::create(device, self));
+        }
     }
 }

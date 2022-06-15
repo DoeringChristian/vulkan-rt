@@ -7,6 +7,7 @@
 
 struct Material {
     vec4 diffuse;
+    vec4 mra;
 };
 
 hitAttributeEXT vec2 hitCoordinate;

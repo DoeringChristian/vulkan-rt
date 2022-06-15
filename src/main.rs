@@ -8,10 +8,12 @@ use {
 
 mod accel;
 mod buffers;
+mod model;
 mod sbt;
 mod world;
 use accel::*;
 use buffers::*;
+use model::*;
 use sbt::*;
 use world::*;
 
@@ -71,7 +73,7 @@ fn main() -> anyhow::Result<()> {
     // ------------------------------------------------------------------------------------------ //
 
     let mut scene = Scene::new();
-    scene.load(&event_loop.device);
+    scene.load_gltf(&event_loop.device);
 
     let img = Arc::new(
         Image::create(
