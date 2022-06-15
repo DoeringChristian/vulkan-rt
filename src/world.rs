@@ -3,14 +3,51 @@ use crate::model::Model;
 
 use screen_13::prelude::*;
 use slotmap::*;
+use std::collections::HashMap;
 use std::io::BufReader;
 use std::sync::Arc;
 
-new_key_type! {
-    pub struct GeometryKey;
-    pub struct InstanceKey;
-    pub struct BlasKey;
-    pub struct MaterialKey;
+pub struct GpuScene {
+    pub geometries: Vec<BlasGeometry>,
+    pub blases: Vec<Blas>,
+    pub tlas: Tlas,
+}
+
+impl GpuScene {
+    pub fn create(device: &Arc<Device>, scene: &Scene) -> Self {
+        let geometries = scene
+            .models
+            .iter()
+            .map(|m| BlasGeometry::create(device, &m.indices, &m.positions))
+            .collect::<Vec<_>>();
+
+        let blases = geometries
+            .iter()
+            .enumerate()
+            .map(|g| Blas::create(device, g))
+            .collect::<Vec<_>>();
+        // TODO: find better way. We could use the same index for blas, geometry and model if we
+        // generate a geometry, blas for every model.
+        let model_to_blas = blases
+            .iter()
+            .enumerate()
+            .map(|(i, b)| (i, b))
+            .collect::<HashMap<_, _>>();
+        // create instance for each model TODO: load instances from gltf nodes.
+        let tlas = Tlas::create(device, scene, &model_to_blas);
+
+        Self {
+            geometries,
+            blases,
+            tlas,
+        }
+    }
+    pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
+        for blas in self.blases.iter() {
+            blas.build(self, cache, rgraph);
+        }
+        self.tlas.build(self, cache, rgraph);
+    }
 }
 
 // TODO: change add pipeline and sbt to scene.
@@ -19,21 +56,21 @@ new_key_type! {
 pub struct Scene {
     pub models: Vec<Model>,
     pub materials: Vec<Material>,
-    pub geometries: Vec<BlasGeometry>,
-    pub blases: Vec<Blas>,
+    //pub geometries: Vec<BlasGeometry>,
+    //pub blases: Vec<Blas>,
     pub instances: Vec<BlasInstance>,
-    pub tlas: Option<Tlas>,
+    //pub tlas: Option<Tlas>,
 }
 
 impl Scene {
     pub fn new() -> Self {
         Self {
             models: Vec::new(),
-            geometries: Vec::new(),
-            blases: Vec::new(),
+            //geometries: Vec::new(),
+            //blases: Vec::new(),
             instances: Vec::new(),
             materials: Vec::new(),
-            tlas: None,
+            //tlas: None,
         }
     }
     /*
@@ -52,12 +89,14 @@ impl Scene {
         let tlas_ndoe = rgraph.bind_node(&self.tlas.as_ref().unwrap().accel);
     }
     */
+    /*
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
         for blas in self.blases.iter() {
             blas.build(self, cache, rgraph);
         }
         self.tlas.as_ref().unwrap().build(self, cache, rgraph);
     }
+    */
     pub fn load_gltf(&mut self, device: &Arc<Device>) {
         let (gltf, buffers, _) = gltf::import("./src/res/monkey.gltf").unwrap();
         // Load to cpu
@@ -92,7 +131,7 @@ impl Scene {
                 self.models.push(model);
             }
             self.instances.push(BlasInstance {
-                blas: 0,
+                model: 0,
                 material: 0,
                 shader: 0,
                 transform: vk::TransformMatrixKHR {
@@ -103,20 +142,6 @@ impl Scene {
                     ],
                 },
             });
-        }
-        {
-            for model in self.models.iter() {
-                self.geometries.push(BlasGeometry::create(
-                    device,
-                    &model.indices,
-                    &model.positions,
-                ));
-            }
-            for geometry in self.geometries.iter().enumerate() {
-                self.blases.push(Blas::create(device, geometry));
-            }
-            // create instance for each model TODO: load instances from gltf nodes.
-            self.tlas = Some(Tlas::create(device, self));
         }
     }
 }

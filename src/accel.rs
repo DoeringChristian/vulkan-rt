@@ -1,9 +1,9 @@
 use bevy_ecs::prelude::*;
 use screen_13::prelude::*;
 use slotmap::DefaultKey;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use crate::world::{BlasKey, GeometryKey, InstanceKey, MaterialKey, Scene};
+use crate::world::{GpuScene, Scene};
 
 use super::buffers::*;
 
@@ -30,7 +30,7 @@ pub struct Blas {
 }
 
 impl Blas {
-    pub fn build(&self, scene: &Scene, cache: &mut HashPool, rgraph: &mut RenderGraph) {
+    pub fn build(&self, scene: &GpuScene, cache: &mut HashPool, rgraph: &mut RenderGraph) {
         let geometry = scene.geometries.get(self.geometry).unwrap();
         let index_node = rgraph.bind_node(&geometry.indices.data);
         let vertex_node = rgraph.bind_node(&geometry.positions.data);
@@ -113,7 +113,8 @@ impl Blas {
 }
 
 pub struct BlasInstance {
-    pub blas: usize,
+    // TODO: model index instead of blas index.
+    pub model: usize,
     // TODO: add shader references.
     pub material: usize,
     pub shader: usize,
@@ -121,7 +122,7 @@ pub struct BlasInstance {
 }
 
 impl BlasInstance {
-    pub fn to_vk(&self, scene: &Scene) -> vk::AccelerationStructureInstanceKHR {
+    pub fn to_vk(&self, blases: &HashMap<usize, &Blas>) -> vk::AccelerationStructureInstanceKHR {
         // TODO: Maybee we should not use SlotMaps. Or find a better way to get the indices of the
         // materials.
         vk::AccelerationStructureInstanceKHR {
@@ -132,9 +133,7 @@ impl BlasInstance {
                 vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
             ),
             acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
-                device_handle: AccelerationStructure::device_address(
-                    &scene.blases.get(self.blas).unwrap().accel,
-                ),
+                device_handle: AccelerationStructure::device_address(&blases[&self.model].accel),
             },
         }
     }
@@ -163,7 +162,7 @@ pub struct Tlas {
 }
 
 impl Tlas {
-    pub fn build(&self, scene: &Scene, cache: &mut HashPool, rgraph: &mut RenderGraph) {
+    pub fn build(&self, scene: &GpuScene, cache: &mut HashPool, rgraph: &mut RenderGraph) {
         let scratch_buf = rgraph.bind_node(
             cache
                 .lease(BufferInfo::new(
@@ -177,7 +176,7 @@ impl Tlas {
         let instance_node = rgraph.bind_node(&self.instance_buf.data);
         let tlas_node = rgraph.bind_node(&self.accel);
         let geometry_info = self.geometry_info.clone();
-        let primitive_count = scene.instances.len();
+        let primitive_count = scene.blases.len();
 
         // TODO: this is only necesarry to generate blases before tlas.
         let blas_nodes = scene
@@ -206,11 +205,11 @@ impl Tlas {
                 );
             });
     }
-    pub fn create(device: &Arc<Device>, scene: &Scene) -> Self {
+    pub fn create(device: &Arc<Device>, scene: &Scene, blases: &HashMap<usize, &Blas>) -> Self {
         let instances = scene
             .instances
             .iter()
-            .map(|i| i.to_vk(scene))
+            .map(|i| i.to_vk(blases))
             .collect::<Vec<_>>();
         let instance_buf = InstanceBuffer::create(device, &instances);
         let materials = scene

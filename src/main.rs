@@ -74,6 +74,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut scene = Scene::new();
     scene.load_gltf(&event_loop.device);
+    let mut gpu_scene = GpuScene::create(&event_loop.device, &scene);
 
     let img = Arc::new(
         Image::create(
@@ -95,7 +96,7 @@ fn main() -> anyhow::Result<()> {
 
     event_loop.run(|mut frame| {
         if fc == 0 {
-            scene.build_accels(&mut cache, &mut frame.render_graph);
+            gpu_scene.build_accels(&mut cache, &mut frame.render_graph);
         } else {
             //world.instances[0].transform.matrix[3] += 0.01;
             //world.update_tlas(frame.device, &mut cache, &mut frame.render_graph);
@@ -103,17 +104,15 @@ fn main() -> anyhow::Result<()> {
 
         let image_node = frame.render_graph.bind_node(&img);
 
-        let blas_nodes = scene
+        let blas_nodes = gpu_scene
             .blases
             .iter()
             .map(|b| frame.render_graph.bind_node(&b.accel))
             .collect::<Vec<_>>();
         let material_node = frame
             .render_graph
-            .bind_node(&scene.tlas.as_ref().unwrap().material_buf.data);
-        let tlas_node = frame
-            .render_graph
-            .bind_node(&scene.tlas.as_ref().unwrap().accel);
+            .bind_node(&gpu_scene.tlas.material_buf.data);
+        let tlas_node = frame.render_graph.bind_node(&gpu_scene.tlas.accel);
         let sbt_node = frame.render_graph.bind_node(sbt.buffer());
 
         let sbt_rgen = sbt.rgen();
