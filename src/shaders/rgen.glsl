@@ -14,9 +14,9 @@ layout(location = 0) rayPayloadEXT Payload {
     int ray_active;
 } payload;
 
-layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
+layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
 
-layout(binding = 1, set = 0, rgba32f) uniform image2D image;
+layout(set = 0, binding = 1, rgba32f) uniform image2D image;
 
 float random(vec2 uv, float seed) {
     return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) *

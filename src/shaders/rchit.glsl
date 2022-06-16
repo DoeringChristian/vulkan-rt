@@ -12,6 +12,7 @@ struct Material {
 
 struct Attribute{
     uint mat_index;
+    uint model_id;
 };
 
 hitAttributeEXT vec2 hitCoordinate;
@@ -27,19 +28,22 @@ layout(location = 0) rayPayloadInEXT Payload {
     int ray_active;
 } payload;
 
-layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
-layout(binding = 2, set = 0) buffer Attributes{
+layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
+layout(set = 0, binding = 1, rgba32f) uniform image2D image;
+layout(set = 1, binding = 0) buffer Attributes{
     Attribute attributes[];
 };
-layout(binding = 3, set = 0) buffer Materials{
+layout(set = 1, binding = 1) buffer Materials{
     Material materials[];
 };
-layout(binding = 4, set = 0) buffer Indices{
+layout(set = 1, binding = 2) buffer Indices{
     uint indices[];
 }model_indices[];
-layout(binding = 4, set = 1) buffer Positions{
+/*
+layout(set = 2, binding = 3) buffer Positions{
     float positions[];
 }model_positions[];
+*/
 
 float rand(float seed){
     return fract(sin(seed * 12.9898) * 43758.5453);
@@ -119,6 +123,7 @@ void main() {
 
     Attribute attr = attributes[gl_InstanceCustomIndexEXT];
     Material mat = materials[attr.mat_index];
+    uint idx0 = model_indices[attr.model_id].indices[0];
 
     payload.orig = vec3(0., 0., 0.);
     payload.dir = vec3(0., 1., 0.);

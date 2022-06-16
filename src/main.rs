@@ -145,24 +145,30 @@ fn main() -> anyhow::Result<()> {
                 AccessType::RayTracingShaderReadAccelerationStructure,
             );
         }
-        for (i, node) in index_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((4, 0, [i as _]), *node);
-        }
-        for (i, node) in position_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((4, 1, [i as _]), *node);
-        }
-        pass.access_node(sbt_node, AccessType::RayTracingShaderReadOther)
+        pass = pass
+            .access_node(sbt_node, AccessType::RayTracingShaderReadOther)
             .access_descriptor(
-                0,
+                (0, 0),
                 tlas_node,
                 AccessType::RayTracingShaderReadAccelerationStructure,
             )
-            .write_descriptor(1, image_node)
-            .read_descriptor(2, attribute_node)
-            .read_descriptor(3, material_node)
-            .record_ray_trace(move |ray_trace| {
-                ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 1000, 1000, 1);
-            });
+            .write_descriptor((0, 1), image_node)
+            .read_descriptor((1, 0), attribute_node)
+            .read_descriptor((1, 1), material_node);
+
+        /*
+        for (i, node) in index_nodes.iter().enumerate() {
+            pass = pass.read_descriptor((2, 2, [i as _]), *node);
+        }
+        */
+        /*
+        for (i, node) in position_nodes.iter().enumerate() {
+            pass = pass.read_descriptor((2, 3, [i as _]), *node);
+        }
+        */
+        pass.record_ray_trace(move |ray_trace| {
+            ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 1000, 1000, 1);
+        });
         presenter.present_image(frame.render_graph, image_node, frame.swapchain_image);
         fc += 1;
         //frame.exit();
