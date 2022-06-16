@@ -13,15 +13,15 @@ struct Material {
 hitAttributeEXT vec2 hitCoordinate;
 
 layout(location = 0) rayPayloadInEXT Payload {
-    vec3 rayOrigin;
-    vec3 rayDirection;
-    vec3 previousNormal;
+    vec3 orig;
+    vec3 dir;
+    //vec3 prev_norm;
 
     vec3 directColor;
     vec3 indirectColor;
-    int rayDepth;
+    int depth;
 
-    int rayActive;
+    int ray_active;
 } payload;
 
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
@@ -50,7 +50,7 @@ vec3 alignHemisphereWithCoordinateSystem(vec3 hemisphere, vec3 up) {
 }
 
 void main() {
-    if (payload.rayActive == 0) {
+    if (payload.ray_active == 0) {
         return;
     }
 
@@ -58,9 +58,9 @@ void main() {
 
     payload.directColor = mat.diffuse.xyz;
 
-    payload.rayOrigin = vec3(0., 0., 0.);
-    payload.rayDirection = vec3(0., 1., 0.);
-    payload.previousNormal = vec3(0., 0., 1.);
+    payload.orig = vec3(0., 0., 0.);
+    payload.dir = vec3(0., 1., 0.);
+    //payload.prev_norm = vec3(0., 0., 1.);
 
-    payload.rayDepth += 1;
+    payload.depth += 1;
 }

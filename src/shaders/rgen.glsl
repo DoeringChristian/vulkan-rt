@@ -4,15 +4,15 @@
 #define M_PI 3.1415926535897932384626433832795
 
 layout(location = 0) rayPayloadEXT Payload {
-    vec3 rayOrigin;
-    vec3 rayDirection;
-    vec3 previousNormal;
+    vec3 orig;
+    vec3 dir;
+    //vec3 prev_norm;
 
     vec3 directColor;
     vec3 indirectColor;
-    int rayDepth;
+    int depth;
 
-    int rayActive;
+    int ray_active;
 } payload;
 
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
@@ -30,19 +30,19 @@ void main() {
     uv /= vec2(gl_LaunchSizeEXT.xy);
     uv = (uv * 2.0f - 1.0f) * vec2(1.0f, -1.0f);
 
-    payload.rayOrigin = vec3(3., 0., 0.);
-    payload.rayDirection = normalize(vec3(-1, uv.x, uv.y));
-    payload.previousNormal = vec3(0.0, 0.0, 0.0);
+    payload.orig = vec3(3., 0., 0.);
+    payload.dir = normalize(vec3(-1, uv.x, uv.y));
+    //payload.prev_norm = vec3(0.0, 0.0, 0.0);
 
     payload.directColor = vec3(0.0, 0.0, 1.0);
     payload.indirectColor = vec3(0.0, 0.0, 0.0);
-    payload.rayDepth = 0;
+    payload.depth = 0;
 
-    payload.rayActive = 1;
+    payload.ray_active = 1;
 
     for (int x = 0; x < 1; x++) {
         traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
-                    payload.rayOrigin, 0.001, payload.rayDirection, 10000.0, 0);
+                    payload.orig, 0.001, payload.dir, 10000.0, 0);
     }
 
     vec4 color = vec4(payload.directColor, 1.0);

@@ -74,7 +74,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut scene = Scene::new();
     scene.load_gltf(&event_loop.device);
-    let mut gpu_scene = GpuScene::create(&event_loop.device, &scene);
+    let gpu_scene = GpuScene::create(&event_loop.device, &scene);
 
     let img = Arc::new(
         Image::create(
