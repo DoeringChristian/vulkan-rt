@@ -21,7 +21,7 @@ layout(location = 0) rayPayloadInEXT Payload {
     vec3 dir;
     //vec3 prev_norm;
 
-    vec3 directColor;
+    vec3 color;
     int depth;
 
     int ray_active;
@@ -34,6 +34,12 @@ layout(binding = 2, set = 0) buffer Attributes{
 layout(binding = 3, set = 0) buffer Materials{
     Material materials[];
 };
+layout(binding = 4, set = 0) buffer Indices{
+    uint indices[];
+}model_indices[];
+layout(binding = 4, set = 1) buffer Positions{
+    float positions[];
+}model_positions[];
 
 float rand(float seed){
     return fract(sin(seed * 12.9898) * 43758.5453);
@@ -119,7 +125,7 @@ void main() {
 
     
 
-    payload.directColor = mat.diffuse.xyz;
+    payload.color = mat.diffuse.xyz;
 
     //payload.prev_norm = vec3(0., 0., 1.);
 

@@ -108,6 +108,7 @@ impl IndexBuffer {
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Attribute {
     pub mat_index: u32,
+    pub model: u32,
 }
 
 pub struct AttributeBuffer {

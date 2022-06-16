@@ -117,6 +117,16 @@ fn main() -> anyhow::Result<()> {
             .bind_node(&gpu_scene.tlas.material_buf.data);
         let tlas_node = frame.render_graph.bind_node(&gpu_scene.tlas.accel);
         let sbt_node = frame.render_graph.bind_node(sbt.buffer());
+        let index_nodes = gpu_scene
+            .geometries
+            .iter()
+            .map(|g| frame.render_graph.bind_node(&g.indices.data))
+            .collect::<Vec<_>>();
+        let position_nodes = gpu_scene
+            .geometries
+            .iter()
+            .map(|g| frame.render_graph.bind_node(&g.positions.data))
+            .collect::<Vec<_>>();
 
         let sbt_rgen = sbt.rgen();
         let sbt_miss = sbt.miss();
@@ -134,6 +144,12 @@ fn main() -> anyhow::Result<()> {
                 blas_node,
                 AccessType::RayTracingShaderReadAccelerationStructure,
             );
+        }
+        for (i, node) in index_nodes.iter().enumerate() {
+            pass = pass.read_descriptor((4, 0, [i as _]), *node);
+        }
+        for (i, node) in position_nodes.iter().enumerate() {
+            pass = pass.read_descriptor((4, 1, [i as _]), *node);
         }
         pass.access_node(sbt_node, AccessType::RayTracingShaderReadOther)
             .access_descriptor(

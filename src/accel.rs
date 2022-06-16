@@ -9,8 +9,8 @@ use super::buffers::*;
 
 #[derive(Component)]
 pub struct BlasGeometry {
-    positions: Arc<PositionsBuffer>,
-    indices: Arc<IndexBuffer>,
+    pub positions: Arc<PositionsBuffer>,
+    pub indices: Arc<IndexBuffer>,
 }
 
 impl BlasGeometry {
@@ -121,29 +121,6 @@ pub struct BlasInstance {
     pub transform: vk::TransformMatrixKHR,
 }
 
-impl BlasInstance {
-    /*
-    pub fn to_vk(&self, blases: &[&Blas]) -> (Attribute, vk::AccelerationStructureInstanceKHR) {
-        // TODO: Maybee we should not use SlotMaps. Or find a better way to get the indices of the
-        // materials.
-        (
-            Attribute {},
-            vk::AccelerationStructureInstanceKHR {
-                transform: self.transform,
-                instance_custom_index_and_mask: vk::Packed24_8::new(self.material as _, 0xff),
-                instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
-                    0,
-                    vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
-                ),
-                acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
-                    device_handle: AccelerationStructure::device_address(&blases[self.model].accel),
-                },
-            },
-        )
-    }
-    */
-}
-
 pub struct Material {
     pub diffuse: [f32; 4],
     pub mra: [f32; 4],
@@ -212,6 +189,16 @@ impl Tlas {
             });
     }
     pub fn create(device: &Arc<Device>, scene: &Scene, blases: &[&Blas]) -> Self {
+        // gl_CustomIndexEXT should index into attributes.
+        let attributes = scene
+            .instances
+            .iter()
+            .map(|i| Attribute {
+                mat_index: i.material as _,
+                model: i.model as _,
+            })
+            .collect::<Vec<_>>();
+        let attribute_buf = AttributeBuffer::create(device, &attributes);
         let instances = scene
             .instances
             .iter()
@@ -229,14 +216,6 @@ impl Tlas {
             })
             .collect::<Vec<_>>();
         let instance_buf = InstanceBuffer::create(device, &instances);
-        let attributes = scene
-            .instances
-            .iter()
-            .map(|i| Attribute {
-                mat_index: i.material as _,
-            })
-            .collect::<Vec<_>>();
-        let attribute_buf = AttributeBuffer::create(device, &attributes);
         let materials = scene
             .materials
             .iter()
