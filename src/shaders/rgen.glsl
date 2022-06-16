@@ -9,7 +9,6 @@ layout(location = 0) rayPayloadEXT Payload {
     //vec3 prev_norm;
 
     vec3 directColor;
-    vec3 indirectColor;
     int depth;
 
     int ray_active;
@@ -35,7 +34,6 @@ void main() {
     //payload.prev_norm = vec3(0.0, 0.0, 0.0);
 
     payload.directColor = vec3(0.0, 0.0, 1.0);
-    payload.indirectColor = vec3(0.0, 0.0, 0.0);
     payload.depth = 0;
 
     payload.ray_active = 1;
