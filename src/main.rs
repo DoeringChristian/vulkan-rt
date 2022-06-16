@@ -81,8 +81,8 @@ fn main() -> anyhow::Result<()> {
             &event_loop.device,
             ImageInfo::new_2d(
                 vk::Format::R8G8B8A8_UNORM,
-                100,
-                100,
+                1000,
+                1000,
                 vk::ImageUsageFlags::STORAGE
                     | vk::ImageUsageFlags::TRANSFER_SRC
                     | vk::ImageUsageFlags::TRANSFER_DST
@@ -109,6 +109,9 @@ fn main() -> anyhow::Result<()> {
             .iter()
             .map(|b| frame.render_graph.bind_node(&b.accel))
             .collect::<Vec<_>>();
+        let attribute_node = frame
+            .render_graph
+            .bind_node(&gpu_scene.tlas.attribute_buf.data);
         let material_node = frame
             .render_graph
             .bind_node(&gpu_scene.tlas.material_buf.data);
@@ -139,9 +142,10 @@ fn main() -> anyhow::Result<()> {
                 AccessType::RayTracingShaderReadAccelerationStructure,
             )
             .write_descriptor(1, image_node)
-            .read_descriptor(2, material_node)
+            .read_descriptor(2, attribute_node)
+            .read_descriptor(3, material_node)
             .record_ray_trace(move |ray_trace| {
-                ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 100, 100, 1);
+                ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 1000, 1000, 1);
             });
         presenter.present_image(frame.render_graph, image_node, frame.swapchain_image);
         fc += 1;

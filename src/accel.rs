@@ -122,21 +122,26 @@ pub struct BlasInstance {
 }
 
 impl BlasInstance {
-    pub fn to_vk(&self, blases: &HashMap<usize, &Blas>) -> vk::AccelerationStructureInstanceKHR {
+    /*
+    pub fn to_vk(&self, blases: &[&Blas]) -> (Attribute, vk::AccelerationStructureInstanceKHR) {
         // TODO: Maybee we should not use SlotMaps. Or find a better way to get the indices of the
         // materials.
-        vk::AccelerationStructureInstanceKHR {
-            transform: self.transform,
-            instance_custom_index_and_mask: vk::Packed24_8::new(self.material as _, 0xff),
-            instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
-                0,
-                vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
-            ),
-            acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
-                device_handle: AccelerationStructure::device_address(&blases[&self.model].accel),
+        (
+            Attribute {},
+            vk::AccelerationStructureInstanceKHR {
+                transform: self.transform,
+                instance_custom_index_and_mask: vk::Packed24_8::new(self.material as _, 0xff),
+                instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
+                    0,
+                    vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
+                ),
+                acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
+                    device_handle: AccelerationStructure::device_address(&blases[self.model].accel),
+                },
             },
-        }
+        )
     }
+    */
 }
 
 pub struct Material {
@@ -157,6 +162,7 @@ pub struct Tlas {
     instance_buf: InstanceBuffer,
     pub material_buf: MaterialBuffer,
     pub accel: Arc<AccelerationStructure>,
+    pub attribute_buf: AttributeBuffer,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
 }
@@ -205,13 +211,32 @@ impl Tlas {
                 );
             });
     }
-    pub fn create(device: &Arc<Device>, scene: &Scene, blases: &HashMap<usize, &Blas>) -> Self {
+    pub fn create(device: &Arc<Device>, scene: &Scene, blases: &[&Blas]) -> Self {
         let instances = scene
             .instances
             .iter()
-            .map(|i| i.to_vk(blases))
+            .enumerate()
+            .map(|(i, inst)| vk::AccelerationStructureInstanceKHR {
+                transform: inst.transform,
+                instance_custom_index_and_mask: vk::Packed24_8::new(i as _, 0xff),
+                instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
+                    0,
+                    vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
+                ),
+                acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
+                    device_handle: AccelerationStructure::device_address(&blases[inst.model].accel),
+                },
+            })
             .collect::<Vec<_>>();
         let instance_buf = InstanceBuffer::create(device, &instances);
+        let attributes = scene
+            .instances
+            .iter()
+            .map(|i| Attribute {
+                mat_index: i.material as _,
+            })
+            .collect::<Vec<_>>();
+        let attribute_buf = AttributeBuffer::create(device, &attributes);
         let materials = scene
             .materials
             .iter()
@@ -243,6 +268,7 @@ impl Tlas {
         let accel = Arc::new(AccelerationStructure::create(device, info).unwrap());
 
         Self {
+            attribute_buf,
             instance_buf,
             material_buf,
             size,

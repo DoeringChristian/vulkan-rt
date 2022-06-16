@@ -28,11 +28,7 @@ impl GpuScene {
             .collect::<Vec<_>>();
         // TODO: find better way. We could use the same index for blas, geometry and model if we
         // generate a geometry, blas for every model.
-        let model_to_blas = blases
-            .iter()
-            .enumerate()
-            .map(|(i, b)| (i, b))
-            .collect::<HashMap<_, _>>();
+        let model_to_blas = blases.iter().map(|b| b).collect::<Vec<_>>();
         // create instance for each model TODO: load instances from gltf nodes.
         let tlas = Tlas::create(device, scene, &model_to_blas);
 

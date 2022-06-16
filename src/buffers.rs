@@ -104,6 +104,35 @@ impl IndexBuffer {
     }
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Attribute {
+    pub mat_index: u32,
+}
+
+pub struct AttributeBuffer {
+    pub data: Arc<Buffer>,
+    pub count: usize,
+}
+
+impl AttributeBuffer {
+    pub fn create(device: &Arc<Device>, attributes: &[Attribute]) -> Self {
+        let buf = Arc::new({
+            let data = cast_slice(attributes);
+            let mut buf = Buffer::create(
+                device,
+                BufferInfo::new_mappable(data.len() as _, vk::BufferUsageFlags::STORAGE_BUFFER),
+            )
+            .unwrap();
+            Buffer::copy_from_slice(&mut buf, 0, data);
+            buf
+        });
+        let count = attributes.len();
+
+        Self { data: buf, count }
+    }
+}
+
 pub struct InstanceBuffer {
     pub data: Arc<Buffer>,
     pub count: usize,
