@@ -153,14 +153,12 @@ fn main() -> anyhow::Result<()> {
                 AccessType::RayTracingShaderReadAccelerationStructure,
             )
             .write_descriptor((0, 1), image_node)
-            .read_descriptor((1, 0), attribute_node)
-            .read_descriptor((1, 1), material_node);
+            .read_descriptor((0, 2), attribute_node)
+            .read_descriptor((0, 3), material_node);
 
-        /*
         for (i, node) in index_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((2, 2, [i as _]), *node);
+            pass = pass.read_descriptor((0, 4, [i as _]), *node);
         }
-        */
         /*
         for (i, node) in position_nodes.iter().enumerate() {
             pass = pass.read_descriptor((2, 3, [i as _]), *node);

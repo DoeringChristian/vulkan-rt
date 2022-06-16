@@ -30,13 +30,13 @@ layout(location = 0) rayPayloadInEXT Payload {
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
 layout(set = 0, binding = 1, rgba32f) uniform image2D image;
-layout(set = 1, binding = 0) buffer Attributes{
+layout(set = 0, binding = 2) buffer Attributes{
     Attribute attributes[];
 };
-layout(set = 1, binding = 1) buffer Materials{
+layout(set = 0, binding = 3) buffer Materials{
     Material materials[];
 };
-layout(set = 1, binding = 2) buffer Indices{
+layout(set = 0, binding = 4) buffer Indices{
     uint indices[];
 }model_indices[];
 /*
