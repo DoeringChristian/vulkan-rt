@@ -30,7 +30,12 @@ pub struct Blas {
 }
 
 impl Blas {
-    pub fn build(&self, scene: &GpuScene, cache: &mut HashPool, rgraph: &mut RenderGraph) {
+    pub fn build(
+        &self,
+        scene: &GpuScene,
+        cache: &mut HashPool,
+        rgraph: &mut RenderGraph,
+    ) -> AnyAccelerationStructureNode {
         let geometry = scene.geometries.get(self.geometry).unwrap();
         let index_node = rgraph.bind_node(&geometry.indices.data);
         let vertex_node = rgraph.bind_node(&geometry.positions.data);
@@ -68,6 +73,7 @@ impl Blas {
                     }],
                 )
             });
+        AnyAccelerationStructureNode::AccelerationStructure(accel_node)
     }
     pub fn create(device: &Arc<Device>, (gkey, geometry): (usize, &BlasGeometry)) -> Self {
         let triangle_count = geometry.indices.count / 3;
@@ -145,7 +151,13 @@ pub struct Tlas {
 }
 
 impl Tlas {
-    pub fn build(&self, scene: &GpuScene, cache: &mut HashPool, rgraph: &mut RenderGraph) {
+    pub fn build(
+        &self,
+        scene: &GpuScene,
+        cache: &mut HashPool,
+        rgraph: &mut RenderGraph,
+        blas_nodes: &[AnyAccelerationStructureNode],
+    ) {
         let scratch_buf = rgraph.bind_node(
             cache
                 .lease(BufferInfo::new(
@@ -162,15 +174,15 @@ impl Tlas {
         let primitive_count = scene.blases.len();
 
         // TODO: this is only necesarry to generate blases before tlas.
-        let blas_nodes = scene
-            .blases
-            .iter()
-            .map(|b| rgraph.bind_node(&b.accel))
-            .collect::<Vec<_>>();
+        /*let blas_nodes = scene
+        .blases
+        .iter()
+        .map(|b| rgraph.bind_node(&b.accel))
+        .collect::<Vec<_>>();*/
 
         let mut pass = rgraph.begin_pass("build TLAS").read_node(instance_node);
         for blas_node in blas_nodes {
-            pass = pass.read_node(blas_node);
+            pass = pass.read_node(*blas_node);
         }
         pass.write_node(scratch_buf)
             .write_node(tlas_node)
@@ -199,20 +211,26 @@ impl Tlas {
             })
             .collect::<Vec<_>>();
         let attribute_buf = AttributeBuffer::create(device, &attributes);
+        trace!("instance_num: {}", scene.instances.len());
         let instances = scene
             .instances
             .iter()
             .enumerate()
-            .map(|(i, inst)| vk::AccelerationStructureInstanceKHR {
-                transform: inst.transform,
-                instance_custom_index_and_mask: vk::Packed24_8::new(i as _, 0xff),
-                instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
-                    0,
-                    vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
-                ),
-                acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
-                    device_handle: AccelerationStructure::device_address(&blases[inst.model].accel),
-                },
+            .map(|(i, inst)| {
+                trace!("intance: {}, {}", inst.model, inst.material);
+                vk::AccelerationStructureInstanceKHR {
+                    transform: inst.transform,
+                    instance_custom_index_and_mask: vk::Packed24_8::new(i as _, 0xff),
+                    instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
+                        0,
+                        vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
+                    ),
+                    acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
+                        device_handle: AccelerationStructure::device_address(
+                            &blases[inst.model].accel,
+                        ),
+                    },
+                }
             })
             .collect::<Vec<_>>();
         let instance_buf = InstanceBuffer::create(device, &instances);

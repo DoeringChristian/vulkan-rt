@@ -39,10 +39,17 @@ impl GpuScene {
         }
     }
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
+        let blas_nodes = self
+            .blases
+            .iter()
+            .map(|b| b.build(self, cache, rgraph))
+            .collect::<Vec<_>>();
+        /*
         for blas in self.blases.iter() {
             blas.build(self, cache, rgraph);
         }
-        self.tlas.build(self, cache, rgraph);
+        */
+        self.tlas.build(self, cache, rgraph, &blas_nodes);
     }
 }
 

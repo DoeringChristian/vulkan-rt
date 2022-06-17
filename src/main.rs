@@ -95,7 +95,9 @@ fn main() -> anyhow::Result<()> {
     let mut fc = 0;
 
     event_loop.run(|mut frame| {
-        if fc == 0 {
+        if fc < 2 {
+            // The heck... why do we need to create it twice if binding bindless with two
+            // instance?
             gpu_scene.build_accels(&mut cache, &mut frame.render_graph);
         } else {
             //world.instances[0].transform.matrix[3] += 0.01;
@@ -156,14 +158,13 @@ fn main() -> anyhow::Result<()> {
             .read_descriptor((0, 2), attribute_node)
             .read_descriptor((0, 3), material_node);
 
+        //pass = pass.read_descriptor((0, 4, [0]), index_nodes[0]);
         for (i, node) in index_nodes.iter().enumerate() {
             pass = pass.read_descriptor((0, 4, [i as _]), *node);
         }
-        /*
         for (i, node) in position_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((2, 3, [i as _]), *node);
+            pass = pass.read_descriptor((0, 5, [i as _]), *node);
         }
-        */
         pass.record_ray_trace(move |ray_trace| {
             ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 1000, 1000, 1);
         });

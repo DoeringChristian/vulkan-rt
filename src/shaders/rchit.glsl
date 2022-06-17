@@ -15,7 +15,7 @@ struct Attribute{
     uint model_id;
 };
 
-hitAttributeEXT vec2 hitCoordinate;
+hitAttributeEXT vec2 hit_co;
 
 layout(location = 0) rayPayloadInEXT Payload {
     vec3 orig;
@@ -39,11 +39,9 @@ layout(set = 0, binding = 3) buffer Materials{
 layout(set = 0, binding = 4) buffer Indices{
     uint indices[];
 }model_indices[];
-/*
-layout(set = 2, binding = 3) buffer Positions{
+layout(set = 0, binding = 5) buffer Positions{
     float positions[];
 }model_positions[];
-*/
 
 float rand(float seed){
     return fract(sin(seed * 12.9898) * 43758.5453);
@@ -123,14 +121,34 @@ void main() {
 
     Attribute attr = attributes[gl_InstanceCustomIndexEXT];
     Material mat = materials[attr.mat_index];
-    uint idx0 = model_indices[attr.model_id].indices[0];
+    //uint idx0 = model_indices[attr.model_id].indices[0];
+
+    ivec3 indices = ivec3(model_indices[attr.model_id].indices[3 * gl_PrimitiveID + 0],
+                        model_indices[attr.model_id].indices[3 * gl_PrimitiveID + 1],
+                        model_indices[attr.model_id].indices[3 * gl_PrimitiveID + 2]);
+
+    vec3 barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
+
+    vec3 pos0 = vec3(model_positions[attr.model_id].positions[3 * indices.x + 0],
+                    model_positions[attr.model_id].positions[3 * indices.x + 1],
+                    model_positions[attr.model_id].positions[3 * indices.x + 2]);
+    vec3 pos1 = vec3(model_positions[attr.model_id].positions[3 * indices.y + 0],
+                    model_positions[attr.model_id].positions[3 * indices.y + 1],
+                    model_positions[attr.model_id].positions[3 * indices.y + 2]);
+    vec3 pos2 = vec3(model_positions[attr.model_id].positions[3 * indices.z + 0],
+                    model_positions[attr.model_id].positions[3 * indices.z + 1],
+                    model_positions[attr.model_id].positions[3 * indices.z + 2]);
+
+    vec3 pos = pos0 * barycentric.x + pos1 * barycentric.y + pos2 * barycentric.z;
+    vec3 geo_norm = normalize(cross(pos1 - pos0, pos2 - pos0));
+    
 
     payload.orig = vec3(0., 0., 0.);
     payload.dir = vec3(0., 1., 0.);
 
-    
 
-    payload.color = mat.diffuse.xyz;
+    //payload.color = mat.diffuse.xyz;
+    payload.color = geo_norm;
 
     //payload.prev_norm = vec3(0., 0., 1.);
 
