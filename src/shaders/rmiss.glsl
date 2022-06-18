@@ -13,5 +13,5 @@ layout(location = 0) rayPayloadInEXT Payload {
 } payload;
 
 void main() {
-    payload.directColor = vec3(0., 1., 0.);
+    payload.directColor = payload.dir;
 }

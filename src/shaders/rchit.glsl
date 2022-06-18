@@ -62,11 +62,11 @@ vec2 rand2(vec2 seed){
     return vec2(rand(seed), rand(seed + vec2(63775.8729, 84230.7473)));
 }
 vec2 rand2(vec3 seed){
-    return vec2(rand(seed), rand(seed + vec3(63775.8729, 84230.7473, 54643.5341)));
+    return vec2(rand(dot(seed, vec3(0.8556145372, 0.6562710953, 0.4043027253))), rand(dot(seed, vec3(0.637758729, 0.842307473, 0.546435341))));
 }
 
 
-vec3 random_sphere(vec3 seed){
+vec3 rand_sphere(vec3 seed){
     vec2 uv = rand2(seed);
     float theta = acos(1. - 2. * uv.x);
     float phi = 2 * M_PI *    uv.y;
@@ -76,8 +76,8 @@ vec3 random_sphere(vec3 seed){
         cos(theta)
     );
 }
-vec3 random_hemisphere(vec3 normal, vec3 seed){
-    vec3 sphere = random_sphere(seed);
+vec3 rand_hemisphere(vec3 normal, vec3 seed){
+    vec3 sphere = rand_sphere(seed);
     if (dot(normal , sphere) <= 0.){
         return reflect(sphere, normal);
     }
@@ -143,12 +143,11 @@ void main() {
     vec3 geo_norm = normalize(cross(pos1 - pos0, pos2 - pos0));
     
 
-    payload.orig = vec3(0., 0., 0.);
-    payload.dir = vec3(0., 1., 0.);
+    payload.orig = pos;
+    payload.dir = rand_hemisphere(geo_norm, pos);
 
 
-    //payload.color = mat.diffuse.xyz;
-    payload.color = geo_norm;
+    payload.color += mat.diffuse.xyz;
 
     //payload.prev_norm = vec3(0., 0., 1.);
 

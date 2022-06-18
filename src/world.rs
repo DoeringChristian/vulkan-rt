@@ -199,43 +199,9 @@ impl Scene {
                     ],
                 },
             });
-        }
-
-        /*
-        {
-            for material in gltf.materials() {
-                let mr = material.pbr_metallic_roughness();
-                self.materials.push(Material {
-                    diffuse: mr.base_color_factor(),
-                    mra: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
-                });
-            }
-            for mesh in gltf.meshes() {
-                let primitive = mesh.primitives().next().unwrap();
-                let mut model = Model {
-                    indices: Vec::new(),
-                    positions: Vec::new(),
-                    //uvs: Vec::new(),
-                };
-                let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
-                if let Some(iter) = reader.read_positions() {
-                    for position in iter {
-                        model.positions.push(position[0]);
-                        model.positions.push(position[1]);
-                        model.positions.push(position[2]);
-                    }
-                }
-                if let Some(iter) = reader.read_indices() {
-                    for index in iter.into_u32() {
-                        model.indices.push(index)
-                    }
-                }
-                self.models.push(model);
-            }
-            self.instances.push(BlasInstance {
-                model: 0,
-                material: 0,
-                shader: 0,
+            self.world.spawn().insert(BlasInstance {
+                model: models[1],
+                material: materials[1],
                 transform: vk::TransformMatrixKHR {
                     matrix: [
                         1.0, 0.0, 0.0, 0.0, //
@@ -245,6 +211,5 @@ impl Scene {
                 },
             });
         }
-        */
     }
 }

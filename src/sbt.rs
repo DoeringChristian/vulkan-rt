@@ -74,7 +74,7 @@ impl SbtBuffer {
             let mut buf = Buffer::create(
                 device,
                 BufferInfo::new_mappable(
-                    (sbt_rgen_size + sbt_hit_size + sbt_miss_size) as _,
+                    (sbt_rgen_size + sbt_hit_size + sbt_miss_size + sbt_callable_size) as _,
                     vk::BufferUsageFlags::SHADER_BINDING_TABLE_KHR
                         | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS,
                 ),
@@ -94,10 +94,11 @@ impl SbtBuffer {
                 data = &mut data[sbt_handle_size as _..];
             }
 
-            trace!("info.miss_indices: {}", info.miss_indices.len());
+            //trace!("info.miss_indices: {}", info.miss_indices.len());
             for idx in info.miss_indices {
                 let handle = pipeline.group_handle(*idx)?;
                 data[0..handle.len()].copy_from_slice(handle);
+                //trace!("miss_sbt: {:#?}", data);
                 data = &mut data[sbt_handle_size as _..];
             }
             buf
@@ -120,7 +121,7 @@ impl SbtBuffer {
             vk::StridedDeviceAddressRegionKHR::default()
         };
         address += sbt_hit_size as vk::DeviceAddress;
-        let sbt_miss = if !info.hit_indices.is_empty() {
+        let sbt_miss = if !info.miss_indices.is_empty() {
             vk::StridedDeviceAddressRegionKHR {
                 device_address: address,
                 stride: sbt_handle_size as _,
@@ -129,7 +130,8 @@ impl SbtBuffer {
         } else {
             vk::StridedDeviceAddressRegionKHR::default()
         };
-        let sbt_callable = if !info.hit_indices.is_empty() {
+        address += sbt_miss_size as vk::DeviceAddress;
+        let sbt_callable = if !info.callable_indices.is_empty() {
             vk::StridedDeviceAddressRegionKHR {
                 device_address: address,
                 stride: sbt_handle_size as _,

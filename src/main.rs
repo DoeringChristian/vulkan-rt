@@ -166,7 +166,7 @@ fn main() -> anyhow::Result<()> {
             pass = pass.read_descriptor((0, 5, [i as _]), *node);
         }
         pass.record_ray_trace(move |ray_trace| {
-            ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 1000, 1000, 1);
+            ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 1000, 1000, 2);
         });
         presenter.present_image(frame.render_graph, image_node, frame.swapchain_image);
         fc += 1;

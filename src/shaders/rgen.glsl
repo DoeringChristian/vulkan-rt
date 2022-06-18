@@ -8,7 +8,7 @@ layout(location = 0) rayPayloadEXT Payload {
     vec3 dir;
     //vec3 prev_norm;
 
-    vec3 directColor;
+    vec3 color;
     int depth;
 
     int ray_active;
@@ -33,7 +33,7 @@ void main() {
     payload.dir = normalize(vec3(-1, uv.x, uv.y));
     //payload.prev_norm = vec3(0.0, 0.0, 0.0);
 
-    payload.directColor = vec3(0.0, 0.0, 1.0);
+    payload.color = vec3(0.0, 0.0, 0.0);
     payload.depth = 0;
 
     payload.ray_active = 1;
@@ -43,7 +43,7 @@ void main() {
                     payload.orig, 0.001, payload.dir, 10000.0, 0);
     }
 
-    vec4 color = vec4(payload.directColor, 1.0);
+    vec4 color = vec4(payload.color, 1.0);
 
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), color);
 }
