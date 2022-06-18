@@ -74,7 +74,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut scene = Scene::new();
     scene.load_gltf(&event_loop.device);
-    let gpu_scene = GpuScene::create(&event_loop.device, &scene);
+    let gpu_scene = GpuScene::create(&event_loop.device, &mut scene);
 
     let img = Arc::new(
         Image::create(
@@ -120,14 +120,14 @@ fn main() -> anyhow::Result<()> {
         let tlas_node = frame.render_graph.bind_node(&gpu_scene.tlas.accel);
         let sbt_node = frame.render_graph.bind_node(sbt.buffer());
         let index_nodes = gpu_scene
-            .geometries
+            .blases
             .iter()
-            .map(|g| frame.render_graph.bind_node(&g.indices.data))
+            .map(|b| frame.render_graph.bind_node(&b.geometry.indices.data))
             .collect::<Vec<_>>();
         let position_nodes = gpu_scene
-            .geometries
+            .blases
             .iter()
-            .map(|g| frame.render_graph.bind_node(&g.positions.data))
+            .map(|b| frame.render_graph.bind_node(&b.geometry.positions.data))
             .collect::<Vec<_>>();
 
         let sbt_rgen = sbt.rgen();

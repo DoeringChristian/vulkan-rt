@@ -106,7 +106,7 @@ impl IndexBuffer {
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Attribute {
+pub struct GlslAttribute {
     pub mat_index: u32,
     pub model: u32,
 }
@@ -117,7 +117,7 @@ pub struct AttributeBuffer {
 }
 
 impl AttributeBuffer {
-    pub fn create(device: &Arc<Device>, attributes: &[Attribute]) -> Self {
+    pub fn create(device: &Arc<Device>, attributes: &[GlslAttribute]) -> Self {
         let buf = Arc::new({
             let data = cast_slice(attributes);
             let mut buf = Buffer::create(
@@ -166,7 +166,7 @@ impl InstanceBuffer {
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct VkMaterial {
+pub struct GlslMaterial {
     pub diffuse: [f32; 4],
     pub mra: [f32; 4],
 }
@@ -177,7 +177,7 @@ pub struct MaterialBuffer {
 }
 
 impl MaterialBuffer {
-    pub fn create(device: &Arc<Device>, materials: &[VkMaterial]) -> Self {
+    pub fn create(device: &Arc<Device>, materials: &[GlslMaterial]) -> Self {
         let buf = Arc::new({
             let data = cast_slice(materials);
             let mut buf = Buffer::create(

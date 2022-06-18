@@ -23,8 +23,8 @@ impl BlasGeometry {
 }
 
 pub struct Blas {
-    geometry: usize,
     pub accel: Arc<AccelerationStructure>,
+    pub geometry: BlasGeometry,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
 }
@@ -36,9 +36,9 @@ impl Blas {
         cache: &mut HashPool,
         rgraph: &mut RenderGraph,
     ) -> AnyAccelerationStructureNode {
-        let geometry = scene.geometries.get(self.geometry).unwrap();
-        let index_node = rgraph.bind_node(&geometry.indices.data);
-        let vertex_node = rgraph.bind_node(&geometry.positions.data);
+        //let geometry = scene.geometries.get(self.geometry).unwrap();
+        let index_node = rgraph.bind_node(&self.geometry.indices.data);
+        let vertex_node = rgraph.bind_node(&self.geometry.positions.data);
         let accel_node = rgraph.bind_node(&self.accel);
 
         let scratch_buf = rgraph.bind_node(
@@ -51,7 +51,7 @@ impl Blas {
                 .unwrap(),
         );
 
-        let triangle_count = geometry.indices.count / 3;
+        let triangle_count = self.geometry.indices.count / 3;
         let geometry_info = self.geometry_info.clone();
 
         rgraph
@@ -75,7 +75,7 @@ impl Blas {
             });
         AnyAccelerationStructureNode::AccelerationStructure(accel_node)
     }
-    pub fn create(device: &Arc<Device>, (gkey, geometry): (usize, &BlasGeometry)) -> Self {
+    pub fn create(device: &Arc<Device>, geometry: BlasGeometry) -> Self {
         let triangle_count = geometry.indices.count / 3;
         let vertex_count = geometry.positions.count / 3;
 
@@ -110,31 +110,33 @@ impl Blas {
 
         let accel = AccelerationStructure::create(device, accel_info).unwrap();
         Self {
-            geometry: gkey,
+            //geometry: gkey,
             accel: Arc::new(accel),
+            geometry,
             geometry_info,
             size: accel_size,
         }
     }
 }
 
+#[derive(Component)]
 pub struct BlasInstance {
     // TODO: model index instead of blas index.
-    pub model: usize,
+    pub model: Entity,
     // TODO: add shader references.
-    pub material: usize,
-    pub shader: usize,
+    pub material: Entity,
     pub transform: vk::TransformMatrixKHR,
 }
 
+#[derive(Component)]
 pub struct Material {
     pub diffuse: [f32; 4],
     pub mra: [f32; 4],
 }
 
 impl Material {
-    pub fn to_vk(&self, scene: &Scene) -> VkMaterial {
-        VkMaterial {
+    pub fn to_vk(&self, scene: &Scene) -> GlslMaterial {
+        GlslMaterial {
             diffuse: self.diffuse,
             mra: self.mra,
         }
@@ -180,11 +182,13 @@ impl Tlas {
         .map(|b| rgraph.bind_node(&b.accel))
         .collect::<Vec<_>>();*/
 
-        let mut pass = rgraph.begin_pass("build TLAS").read_node(instance_node);
+        let mut pass = rgraph.begin_pass("build TLAS");
         for blas_node in blas_nodes {
             pass = pass.read_node(*blas_node);
         }
-        pass.write_node(scratch_buf)
+        //pass.read_node(instance_node)
+        pass.access_node(instance_node, AccessType::AccelerationStructureBuildRead)
+            .write_node(scratch_buf)
             .write_node(tlas_node)
             .record_acceleration(move |accel| {
                 accel.build_structure(
@@ -200,45 +204,15 @@ impl Tlas {
                 );
             });
     }
-    pub fn create(device: &Arc<Device>, scene: &Scene, blases: &[&Blas]) -> Self {
+    pub fn create(
+        device: &Arc<Device>,
+        attributes: &[GlslAttribute],
+        instances: &[vk::AccelerationStructureInstanceKHR],
+        materials: &[GlslMaterial],
+    ) -> Self {
         // gl_CustomIndexEXT should index into attributes.
-        let attributes = scene
-            .instances
-            .iter()
-            .map(|i| Attribute {
-                mat_index: i.material as _,
-                model: i.model as _,
-            })
-            .collect::<Vec<_>>();
         let attribute_buf = AttributeBuffer::create(device, &attributes);
-        trace!("instance_num: {}", scene.instances.len());
-        let instances = scene
-            .instances
-            .iter()
-            .enumerate()
-            .map(|(i, inst)| {
-                trace!("intance: {}, {}", inst.model, inst.material);
-                vk::AccelerationStructureInstanceKHR {
-                    transform: inst.transform,
-                    instance_custom_index_and_mask: vk::Packed24_8::new(i as _, 0xff),
-                    instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
-                        0,
-                        vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
-                    ),
-                    acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
-                        device_handle: AccelerationStructure::device_address(
-                            &blases[inst.model].accel,
-                        ),
-                    },
-                }
-            })
-            .collect::<Vec<_>>();
         let instance_buf = InstanceBuffer::create(device, &instances);
-        let materials = scene
-            .materials
-            .iter()
-            .map(|m| m.to_vk(scene))
-            .collect::<Vec<_>>();
         let material_buf = MaterialBuffer::create(device, &materials);
         let geometry_info = AccelerationStructureGeometryInfo {
             ty: vk::AccelerationStructureTypeKHR::TOP_LEVEL,
