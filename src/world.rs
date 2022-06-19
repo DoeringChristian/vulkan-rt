@@ -207,30 +207,6 @@ impl Scene {
                     },
                 });
             }
-            /*
-            self.world.spawn().insert(BlasInstance {
-                model: models[0],
-                material: materials[0],
-                transform: vk::TransformMatrixKHR {
-                    matrix: [
-                        1.0, 0.0, 0.0, 0.0, //
-                        0.0, 1.0, 0.0, 0.0, //
-                        0.0, 0.0, 1.0, 0.0, //
-                    ],
-                },
-            });
-            self.world.spawn().insert(BlasInstance {
-                model: models[1],
-                material: materials[1],
-                transform: vk::TransformMatrixKHR {
-                    matrix: [
-                        1.0, 0.0, 0.0, 0.0, //
-                        0.0, 1.0, 0.0, 0.0, //
-                        0.0, 0.0, 1.0, 0.0, //
-                    ],
-                },
-            });
-            */
         }
     }
 }
