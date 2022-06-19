@@ -154,15 +154,18 @@ impl Scene {
                 .materials()
                 .map(|material| {
                     let mr = material.pbr_metallic_roughness();
-                    self.world
-                        .spawn()
-                        .insert(Material {
-                            diffuse: mr.base_color_factor(),
-                            mra: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
-                        })
-                        .id()
+                    (
+                        material.index().unwrap(),
+                        self.world
+                            .spawn()
+                            .insert(Material {
+                                diffuse: mr.base_color_factor(),
+                                mra: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
+                            })
+                            .id(),
+                    )
                 })
-                .collect::<Vec<_>>();
+                .collect::<HashMap<_, _>>();
             let models = gltf
                 .meshes()
                 .map(|mesh| {
@@ -185,9 +188,26 @@ impl Scene {
                             model.indices.push(index)
                         }
                     }
-                    self.world.spawn().insert(model).id()
+                    (
+                        self.world.spawn().insert(model).id(),
+                        primitive.material().index().unwrap(),
+                    )
                 })
                 .collect::<Vec<_>>();
+            for (model, mat_id) in models {
+                self.world.spawn().insert(BlasInstance {
+                    model,
+                    material: materials[&mat_id],
+                    transform: vk::TransformMatrixKHR {
+                        matrix: [
+                            1.0, 0.0, 0.0, 0.0, //
+                            0.0, 1.0, 0.0, 0.0, //
+                            0.0, 0.0, 1.0, 0.0, //
+                        ],
+                    },
+                });
+            }
+            /*
             self.world.spawn().insert(BlasInstance {
                 model: models[0],
                 material: materials[0],
@@ -210,6 +230,7 @@ impl Scene {
                     ],
                 },
             });
+            */
         }
     }
 }
