@@ -33,7 +33,7 @@ void main() {
     payload.dir = normalize(vec3(-1, uv.x, uv.y));
     //payload.prev_norm = vec3(0.0, 0.0, 0.0);
 
-    payload.color = vec3(0.0, 0.0, 0.0);
+    payload.color = vec3(10.);
     payload.depth = 0;
 
     payload.ray_active = 1;

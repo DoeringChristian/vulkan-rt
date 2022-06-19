@@ -6,12 +6,12 @@ layout(location = 0) rayPayloadInEXT Payload {
     vec3 orig;
     vec3 dir;
 
-    vec3 directColor;
+    vec3 color;
     int depth;
 
     int ray_active;
 } payload;
 
 void main() {
-    payload.directColor = payload.dir;
+    payload.color = payload.dir;
 }

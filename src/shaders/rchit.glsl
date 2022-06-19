@@ -6,7 +6,7 @@
 #define M_PI 3.1415926535897932384626433832795
 
 struct Material {
-    vec4 diffuse;
+    vec4 albedo;
     vec4 mra;
 };
 
@@ -142,12 +142,46 @@ void main() {
     vec3 pos = pos0 * barycentric.x + pos1 * barycentric.y + pos2 * barycentric.z;
     vec3 geo_norm = normalize(cross(pos1 - pos0, pos2 - pos0));
     
+    vec3 prev_pos = payload.orig;
+    vec3 prev_dir = payload.dir;
 
     payload.orig = pos;
     payload.dir = rand_hemisphere(geo_norm, pos);
 
+    //===========================================================
+    // BRDF (Cook-torrance)
+    //===========================================================
+    float roughness = mat.mra.y;
+    float metallic = mat.mra.x;
+    vec3 dir_len = prev_pos - pos;
+    float distance2 = dot(dir_len, dir_len);
+    float attenuation = 1. / distance2;
+    vec3 albedo = mat.albedo.xyz;
+    vec3 n = geo_norm;
+    vec3 v = normalize(- prev_dir);
+    vec3 l = normalize(payload.dir);
+    vec3 h = normalize(v + l);
+    float nl = max(dot(n, l), 0.);
 
-    payload.color += mat.diffuse.xyz;
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedo, metallic);
+
+    
+    float NDF = NDF_GGXTR(max(0., dot(n, h)), roughness);
+    float G = GSmith(max(0., dot(n, v)), max(0., dot(n, l)), roughness);
+    vec3 F = FSchlick(max(dot(h, v), 0.), F0);
+
+    vec3 kS = F;
+    vec3 kD = vec3(1.) - kS;
+    kD *= 1. - metallic;
+
+    vec3 numerator = NDF * G * F;
+    float denom = 4. * max(dot(n, v), 0.) * max(dot(n, l), 0.) + 0.0001;
+    vec3 specular = numerator / denom;
+
+    vec3 lo = (kD * albedo / M_PI + specular) * attenuation * nl;
+
+    payload.color *= lo;
 
     //payload.prev_norm = vec3(0., 0., 1.);
 
