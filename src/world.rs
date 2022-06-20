@@ -48,6 +48,7 @@ impl GpuScene {
                         GlslMaterial {
                             diffuse: m.diffuse,
                             mra: m.mra,
+                            emission: [m.emission[0], m.emission[1], m.emission[2], 0.],
                         },
                     ),
                 )
@@ -148,12 +149,13 @@ impl Scene {
         }
     }
     pub fn load_gltf(&mut self, device: &Arc<Device>) {
-        let (gltf, buffers, _) = gltf::import("./src/res/monkey.gltf").unwrap();
+        let (gltf, buffers, _) = gltf::import("./src/res/room.gltf").unwrap();
         {
             let materials = gltf
                 .materials()
                 .map(|material| {
                     let mr = material.pbr_metallic_roughness();
+                    let emission = material.emissive_factor();
                     (
                         material.index().unwrap(),
                         self.world
@@ -161,52 +163,41 @@ impl Scene {
                             .insert(Material {
                                 diffuse: mr.base_color_factor(),
                                 mra: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
+                                emission,
                             })
                             .id(),
                     )
                 })
                 .collect::<HashMap<_, _>>();
-            let models = gltf
-                .meshes()
-                .map(|mesh| {
-                    let primitive = mesh.primitives().next().unwrap();
-                    let mut model = Model {
-                        indices: Vec::new(),
-                        positions: Vec::new(),
-                        //uvs: Vec::new(),
-                    };
-                    let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
-                    if let Some(iter) = reader.read_positions() {
-                        for position in iter {
-                            model.positions.push(position[0]);
-                            model.positions.push(position[1]);
-                            model.positions.push(position[2]);
-                        }
+            gltf.meshes().for_each(|mesh| {
+                let primitive = mesh.primitives().next().unwrap();
+                let mut model = Model {
+                    indices: Vec::new(),
+                    positions: Vec::new(),
+                    //uvs: Vec::new(),
+                };
+                let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
+                if let Some(iter) = reader.read_positions() {
+                    for position in iter {
+                        model.positions.push(position[0]);
+                        model.positions.push(position[1]);
+                        model.positions.push(position[2]);
                     }
-                    if let Some(iter) = reader.read_indices() {
-                        for index in iter.into_u32() {
-                            model.indices.push(index)
-                        }
+                }
+                if let Some(iter) = reader.read_indices() {
+                    for index in iter.into_u32() {
+                        model.indices.push(index)
                     }
-                    (
-                        self.world.spawn().insert(model).id(),
-                        primitive.material().index().unwrap(),
-                    )
-                })
-                .collect::<Vec<_>>();
-            for (model, mat_id) in models {
+                }
+                let model = self.world.spawn().insert(model).id();
                 self.world.spawn().insert(BlasInstance {
                     model,
-                    material: materials[&mat_id],
+                    material: materials[&primitive.material().index().unwrap()],
                     transform: vk::TransformMatrixKHR {
-                        matrix: [
-                            1.0, 0.0, 0.0, 0.0, //
-                            0.0, 1.0, 0.0, 0.0, //
-                            0.0, 0.0, 1.0, 0.0, //
-                        ],
+                        matrix: [1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0.],
                     },
                 });
-            }
+            });
         }
     }
 }

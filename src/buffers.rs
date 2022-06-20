@@ -169,6 +169,7 @@ impl InstanceBuffer {
 pub struct GlslMaterial {
     pub diffuse: [f32; 4],
     pub mra: [f32; 4],
+    pub emission: [f32; 4],
 }
 
 pub struct MaterialBuffer {

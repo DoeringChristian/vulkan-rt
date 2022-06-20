@@ -8,6 +8,7 @@
 struct Material {
     vec4 albedo;
     vec4 mra;
+    vec4 emission;
 };
 
 struct Attribute{
@@ -181,6 +182,7 @@ void main() {
 
     vec3 lo = (kD * albedo / M_PI + specular) * attenuation * nl;
 
+    payload.color += mat.emission.xyz * 1000.;
     payload.color *= lo;
 
     //payload.prev_norm = vec3(0., 0., 1.);

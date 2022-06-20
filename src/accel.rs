@@ -132,8 +132,10 @@ pub struct BlasInstance {
 pub struct Material {
     pub diffuse: [f32; 4],
     pub mra: [f32; 4],
+    pub emission: [f32; 3],
 }
 
+/*
 impl Material {
     pub fn to_vk(&self, scene: &Scene) -> GlslMaterial {
         GlslMaterial {
@@ -142,6 +144,7 @@ impl Material {
         }
     }
 }
+*/
 
 pub struct Tlas {
     instance_buf: InstanceBuffer,

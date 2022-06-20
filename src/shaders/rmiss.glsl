@@ -13,5 +13,5 @@ layout(location = 0) rayPayloadInEXT Payload {
 } payload;
 
 void main() {
-    payload.color *= payload.dir * 100.;
+    //payload.color *= payload.dir * 100.;
 }
