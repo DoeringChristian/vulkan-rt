@@ -54,69 +54,56 @@ impl GpuScene {
                 )
             })
             .collect::<HashMap<_, _>>();
-        let attributes = scene
+        let (instances, materials) = scene
             .world
             .query::<(Entity, &BlasInstance)>()
             .iter(&scene.world)
             .enumerate()
             .map(|(i, (e, inst))| {
+                // Add attribute and instance.
+                //trace!("BlasInstance");
+                let material: &Material = scene
+                    .world
+                    .get_entity(inst.material)
+                    .unwrap()
+                    .get()
+                    .unwrap();
                 (
-                    e,
-                    (
-                        i,
-                        GlslAttribute {
-                            mat_index: materials[&inst.material].0 as _,
-                            model: blases[&inst.model].0 as _,
+                    vk::AccelerationStructureInstanceKHR {
+                        transform: inst.transform,
+                        instance_custom_index_and_mask: vk::Packed24_8::new(i as _, 0xff),
+                        instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
+                            0,
+                            vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw()
+                                as _,
+                        ),
+                        acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
+                            device_handle: AccelerationStructure::device_address(
+                                &blases[&inst.model].1.accel,
+                            ),
                         },
-                    ),
+                    },
+                    GlslMaterial {
+                        diffuse: material.diffuse,
+                        mra: material.mra,
+                        emission: [
+                            material.emission[0],
+                            material.emission[1],
+                            material.emission[2],
+                            0.,
+                        ],
+                    },
                 )
             })
-            .collect::<HashMap<_, _>>();
-        let instances = scene
-            .world
-            .query::<(Entity, &BlasInstance)>()
-            .iter(&scene.world)
-            .enumerate()
-            .map(|(i, (e, inst))| {
-                (
-                    e,
-                    (
-                        i,
-                        vk::AccelerationStructureInstanceKHR {
-                            transform: inst.transform,
-                            instance_custom_index_and_mask: vk::Packed24_8::new(i as _, 0xff),
-                            instance_shader_binding_table_record_offset_and_flags:
-                                vk::Packed24_8::new(
-                                    0,
-                                    vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE
-                                        .as_raw() as _,
-                                ),
-                            acceleration_structure_reference:
-                                vk::AccelerationStructureReferenceKHR {
-                                    device_handle: AccelerationStructure::device_address(
-                                        &blases[&inst.model].1.accel,
-                                    ),
-                                },
-                        },
-                    ),
-                )
-            })
-            .collect::<HashMap<_, _>>();
+            .unzip::<_, _, Vec<_>, Vec<_>>();
 
-        let materials = materials
-            .into_iter()
-            .map(|(e, (i, m))| m)
-            .collect::<Vec<_>>();
-        let attributes = attributes
-            .into_iter()
-            .map(|(e, (i, a))| a)
-            .collect::<Vec<_>>();
-        let instances = instances
-            .into_iter()
-            .map(|(e, (i, inst))| inst)
-            .collect::<Vec<_>>();
+        /*let materials = materials
+        .into_iter()
+        .map(|(e, (i, m))| m)
+        .collect::<Vec<_>>();
+        */
         let blases = blases.into_iter().map(|(e, (i, b))| b).collect::<Vec<_>>();
-        let tlas = Tlas::create(device, &attributes, &instances, &materials);
+        let tlas = Tlas::create(device, &instances, &materials);
 
         Self { blases, tlas }
     }
@@ -151,6 +138,7 @@ impl Scene {
     pub fn load_gltf(&mut self, device: &Arc<Device>) {
         let (gltf, buffers, _) = gltf::import("./src/res/room.gltf").unwrap();
         {
+            /*
             let materials = gltf
                 .materials()
                 .map(|material| {
@@ -169,8 +157,21 @@ impl Scene {
                     )
                 })
                 .collect::<HashMap<_, _>>();
+                */
             gltf.meshes().for_each(|mesh| {
                 let primitive = mesh.primitives().next().unwrap();
+                let material = primitive.material();
+                let mr = material.pbr_metallic_roughness();
+                let emission = material.emissive_factor();
+                let material_id = self
+                    .world
+                    .spawn()
+                    .insert(Material {
+                        diffuse: mr.base_color_factor(),
+                        mra: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
+                        emission,
+                    })
+                    .id();
                 let mut model = Model {
                     indices: Vec::new(),
                     positions: Vec::new(),
@@ -192,7 +193,7 @@ impl Scene {
                 let model = self.world.spawn().insert(model).id();
                 self.world.spawn().insert(BlasInstance {
                     model,
-                    material: materials[&primitive.material().index().unwrap()],
+                    material: material_id,
                     transform: vk::TransformMatrixKHR {
                         matrix: [1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0.],
                     },

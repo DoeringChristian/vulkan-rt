@@ -150,7 +150,7 @@ pub struct Tlas {
     instance_buf: InstanceBuffer,
     pub material_buf: MaterialBuffer,
     pub accel: Arc<AccelerationStructure>,
-    pub attribute_buf: AttributeBuffer,
+    //pub attribute_buf: AttributeBuffer,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
 }
@@ -209,12 +209,12 @@ impl Tlas {
     }
     pub fn create(
         device: &Arc<Device>,
-        attributes: &[GlslAttribute],
+        //attributes: &[GlslAttribute],
         instances: &[vk::AccelerationStructureInstanceKHR],
         materials: &[GlslMaterial],
     ) -> Self {
         // gl_CustomIndexEXT should index into attributes.
-        let attribute_buf = AttributeBuffer::create(device, &attributes);
+        //let attribute_buf = AttributeBuffer::create(device, &attributes);
         let instance_buf = InstanceBuffer::create(device, &instances);
         let material_buf = MaterialBuffer::create(device, &materials);
         let geometry_info = AccelerationStructureGeometryInfo {
@@ -242,7 +242,7 @@ impl Tlas {
         let accel = Arc::new(AccelerationStructure::create(device, info).unwrap());
 
         Self {
-            attribute_buf,
+            //attribute_buf,
             instance_buf,
             material_buf,
             size,

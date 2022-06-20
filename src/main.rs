@@ -111,9 +111,6 @@ fn main() -> anyhow::Result<()> {
             .iter()
             .map(|b| frame.render_graph.bind_node(&b.accel))
             .collect::<Vec<_>>();
-        let attribute_node = frame
-            .render_graph
-            .bind_node(&gpu_scene.tlas.attribute_buf.data);
         let material_node = frame
             .render_graph
             .bind_node(&gpu_scene.tlas.material_buf.data);
@@ -155,18 +152,17 @@ fn main() -> anyhow::Result<()> {
                 AccessType::RayTracingShaderReadAccelerationStructure,
             )
             .write_descriptor((0, 1), image_node)
-            .read_descriptor((0, 2), attribute_node)
-            .read_descriptor((0, 3), material_node);
+            .read_descriptor((0, 2), material_node);
 
         //pass = pass.read_descriptor((0, 4, [0]), index_nodes[0]);
         for (i, node) in index_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((0, 4, [i as _]), *node);
+            pass = pass.read_descriptor((0, 3, [i as _]), *node);
         }
         for (i, node) in position_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((0, 5, [i as _]), *node);
+            pass = pass.read_descriptor((0, 4, [i as _]), *node);
         }
         pass.record_ray_trace(move |ray_trace| {
-            ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 1000, 1000, 3);
+            ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 1000, 1000, 1);
         });
         presenter.present_image(frame.render_graph, image_node, frame.swapchain_image);
         fc += 1;

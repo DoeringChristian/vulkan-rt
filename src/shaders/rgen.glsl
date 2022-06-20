@@ -1,19 +1,10 @@
 #version 460
 #extension GL_EXT_ray_tracing : require
 
-#define M_PI 3.1415926535897932384626433832795
+#include "rand.glsl"
+#include "payload.glsl"
 
-layout(location = 0) rayPayloadEXT Payload {
-    vec3 orig;
-    vec3 dir;
-    //vec3 prev_norm;
-
-    vec3 color;
-    int depth;
-
-    int ray_active;
-} payload;
-
+layout(location = 0) rayPayloadEXT Payload payload;
 layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
 
 layout(set = 0, binding = 1, rgba32f) uniform image2D image;
@@ -24,26 +15,34 @@ float random(vec2 uv, float seed) {
 }
 
 void main() {
-    vec2 uv = gl_LaunchIDEXT.xy
-        + vec2(random(gl_LaunchIDEXT.xy, 0), random(gl_LaunchIDEXT.xy, 1));
-    uv /= vec2(gl_LaunchSizeEXT.xy);
-    uv = (uv * 2.0f - 1.0f) * vec2(1.0f, -1.0f);
+    //vec2 uv = gl_LaunchIDEXT.xy
+        //+ vec2(random(gl_LaunchIDEXT.xy, 0), random(gl_LaunchIDEXT.xy, 1));
+    //uv /= vec2(gl_LaunchSizeEXT.xy);
+    //uv = (uv * 2.0f - 1.0f) * vec2(1.0f, -1.0f);
 
     payload.orig = vec3(3., 0., 0.);
-    payload.dir = normalize(vec3(-1, uv.x, uv.y));
     //payload.prev_norm = vec3(0.0, 0.0, 0.0);
 
-    payload.color = vec3(10.);
+    payload.color = vec3(0.);
+    payload.attenuation = vec3(1.);
+    
     payload.depth = 0;
-
     payload.ray_active = 1;
 
-    for (int x = 0; x < 1; x++) {
+    vec3 color = vec3(0.);
+    for (int x = 0; x < 16.; x++) {
+        vec2 roff = rand2(float(x));
+        vec2 uv = gl_LaunchIDEXT.xy + roff;
+        uv /= vec2(gl_LaunchSizeEXT.xy);
+        uv = (uv * 2. - 1.) * vec2(1., -1.);
+        payload.dir = normalize(vec3(-1, uv.x, uv.y));
         traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
                     payload.orig, 0.001, payload.dir, 10000.0, 0);
+        color += payload.color;
     }
 
-    vec4 color = vec4(payload.color, 1.0);
+    //vec4 color = vec4(payload.color, 1.0);
+    color /= 16.;
 
-    imageStore(image, ivec2(gl_LaunchIDEXT.xy), color);
+    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(color, 0.));
 }

@@ -3,7 +3,8 @@
 #extension GL_EXT_ray_tracing : require
 #extension GL_EXT_nonuniform_qualifier : enable
 
-#define M_PI 3.1415926535897932384626433832795
+#include "rand.glsl"
+#include "payload.glsl"
 
 struct Material {
     vec4 albedo;
@@ -11,79 +12,22 @@ struct Material {
     vec4 emission;
 };
 
-struct Attribute{
-    uint mat_index;
-    uint model_id;
-};
-
 hitAttributeEXT vec2 hit_co;
 
-layout(location = 0) rayPayloadInEXT Payload {
-    vec3 orig;
-    vec3 dir;
-    //vec3 prev_norm;
-
-    vec3 color;
-    int depth;
-
-    int ray_active;
-} payload;
+layout(location = 0) rayPayloadInEXT Payload payload;
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
 layout(set = 0, binding = 1, rgba32f) uniform image2D image;
-layout(set = 0, binding = 2) buffer Attributes{
-    Attribute attributes[];
-};
-layout(set = 0, binding = 3) buffer Materials{
+layout(set = 0, binding = 2) buffer Materials{
     Material materials[];
 };
-layout(set = 0, binding = 4) buffer Indices{
+layout(set = 0, binding = 3) buffer Indices{
     uint indices[];
 }model_indices[];
-layout(set = 0, binding = 5) buffer Positions{
+layout(set = 0, binding = 4) buffer Positions{
     float positions[];
 }model_positions[];
 
-float rand(float seed){
-    return fract(sin(seed * 12.9898) * 43758.5453);
-}
-
-float rand(vec2 seed) {
-    return fract(sin(dot(seed, vec2(12.9898, 78.233))) * 43758.5453);
-}
-
-float rand(vec3 seed){
-    return fract(sin(dot(seed, vec3(12.9898, 78.233, 43.5295935))) * 43758.5453);
-}
-
-vec2 rand2(float seed){
-    return vec2(rand(seed), rand(seed + 44567.2901));
-}
-vec2 rand2(vec2 seed){
-    return vec2(rand(seed), rand(seed + vec2(63775.8729, 84230.7473)));
-}
-vec2 rand2(vec3 seed){
-    return vec2(rand(dot(seed, vec3(0.8556145372, 0.6562710953, 0.4043027253))), rand(dot(seed, vec3(0.637758729, 0.842307473, 0.546435341))));
-}
-
-
-vec3 rand_sphere(vec3 seed){
-    vec2 uv = rand2(seed);
-    float theta = acos(1. - 2. * uv.x);
-    float phi = 2 * M_PI *    uv.y;
-    return vec3(
-        cos(phi) * sin(theta),
-        sin(phi) * sin(theta),
-        cos(theta)
-    );
-}
-vec3 rand_hemisphere(vec3 normal, vec3 seed){
-    vec3 sphere = rand_sphere(seed);
-    if (dot(normal , sphere) <= 0.){
-        return reflect(sphere, normal);
-    }
-    return sphere;
-}
 
 float NDF_GGXTR(float nh, float roughness){
     float a = roughness * roughness;
@@ -120,25 +64,25 @@ void main() {
         return;
     }
 
-    Attribute attr = attributes[gl_InstanceCustomIndexEXT];
-    Material mat = materials[attr.mat_index];
-    //uint idx0 = model_indices[attr.model_id].indices[0];
+    uint id = gl_InstanceCustomIndexEXT;
+    Material mat = materials[id];
+    //uint idx0 = model_indices[id].indices[0];
 
-    ivec3 indices = ivec3(model_indices[attr.model_id].indices[3 * gl_PrimitiveID + 0],
-                        model_indices[attr.model_id].indices[3 * gl_PrimitiveID + 1],
-                        model_indices[attr.model_id].indices[3 * gl_PrimitiveID + 2]);
+    ivec3 indices = ivec3(model_indices[id].indices[3 * gl_PrimitiveID + 0],
+                        model_indices[id].indices[3 * gl_PrimitiveID + 1],
+                        model_indices[id].indices[3 * gl_PrimitiveID + 2]);
 
     vec3 barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
 
-    vec3 pos0 = vec3(model_positions[attr.model_id].positions[3 * indices.x + 0],
-                    model_positions[attr.model_id].positions[3 * indices.x + 1],
-                    model_positions[attr.model_id].positions[3 * indices.x + 2]);
-    vec3 pos1 = vec3(model_positions[attr.model_id].positions[3 * indices.y + 0],
-                    model_positions[attr.model_id].positions[3 * indices.y + 1],
-                    model_positions[attr.model_id].positions[3 * indices.y + 2]);
-    vec3 pos2 = vec3(model_positions[attr.model_id].positions[3 * indices.z + 0],
-                    model_positions[attr.model_id].positions[3 * indices.z + 1],
-                    model_positions[attr.model_id].positions[3 * indices.z + 2]);
+    vec3 pos0 = vec3(model_positions[id].positions[3 * indices.x + 0],
+                    model_positions[id].positions[3 * indices.x + 1],
+                    model_positions[id].positions[3 * indices.x + 2]);
+    vec3 pos1 = vec3(model_positions[id].positions[3 * indices.y + 0],
+                    model_positions[id].positions[3 * indices.y + 1],
+                    model_positions[id].positions[3 * indices.y + 2]);
+    vec3 pos2 = vec3(model_positions[id].positions[3 * indices.z + 0],
+                    model_positions[id].positions[3 * indices.z + 1],
+                    model_positions[id].positions[3 * indices.z + 2]);
 
     vec3 pos = pos0 * barycentric.x + pos1 * barycentric.y + pos2 * barycentric.z;
     vec3 geo_norm = normalize(cross(pos1 - pos0, pos2 - pos0));
@@ -155,35 +99,39 @@ void main() {
     float roughness = mat.mra.y;
     float metallic = mat.mra.x;
     vec3 dir_len = prev_pos - pos;
-    float distance2 = dot(dir_len, dir_len);
-    float attenuation = 1. / distance2;
+    float distance = length(dir_len);
+    float attenuation = 1. / (distance * distance);
     vec3 albedo = mat.albedo.xyz;
     vec3 n = geo_norm;
     vec3 v = normalize(- prev_dir);
     vec3 l = normalize(payload.dir);
     vec3 h = normalize(v + l);
     float nl = max(dot(n, l), 0.);
+    float nv = max(dot(n, v), 0.);
+    float nh = max(dot(n, h), 0.);
+    float hv = max(dot(h, v), 0.);
 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
 
     
-    float NDF = NDF_GGXTR(max(0., dot(n, h)), roughness);
-    float G = GSmith(max(0., dot(n, v)), max(0., dot(n, l)), roughness);
-    vec3 F = FSchlick(max(dot(h, v), 0.), F0);
+    float NDF = NDF_GGXTR(nh, roughness);
+    float G = GSmith(nv, nl, roughness);
+    vec3 F = FSchlick(hv, F0);
 
     vec3 kS = F;
     vec3 kD = vec3(1.) - kS;
     kD *= 1. - metallic;
 
     vec3 numerator = NDF * G * F;
-    float denom = 4. * max(dot(n, v), 0.) * max(dot(n, l), 0.) + 0.0001;
+    float denom = 4. * nv * nl + 0.0001;
     vec3 specular = numerator / denom;
 
-    vec3 lo = (kD * albedo / M_PI + specular) * attenuation * nl;
+    //vec3 fr = (kD * albedo / M_PI + specular);
+    vec3 fr = mat.albedo.xyz;
 
-    payload.color += mat.emission.xyz * 1000.;
-    payload.color *= lo;
+    payload.color = payload.attenuation * mat.emission.xyz * 10.;
+    payload.attenuation *= fr * nl;
 
     //payload.prev_norm = vec3(0., 0., 1.);
 
