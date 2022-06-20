@@ -4,7 +4,7 @@
 #define M_PI 3.1415926535897932384626433832795
 
 float rand(float seed){
-    return fract(sin(seed * 97932.3846264338) * 43758.5453);
+    return fract(sin(seed * 012.9898) * 43758.5453);
 }
 
 float rand(vec2 seed) {

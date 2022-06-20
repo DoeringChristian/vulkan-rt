@@ -12,19 +12,27 @@ struct Material {
     vec4 emission;
 };
 
+struct Instance{
+    uint mat_index;
+    uint model;
+};
+
 hitAttributeEXT vec2 hit_co;
 
 layout(location = 0) rayPayloadInEXT Payload payload;
 
-layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
+layout(set = 0, binding = 0) uniform accelerationStructureEXT tlas;
 layout(set = 0, binding = 1, rgba32f) uniform image2D image;
-layout(set = 0, binding = 2) buffer Materials{
+layout(set = 0, binding = 2) buffer Instances{
+    Instance instances[];
+};
+layout(set = 0, binding = 3) buffer Materials{
     Material materials[];
 };
-layout(set = 0, binding = 3) buffer Indices{
+layout(set = 0, binding = 4) buffer Indices{
     uint indices[];
 }model_indices[];
-layout(set = 0, binding = 4) buffer Positions{
+layout(set = 0, binding = 5) buffer Positions{
     float positions[];
 }model_positions[];
 
@@ -63,26 +71,33 @@ void main() {
     if (payload.ray_active == 0) {
         return;
     }
+    /*
+    if (payload.depth >= 2){
+        return;
+    }
+*/
 
     uint id = gl_InstanceCustomIndexEXT;
-    Material mat = materials[id];
+    Instance inst = instances[gl_InstanceCustomIndexEXT];
+    Material mat = materials[inst.mat_index];
+    uint model_id = inst.model;
     //uint idx0 = model_indices[id].indices[0];
 
-    ivec3 indices = ivec3(model_indices[id].indices[3 * gl_PrimitiveID + 0],
-                        model_indices[id].indices[3 * gl_PrimitiveID + 1],
-                        model_indices[id].indices[3 * gl_PrimitiveID + 2]);
+    ivec3 indices = ivec3(model_indices[model_id].indices[3 * gl_PrimitiveID + 0],
+                        model_indices[model_id].indices[3 * gl_PrimitiveID + 1],
+                        model_indices[model_id].indices[3 * gl_PrimitiveID + 2]);
 
     vec3 barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
 
-    vec3 pos0 = vec3(model_positions[id].positions[3 * indices.x + 0],
-                    model_positions[id].positions[3 * indices.x + 1],
-                    model_positions[id].positions[3 * indices.x + 2]);
-    vec3 pos1 = vec3(model_positions[id].positions[3 * indices.y + 0],
-                    model_positions[id].positions[3 * indices.y + 1],
-                    model_positions[id].positions[3 * indices.y + 2]);
-    vec3 pos2 = vec3(model_positions[id].positions[3 * indices.z + 0],
-                    model_positions[id].positions[3 * indices.z + 1],
-                    model_positions[id].positions[3 * indices.z + 2]);
+    vec3 pos0 = vec3(model_positions[model_id].positions[3 * indices.x + 0],
+                    model_positions[model_id].positions[3 * indices.x + 1],
+                    model_positions[model_id].positions[3 * indices.x + 2]);
+    vec3 pos1 = vec3(model_positions[model_id].positions[3 * indices.y + 0],
+                    model_positions[model_id].positions[3 * indices.y + 1],
+                    model_positions[model_id].positions[3 * indices.y + 2]);
+    vec3 pos2 = vec3(model_positions[model_id].positions[3 * indices.z + 0],
+                    model_positions[model_id].positions[3 * indices.z + 1],
+                    model_positions[model_id].positions[3 * indices.z + 2]);
 
     vec3 pos = pos0 * barycentric.x + pos1 * barycentric.y + pos2 * barycentric.z;
     vec3 geo_norm = normalize(cross(pos1 - pos0, pos2 - pos0));
@@ -128,9 +143,11 @@ void main() {
     vec3 specular = numerator / denom;
 
     //vec3 fr = (kD * albedo / M_PI + specular);
-    vec3 fr = mat.albedo.xyz;
+    vec3 fr = albedo;
 
     payload.color = payload.attenuation * mat.emission.xyz * 10.;
+    payload.color = geo_norm;
+    //payload.color += payload.attenuation * mat.emission.xyz * 10.;
     payload.attenuation *= fr * nl;
 
     //payload.prev_norm = vec3(0., 0., 1.);

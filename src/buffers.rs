@@ -106,19 +106,19 @@ impl IndexBuffer {
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct GlslAttribute {
+pub struct GlslInstanceData {
     pub mat_index: u32,
     pub model: u32,
     //pub _pad: [u32; 2],
 }
 
-pub struct AttributeBuffer {
+pub struct InstanceDataBuf {
     pub data: Arc<Buffer>,
     pub count: usize,
 }
 
-impl AttributeBuffer {
-    pub fn create(device: &Arc<Device>, attributes: &[GlslAttribute]) -> Self {
+impl InstanceDataBuf {
+    pub fn create(device: &Arc<Device>, attributes: &[GlslInstanceData]) -> Self {
         let buf = Arc::new({
             let data = cast_slice(attributes);
             let mut buf = Buffer::create(
@@ -187,6 +187,7 @@ impl MaterialBuffer {
                 BufferInfo::new_mappable(data.len() as _, vk::BufferUsageFlags::STORAGE_BUFFER),
             )
             .unwrap();
+            trace!("data_len: {}", data.len());
             Buffer::copy_from_slice(&mut buf, 0, data);
             buf
         });
