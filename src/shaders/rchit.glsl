@@ -115,7 +115,10 @@ void main() {
     vec3 prev_dir = payload.dir;
 
     payload.orig = pos;
+    
     payload.dir = rand_hemisphere(geo_norm, pos);
+    // Propability for sampeling in that direction
+    float p_w = 1./(2. * M_PI);
 
     //===========================================================
     // BRDF (Cook-torrance)
@@ -156,7 +159,7 @@ void main() {
     //vec3 fr = albedo.xyz;
 
     vec3 brdf = fr * nl;
-    
+
     // thrgouhput roussian roulette propability
     //p_{RR} = max_{RGB}\leftb( \prod_{d = 1}^{D-1} \left({f_r(x_d, w_d \rightarrow v_d) cos(\theta_d)) \over p(w_d)p_{RR_d}}\right)\right)
     float p_rr = max(payload.attenuation.r, max(payload.attenuation.g, payload.attenuation.b));
@@ -165,7 +168,7 @@ void main() {
     }
 
     // Combined probability of sampeling a ray.
-    float p_s = p_rr * 1./(2. * M_PI);
+    float p_s = p_rr * p_w;
 
     payload.color += payload.attenuation * mat.emission.xyz;
     payload.attenuation *= brdf / p_s;
