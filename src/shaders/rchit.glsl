@@ -72,6 +72,49 @@ vec2 transfer_DGGX(vec2 uv, float roughness){
     return vec2(acos(sqrt(a2/(uv.x*(a2 - 1.) + 1.))), uv.y);
 }
 
+vec3 eval(vec3 n, vec3 wo, vec3 wi, Material mat){
+    float roughness = mat.mra.y;
+    float metallic = mat.mra.x;
+    //vec3 dir_len = prev_pos - pos;
+    //float distance = length(dir_len);
+    //float attenuation = 1. / (distance * distance);
+    vec3 albedo = mat.albedo.xyz;
+    vec3 h = normalize(wo + wi);
+    float nl = max(dot(n, wi), 0.);
+    float nv = max(dot(n, wo), 0.);
+    float nh = max(dot(n, h), 0.);
+    float hv = max(dot(h, wo), 0.);
+
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedo, metallic);
+
+    
+    float NDF = NDF_GGXTR(nh, roughness);
+    float G = GSmith(nv, nl, roughness);
+    vec3 F = FSchlick(hv, F0);
+
+    vec3 kS = F;
+    vec3 kD = vec3(1.) - kS;
+    kD *= 1. - metallic;
+
+    vec3 numerator = NDF * G * F;
+    float denom = 4. * nv * nl + 0.0001;
+    vec3 specular = numerator / denom;
+
+    vec3 fr = (kD * albedo / M_PI + specular);
+    //vec3 fr = albedo.xyz;
+
+    return fr * nl;
+}
+
+float pdf(vec3 w){
+    return 1. / (2. * M_PI);
+}
+
+vec3 generate_sample(vec3 n, vec3 seed){
+    return rand_hemisphere(n, seed);
+}
+
 void main() {
     if (payload.ray_active == 0) {
         return;
@@ -115,50 +158,11 @@ void main() {
     vec3 prev_dir = payload.dir;
 
     payload.orig = pos;
-    
-    payload.dir = rand_hemisphere(geo_norm, pos);
-    // Propability for sampeling in that direction
-    float p_w = 1./(2. * M_PI);
 
-    //===========================================================
-    // BRDF (Cook-torrance)
-    //===========================================================
-    
-    float roughness = mat.mra.y;
-    float metallic = mat.mra.x;
-    vec3 dir_len = prev_pos - pos;
-    float distance = length(dir_len);
-    float attenuation = 1. / (distance * distance);
-    vec3 albedo = mat.albedo.xyz;
-    vec3 n = geo_norm;
-    vec3 v = normalize(- prev_dir);
-    vec3 l = normalize(payload.dir);
-    vec3 h = normalize(v + l);
-    float nl = max(dot(n, l), 0.);
-    float nv = max(dot(n, v), 0.);
-    float nh = max(dot(n, h), 0.);
-    float hv = max(dot(h, v), 0.);
+    vec3 w = generate_sample(geo_norm, pos);
+    vec3 brdf = eval(geo_norm, normalize(- prev_dir), w, mat) / pdf(w);
 
-    vec3 F0 = vec3(0.04);
-    F0 = mix(F0, albedo, metallic);
-
-    
-    float NDF = NDF_GGXTR(nh, roughness);
-    float G = GSmith(nv, nl, roughness);
-    vec3 F = FSchlick(hv, F0);
-
-    vec3 kS = F;
-    vec3 kD = vec3(1.) - kS;
-    kD *= 1. - metallic;
-
-    vec3 numerator = NDF * G * F;
-    float denom = 4. * nv * nl + 0.0001;
-    vec3 specular = numerator / denom;
-
-    vec3 fr = (kD * albedo / M_PI + specular);
-    //vec3 fr = albedo.xyz;
-
-    vec3 brdf = fr * nl;
+    payload.dir = w;
 
     // thrgouhput roussian roulette propability
     //p_{RR} = max_{RGB}\leftb( \prod_{d = 1}^{D-1} \left({f_r(x_d, w_d \rightarrow v_d) cos(\theta_d)) \over p(w_d)p_{RR_d}}\right)\right)
@@ -167,11 +171,8 @@ void main() {
         p_rr = 1.;
     }
 
-    // Combined probability of sampeling a ray.
-    float p_s = p_rr * p_w;
-
     payload.color += payload.attenuation * mat.emission.xyz;
-    payload.attenuation *= brdf / p_s;
+    payload.attenuation *= brdf / p_rr;
 
     //payload.prop *= p_rr;
     
