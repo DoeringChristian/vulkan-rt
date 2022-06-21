@@ -164,8 +164,11 @@ void main() {
         p_rr = 1.;
     }
 
-    payload.color += payload.attenuation * mat.emission.xyz * 10.;
-    payload.attenuation *= brdf / p_rr;
+    // Combined probability of sampeling a ray.
+    float p_s = p_rr * 1./(2. * M_PI);
+
+    payload.color += payload.attenuation * mat.emission.xyz;
+    payload.attenuation *= brdf / p_s;
 
     //payload.prop *= p_rr;
     
