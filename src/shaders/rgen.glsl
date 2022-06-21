@@ -30,20 +30,19 @@ void main() {
     payload.ray_active = 1;
 
     vec3 color = vec3(0.);
-    for (int x = 0; x < 1.; x++) {
-        vec2 uv = gl_LaunchIDEXT.xy;
-        vec2 roff = rand2(vec3(float(x), uv.x, uv.y));
-        uv += roff;
-        uv /= vec2(gl_LaunchSizeEXT.xy);
-        uv = (uv * 2. - 1.) * vec2(1., -1.);
-        payload.dir = normalize(vec3(-1, uv.x, uv.y));
+    vec2 uv = gl_LaunchIDEXT.xy;
+    vec2 roff = rand2(vec2(uv.x, uv.y));
+    uv += roff;
+    uv /= vec2(gl_LaunchSizeEXT.xy);
+    uv = (uv * 2. - 1.) * vec2(1., -1.);
+    payload.dir = normalize(vec3(-1, uv.x, uv.y));
+    for (int x = 0; x < 3.; x++) {
         traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
                     payload.orig, 0.001, payload.dir, 10000.0, 0);
-        color += payload.color;
     }
+    color = payload.color;
 
     //vec4 color = vec4(payload.color, 1.0);
-    color /= 1.;
 
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(color, 0.));
 }

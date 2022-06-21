@@ -144,11 +144,11 @@ void main() {
     //vec3 fr = (kD * albedo / M_PI + specular);
     vec3 fr = albedo;
 
-    //payload.color += payload.attenuation * mat.emission.xyz * 10.;
-    payload.color += geo_norm;
+    payload.color += payload.attenuation * mat.emission.xyz * 10.;
+    //payload.color += geo_norm;
     //payload.color = payload.dir;
     //payload.color += payload.attenuation * mat.emission.xyz * 10.;
-    //payload.attenuation *= fr * nl;
+    payload.attenuation *= fr * nl;
 
     //payload.prev_norm = vec3(0., 0., 1.);
 
