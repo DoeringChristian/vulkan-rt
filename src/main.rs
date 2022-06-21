@@ -17,8 +17,10 @@ use model::*;
 use sbt::*;
 use world::*;
 
-fn align_up(val: u32, atom: u32) -> u32 {
-    (val + atom - 1) & !(atom - 1)
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct PushConstant {
+    frame_count: u32,
 }
 
 fn create_ray_trace_pipeline(device: &Arc<Device>) -> Result<Arc<RayTracePipeline>, DriverError> {
@@ -165,7 +167,12 @@ fn main() -> anyhow::Result<()> {
         for (i, node) in position_nodes.iter().enumerate() {
             pass = pass.read_descriptor((0, 5, [i as _]), *node);
         }
+        let push_constant = PushConstant {
+            frame_count: fc as _,
+        };
+        trace!("fc: {}", fc);
         pass.record_ray_trace(move |ray_trace| {
+            ray_trace.push_constants(cast_slice(&[push_constant]));
             ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 1000, 1000, 2);
         });
         presenter.present_image(frame.render_graph, image_node, frame.swapchain_image);

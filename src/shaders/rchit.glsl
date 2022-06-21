@@ -36,6 +36,10 @@ layout(set = 0, binding = 5) buffer Positions{
     float positions[];
 }model_positions[];
 
+layout(push_constant) uniform PushConstants{
+    uint fc;
+};
+
 
 float NDF_GGXTR(float nh, float roughness){
     float a = roughness * roughness;
@@ -141,8 +145,8 @@ void main() {
     float denom = 4. * nv * nl + 0.0001;
     vec3 specular = numerator / denom;
 
-    //vec3 fr = (kD * albedo / M_PI + specular);
-    vec3 fr = albedo;
+    vec3 fr = (kD * albedo / M_PI + specular);
+    //vec3 fr = albedo;
 
     payload.color += payload.attenuation * mat.emission.xyz * 10.;
     //payload.color += geo_norm;
