@@ -5,7 +5,7 @@
 
 #include "rand.glsl"
 #include "common.glsl"
-#include "learnopengl_brdf.glsl"
+#include "test01_brdf.glsl"
 
 
 hitAttributeEXT vec2 hit_co;
@@ -71,8 +71,9 @@ void main() {
 
     payload.orig = pos;
 
-    vec4 wip = generate_sample(geo_norm, pos);
-    vec3 brdf = eval(geo_norm, normalize(- prev_dir), wip.xyz, mat) / wip.w;
+    vec3 wo = normalize(-prev_dir);
+    vec4 wip = generate_sample(geo_norm, wo, mat, pos);
+    vec3 brdf = eval(geo_norm, wo, wip.xyz, mat) / wip.w;
 
     payload.dir = wip.xyz;
 

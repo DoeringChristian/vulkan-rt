@@ -26,7 +26,7 @@ vec2 rand2(vec3 seed){
 }
 
 
-vec3 rand_sphere(vec3 seed){
+vec3 uniform_sphere(vec3 seed){
     vec2 uv = rand2(seed);
     float theta = acos(1. - 2. * uv.x);
     float phi = 2 * M_PI *    uv.y;
@@ -36,27 +36,34 @@ vec3 rand_sphere(vec3 seed){
         cos(theta)
     );
 }
-vec2 rand_sphere_uv(vec3 seed){
+vec2 uniform_sphere_uv(vec3 seed){
     vec2 uv = rand2(seed);
     float theta = acos(1. - 2. * uv.x);
     float phi = 2 * M_PI *    uv.y;
     return vec2(theta, phi);
 }
-vec3 rand_hemisphere(vec3 normal, vec3 seed){
-    vec3 sphere = rand_sphere(seed);
+vec3 uniform_hemisphere(vec3 normal, vec3 seed){
+    vec3 sphere = uniform_sphere(seed);
     if (dot(normal , sphere) <= 0.){
         return reflect(sphere, normal);
     }
     return sphere;
 }
-vec2 rand_hemisphere_uv(vec3 seed){
-    vec2 uv = rand_sphere_uv(seed);
+vec2 uniform_hemisphere_uv(vec3 seed){
+    vec2 uv = uniform_sphere_uv(seed);
     if (uv.x > 0){
         return uv;
     }
     else{
         return vec2(-uv.x, uv.y);
     }
+}
+
+vec3 allign_hemisphere(vec3 hemisphere, vec3 up){
+    vec3 right = normalize(cross(up, vec3(0.0072, 1., 0.0034)));
+    vec3 forward = cross(right, up);
+
+    return hemisphere.x * forward + hemisphere.y * right + hemisphere.z * up;
 }
 
 #endif //RAND_GLSL
