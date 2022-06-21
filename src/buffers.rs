@@ -109,7 +109,7 @@ impl IndexBuffer {
 pub struct GlslInstanceData {
     pub mat_index: u32,
     pub model: u32,
-    //pub _pad: [u32; 2],
+    pub _pad: [u32; 2],
 }
 
 pub struct InstanceDataBuf {

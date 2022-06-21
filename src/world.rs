@@ -5,7 +5,7 @@ use crate::model::Model;
 use bevy_ecs::prelude::*;
 use screen_13::prelude::*;
 use slotmap::*;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::io::BufReader;
 use std::sync::Arc;
 
@@ -34,7 +34,7 @@ impl GpuScene {
         let blases = geometries
             .into_iter()
             .map(|(e, (i, g))| (e, (i, Blas::create(device, g))))
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
         let mut instances = vec![];
         let mut materials = vec![];
         let mut instancedata = vec![];
@@ -63,6 +63,7 @@ impl GpuScene {
             instancedata.push(GlslInstanceData {
                 mat_index: (materials.len() - 1) as _,
                 model: blases[&instance.model].0 as _,
+                _pad: [0, 0],
             });
             instances.push(vk::AccelerationStructureInstanceKHR {
                 transform: instance.transform,
