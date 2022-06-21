@@ -9,11 +9,13 @@ use {
 mod accel;
 mod buffers;
 mod model;
+mod post;
 mod sbt;
 mod world;
 use accel::*;
 use buffers::*;
 use model::*;
+use post::*;
 use sbt::*;
 use world::*;
 
@@ -54,6 +56,7 @@ fn main() -> anyhow::Result<()> {
     let event_loop = EventLoop::new().ray_tracing(true).build()?;
     let mut cache = HashPool::new(&event_loop.device);
     let presenter = screen_13_fx::GraphicPresenter::new(&event_loop.device).unwrap();
+    let lts = LinearToSrgb::new(&event_loop.device);
 
     // ------------------------------------------------------------------------------------------ //
     // Setup the ray tracing pipeline
@@ -175,7 +178,23 @@ fn main() -> anyhow::Result<()> {
             ray_trace.push_constants(cast_slice(&[push_constant]));
             ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 1000, 1000, 2);
         });
-        presenter.present_image(frame.render_graph, image_node, frame.swapchain_image);
+
+        let tmp_image_node = frame.render_graph.bind_node(
+            cache
+                .lease(ImageInfo::new_2d(
+                    vk::Format::R8G8B8A8_UNORM,
+                    1000,
+                    1000,
+                    vk::ImageUsageFlags::TRANSFER_SRC
+                        | vk::ImageUsageFlags::TRANSFER_DST
+                        | vk::ImageUsageFlags::COLOR_ATTACHMENT
+                        | vk::ImageUsageFlags::SAMPLED,
+                ))
+                .unwrap(),
+        );
+        lts.exec(frame.render_graph, image_node, tmp_image_node);
+
+        presenter.present_image(frame.render_graph, tmp_image_node, frame.swapchain_image);
         fc += 1;
         //frame.exit();
     })?;

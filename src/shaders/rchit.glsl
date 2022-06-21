@@ -36,11 +36,6 @@ layout(set = 0, binding = 5) buffer Positions{
     float positions[];
 }model_positions[];
 
-layout(push_constant) uniform PushConstants{
-    uint fc;
-};
-
-
 float NDF_GGXTR(float nh, float roughness){
     float a = roughness * roughness;
     float a2 = a * a;
