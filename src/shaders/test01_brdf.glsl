@@ -2,41 +2,6 @@
 #include "common.glsl"
 
 // From LearnOpenGL
-float DistributionGGX(vec3 N, vec3 H, float roughness)
-{
-    float a      = roughness*roughness;
-    float a2     = a*a;
-    float NdotH  = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH*NdotH;
-	
-    float num   = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = M_PI * denom * denom;
-	
-    return num / denom;
-}
-
-vec4 sample_DistributionGGX(vec3 N, vec3 wo, float roughness, vec3 seed){
-    vec2 uv = rand2(seed);
-    
-    float a      = roughness*roughness;
-    float a2     = a*a;
-    
-    float theta = acos(sqrt(a2 / ( uv.x * (a2 - 1) + 1 )));
-    float phi = uv.y;
-
-    vec3 n = vec3(
-        cos(phi) * sin(theta),
-        sin(phi) * sin(theta),
-        cos(theta)
-    );
-
-    n = allign_hemisphere(n, N);
-
-    vec3 h = normalize(N + wo);
-    float pdf = DistributionGGX(n, h, roughness);
-    return vec4(n.x, n.y, n.z, pdf);
-}
 
 float GeometrySchlickGGX(float NdotV, float roughness)
 {
