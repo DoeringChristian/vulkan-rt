@@ -7,6 +7,8 @@ struct Payload{
     
     vec3 color;
     vec3 attenuation;
+
+    float prop;
    
     int depth;
     int ray_active;

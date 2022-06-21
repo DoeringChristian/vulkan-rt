@@ -81,7 +81,12 @@ void main() {
         return;
     }
 */
+    // Russian roulette
+    const float p_rr = 0.7;
 
+    //===========================================================
+    // Extract geometry information:
+    //===========================================================
     Instance inst = instances[gl_InstanceCustomIndexEXT];
     Material mat = materials[inst.mat_index];
     uint model_id = inst.model;
@@ -109,14 +114,12 @@ void main() {
     vec3 prev_pos = payload.orig;
     vec3 prev_dir = payload.dir;
 
+    payload.orig = pos;
+    payload.dir = rand_hemisphere(geo_norm, pos);
 
     //===========================================================
     // BRDF (Cook-torrance)
     //===========================================================
-    payload.orig = pos;
-    payload.dir = rand_hemisphere(geo_norm, pos);
-    
-    // Importance sampling
     
     float roughness = mat.mra.y;
     float metallic = mat.mra.x;
@@ -152,13 +155,14 @@ void main() {
     vec3 fr = (kD * albedo / M_PI + specular);
     //vec3 fr = albedo;
 
-    payload.color += payload.attenuation * mat.emission.xyz * 10.;
-    //payload.color += geo_norm;
-    //payload.color = payload.dir;
-    //payload.color += payload.attenuation * mat.emission.xyz * 10.;
+    payload.color += payload.attenuation * mat.emission.xyz * 10. * 1./payload.prop;
     payload.attenuation *= fr * nl;
 
-    //payload.prev_norm = vec3(0., 0., 1.);
+    payload.prop *= p_rr;
+    
+    if (rand(vec3(payload.dir)) >= p_rr){
+        payload.ray_active = 0;
+    }
 
     payload.depth += 1;
 }

@@ -31,6 +31,8 @@ void main() {
 
     payload.color = vec3(0.);
     payload.attenuation = vec3(1.);
+
+    payload.prop = 1.;
     
     payload.depth = 0;
     payload.ray_active = 1;
@@ -42,8 +44,9 @@ void main() {
     uv += roff;
     uv /= vec2(gl_LaunchSizeEXT.xy);
     uv = (uv * 2. - 1.) * vec2(1., -1.);
+    uv *= 0.7;
     payload.dir = normalize(vec3(-1, uv.x, uv.y));
-    for (int x = 0; x < 8.; x++) {
+    for (int x = 0; x < 16; x++) {
         traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
                     payload.orig, 0.001, payload.dir, 10000.0, 0);
     }
