@@ -82,7 +82,7 @@ void main() {
     }
 */
     // Russian roulette
-    const float p_rr = 0.7;
+    //const float p_rr = 0.7;
 
     //===========================================================
     // Extract geometry information:
@@ -153,15 +153,22 @@ void main() {
     vec3 specular = numerator / denom;
 
     vec3 fr = (kD * albedo / M_PI + specular);
-    //vec3 fr = albedo;
+    //vec3 fr = albedo.xyz;
 
-    payload.color += payload.attenuation * mat.emission.xyz * 10. * 1./payload.prop;
-    payload.attenuation *= fr * nl;
+    vec3 brdf = fr * nl;
+    
+    // thrgouhput roussian roulette propability
+    //p_{RR} = max_{RGB}\leftb( \prod_{d = 1}^{D-1} \left({f_r(x_d, w_d \rightarrow v_d) cos(\theta_d)) \over p(w_d)p_{RR_d}}\right)\right)
+    float p_rr = max(payload.attenuation.r, max(payload.attenuation.g, payload.attenuation.b));
 
-    payload.prop *= p_rr;
+    payload.color += payload.attenuation * mat.emission.xyz * 10.;
+    payload.attenuation *= brdf / p_rr;
+
+    //payload.prop *= p_rr;
     
     if (rand(vec3(payload.dir)) >= p_rr){
         payload.ray_active = 0;
+        return;
     }
 
     payload.depth += 1;
