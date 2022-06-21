@@ -114,7 +114,7 @@ fn main() -> anyhow::Result<()> {
         let material_node = frame
             .render_graph
             .bind_node(&gpu_scene.tlas.material_buf.data);
-        let attribute_node = frame
+        let instancedata_nodes = frame
             .render_graph
             .bind_node(&gpu_scene.tlas.instancedata_buf.data);
         let tlas_node = frame.render_graph.bind_node(&gpu_scene.tlas.accel);
@@ -155,7 +155,7 @@ fn main() -> anyhow::Result<()> {
                 AccessType::RayTracingShaderReadAccelerationStructure,
             )
             .write_descriptor((0, 1), image_node)
-            .read_descriptor((0, 2), attribute_node)
+            .read_descriptor((0, 2), instancedata_nodes)
             .read_descriptor((0, 3), material_node);
 
         //pass = pass.read_descriptor((0, 4, [0]), index_nodes[0]);

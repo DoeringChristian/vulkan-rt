@@ -209,12 +209,12 @@ impl Tlas {
     }
     pub fn create(
         device: &Arc<Device>,
-        attributes: &[GlslInstanceData],
+        instances_data: &[GlslInstanceData],
         instances: &[vk::AccelerationStructureInstanceKHR],
         materials: &[GlslMaterial],
     ) -> Self {
         // gl_CustomIndexEXT should index into attributes.
-        let instancedata_buf = InstanceDataBuf::create(device, &attributes);
+        let instancedata_buf = InstanceDataBuf::create(device, &instances_data);
         let instance_buf = InstanceBuffer::create(device, &instances);
         let material_buf = MaterialBuffer::create(device, &materials);
         let geometry_info = AccelerationStructureGeometryInfo {

@@ -37,7 +37,7 @@ impl GpuScene {
             .collect::<HashMap<_, _>>();
         let mut instances = vec![];
         let mut materials = vec![];
-        let mut attributes = vec![];
+        let mut instancedata = vec![];
         for (i, (entity, instance)) in scene
             .world
             .query::<(Entity, &BlasInstance)>()
@@ -60,14 +60,14 @@ impl GpuScene {
                     0.,
                 ],
             });
-            attributes.push(GlslInstanceData {
+            instancedata.push(GlslInstanceData {
                 mat_index: (materials.len() - 1) as _,
                 model: blases[&instance.model].0 as _,
             });
             instances.push(vk::AccelerationStructureInstanceKHR {
                 transform: instance.transform,
                 instance_custom_index_and_mask: vk::Packed24_8::new(
-                    (attributes.len() - 1) as _,
+                    (instancedata.len() - 1) as _,
                     0xff,
                 ),
                 instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
@@ -81,9 +81,10 @@ impl GpuScene {
                 },
             });
         }
+        trace!("instances: {}", instancedata.len());
 
         let blases = blases.into_iter().map(|(e, (i, b))| b).collect::<Vec<_>>();
-        let tlas = Tlas::create(device, &attributes, &instances, &materials);
+        let tlas = Tlas::create(device, &instancedata, &instances, &materials);
 
         Self { blases, tlas }
     }
