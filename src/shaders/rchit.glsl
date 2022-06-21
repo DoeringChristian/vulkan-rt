@@ -145,7 +145,7 @@ void main() {
     vec3 fr = albedo;
 
     //payload.color += payload.attenuation * mat.emission.xyz * 10.;
-    payload.color += mat.albedo.xyz;
+    payload.color += geo_norm;
     //payload.color = payload.dir;
     //payload.color += payload.attenuation * mat.emission.xyz * 10.;
     //payload.attenuation *= fr * nl;
