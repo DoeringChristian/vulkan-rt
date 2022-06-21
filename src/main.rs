@@ -25,7 +25,7 @@ fn create_ray_trace_pipeline(device: &Arc<Device>) -> Result<Arc<RayTracePipelin
     Ok(Arc::new(RayTracePipeline::create(
         device,
         RayTracePipelineInfo::new()
-            .max_ray_recursion_depth(1)
+            .max_ray_recursion_depth(3)
             .build(),
         [
             Shader::new_ray_gen(

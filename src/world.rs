@@ -63,7 +63,7 @@ impl GpuScene {
             instancedata.push(GlslInstanceData {
                 mat_index: (materials.len() - 1) as _,
                 model: blases[&instance.model].0 as _,
-                _pad: [0, 0],
+                //_pad: [0, 0],
             });
             instances.push(vk::AccelerationStructureInstanceKHR {
                 transform: instance.transform,
@@ -84,7 +84,13 @@ impl GpuScene {
         }
         trace!("instances: {}", instancedata.len());
 
-        let blases = blases.into_iter().map(|(e, (i, b))| b).collect::<Vec<_>>();
+        // TODO: very convoluted need better way.
+        let mut blases = blases
+            .into_iter()
+            .map(|(_, (i, b))| (i, b))
+            .collect::<Vec<_>>();
+        blases.sort_by(|(i0, _), (i1, _)| i0.cmp(i1));
+        let blases = blases.into_iter().map(|(i, b)| b).collect::<Vec<_>>();
         let tlas = Tlas::create(device, &instancedata, &instances, &materials);
 
         Self { blases, tlas }

@@ -77,7 +77,6 @@ void main() {
     }
 */
 
-    uint id = gl_InstanceCustomIndexEXT;
     Instance inst = instances[gl_InstanceCustomIndexEXT];
     Material mat = materials[inst.mat_index];
     uint model_id = inst.model;
@@ -145,10 +144,11 @@ void main() {
     //vec3 fr = (kD * albedo / M_PI + specular);
     vec3 fr = albedo;
 
-    payload.color = payload.attenuation * mat.emission.xyz * 10.;
-    payload.color = geo_norm;
     //payload.color += payload.attenuation * mat.emission.xyz * 10.;
-    payload.attenuation *= fr * nl;
+    payload.color += mat.albedo.xyz;
+    //payload.color = payload.dir;
+    //payload.color += payload.attenuation * mat.emission.xyz * 10.;
+    //payload.attenuation *= fr * nl;
 
     //payload.prev_norm = vec3(0., 0., 1.);
 
