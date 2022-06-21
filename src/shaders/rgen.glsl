@@ -26,7 +26,7 @@ void main() {
     //uv /= vec2(gl_LaunchSizeEXT.xy);
     //uv = (uv * 2.0f - 1.0f) * vec2(1.0f, -1.0f);
 
-    payload.orig = vec3(3., 0., 0.);
+    payload.orig = vec3(1., 0., 0.);
     //payload.prev_norm = vec3(0.0, 0.0, 0.0);
 
     payload.color = vec3(0.);

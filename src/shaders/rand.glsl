@@ -36,12 +36,27 @@ vec3 rand_sphere(vec3 seed){
         cos(theta)
     );
 }
+vec2 rand_sphere_uv(vec3 seed){
+    vec2 uv = rand2(seed);
+    float theta = acos(1. - 2. * uv.x);
+    float phi = 2 * M_PI *    uv.y;
+    return vec2(theta, phi);
+}
 vec3 rand_hemisphere(vec3 normal, vec3 seed){
     vec3 sphere = rand_sphere(seed);
     if (dot(normal , sphere) <= 0.){
         return reflect(sphere, normal);
     }
     return sphere;
+}
+vec2 rand_hemisphere_uv(vec3 seed){
+    vec2 uv = rand_sphere_uv(seed);
+    if (uv.x > 0){
+        return uv;
+    }
+    else{
+        return vec2(-uv.x, uv.y);
+    }
 }
 
 #endif //RAND_GLSL

@@ -124,7 +124,7 @@ impl Scene {
         }
     }
     pub fn load_gltf(&mut self, device: &Arc<Device>) {
-        let (gltf, buffers, _) = gltf::import("./src/res/room.gltf").unwrap();
+        let (gltf, buffers, _) = gltf::import("./src/res/cube_scene.gltf").unwrap();
         {
             gltf.meshes().for_each(|mesh| {
                 let primitive = mesh.primitives().next().unwrap();

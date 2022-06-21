@@ -66,6 +66,12 @@ vec3 FSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }  
 
+vec2 transfer_DGGX(vec2 uv, float roughness){
+    float a = roughness * roughness;
+    float a2 = a * a;
+    return vec2(acos(sqrt(a2/(uv.x*(a2 - 1.) + 1.))), uv.y);
+}
+
 void main() {
     if (payload.ray_active == 0) {
         return;
@@ -103,12 +109,15 @@ void main() {
     vec3 prev_pos = payload.orig;
     vec3 prev_dir = payload.dir;
 
-    payload.orig = pos;
-    payload.dir = rand_hemisphere(geo_norm, pos);
 
     //===========================================================
     // BRDF (Cook-torrance)
     //===========================================================
+    payload.orig = pos;
+    payload.dir = rand_hemisphere(geo_norm, pos);
+    
+    // Importance sampling
+    
     float roughness = mat.mra.y;
     float metallic = mat.mra.x;
     vec3 dir_len = prev_pos - pos;
