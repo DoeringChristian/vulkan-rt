@@ -81,8 +81,8 @@ void main() {
         return;
     }
 */
-    // Russian roulette
-    //const float p_rr = 0.7;
+
+    const uint min_rr = 2;
 
     //===========================================================
     // Extract geometry information:
@@ -160,6 +160,9 @@ void main() {
     // thrgouhput roussian roulette propability
     //p_{RR} = max_{RGB}\leftb( \prod_{d = 1}^{D-1} \left({f_r(x_d, w_d \rightarrow v_d) cos(\theta_d)) \over p(w_d)p_{RR_d}}\right)\right)
     float p_rr = max(payload.attenuation.r, max(payload.attenuation.g, payload.attenuation.b));
+    if (payload.depth < min_rr){
+        p_rr = 1.;
+    }
 
     payload.color += payload.attenuation * mat.emission.xyz * 10.;
     payload.attenuation *= brdf / p_rr;
