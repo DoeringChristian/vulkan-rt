@@ -100,10 +100,11 @@ impl GpuScene {
             .iter(&scene.world)
         {
             instancedata.push(GlslInstanceData {
+                transform: transform.compute_matrix().to_cols_array_2d(),
                 mat_index: material_idxs[&material_id.0] as _,
                 positions: mesh_idxs[&mesh_id.0].positions as _,
                 indices: mesh_idxs[&mesh_id.0].indices as _,
-                //_pad: [0, 0],
+                _pad: [0],
             });
             let matrix = transform.compute_matrix();
             let matrix = [

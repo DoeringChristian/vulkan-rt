@@ -39,10 +39,11 @@ pub struct InstanceBundle {
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct GlslInstanceData {
+    pub transform: [[f32; 4]; 4],
     pub mat_index: u32,
     pub indices: u32,
     pub positions: u32,
-    //pub _pad: [u32; 2],
+    pub _pad: [u32; 1],
 }
 
 ///

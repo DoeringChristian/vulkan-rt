@@ -14,7 +14,7 @@ layout(location = 0) rayPayloadInEXT Payload payload;
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT tlas;
 layout(set = 0, binding = 1, rgba32f) uniform image2D image;
-layout(set = 0, binding = 2) buffer Instances{
+layout(std140, set = 0, binding = 2) buffer Instances{
     Instance instances[];
 };
 layout(set = 0, binding = 3) buffer Materials{

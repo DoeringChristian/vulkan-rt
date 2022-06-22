@@ -8,6 +8,11 @@ struct Material {
 };
 
 struct Instance{
+    //mat4 trans;
+    vec4 trans0;
+    vec4 trans1;
+    vec4 trans2;
+    vec4 trans3;
     uint mat_index;
     uint indices;
     uint positions;
