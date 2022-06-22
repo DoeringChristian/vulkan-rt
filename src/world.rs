@@ -180,30 +180,14 @@ impl Scene {
     pub fn load_gltf(&mut self, device: &Arc<Device>) {
         let (gltf, buffers, _) = gltf::import("./src/res/cube_scene.gltf").unwrap();
         {
-            gltf.meshes().for_each(|mesh| {
+            let mut mesh_entities = HashMap::new();
+            for mesh in gltf.meshes() {
                 let primitive = mesh.primitives().next().unwrap();
-                let material = primitive.material();
-                let mr = material.pbr_metallic_roughness();
-                let emission = material.emissive_factor();
-                let material_id = self
-                    .world
-                    .spawn()
-                    .insert(Material {
-                        diffuse: mr.base_color_factor(),
-                        mra: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
-                        emission,
-                    })
-                    .id();
                 let mut indices: VertexData<Index> = VertexData(Vec::new());
                 let mut positions: VertexData<Position> = VertexData(Vec::new());
                 let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
                 if let Some(iter) = reader.read_positions() {
                     for position in iter {
-                        /*
-                        positions.0.push(position[0]);
-                        positions.0.push(position[1]);
-                        positions.0.push(position[2]);
-                        */
                         positions.0.push(Position(position));
                     }
                 }
@@ -212,14 +196,41 @@ impl Scene {
                         indices.0.push(Index(index))
                     }
                 }
-                //let model = self.world.spawn().insert(model).id();
-                let mesh = self.world.spawn().insert(indices).insert(positions).id();
-                self.world.spawn().insert_bundle(InstanceBundle {
-                    mesh: MeshId(mesh),
-                    material: MaterialId(material_id),
-                    transform: Transform::from_xyz(0., 0., 0.),
-                });
-            });
+                let entity = self.world.spawn().insert(indices).insert(positions).id();
+                mesh_entities.insert(mesh.index(), entity);
+            }
+            let mut material_entities = HashMap::new();
+            for material in gltf.materials() {
+                let mr = material.pbr_metallic_roughness();
+                let emission = material.emissive_factor();
+                let material_entity = self
+                    .world
+                    .spawn()
+                    .insert(Material {
+                        diffuse: mr.base_color_factor(),
+                        mra: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
+                        emission,
+                    })
+                    .id();
+                material_entities.insert(material.index().unwrap(), material_entity);
+            }
+            for node in gltf.nodes() {
+                if let Some(mesh) = node.mesh() {
+                    self.world.spawn().insert_bundle(InstanceBundle {
+                        mesh: MeshId(mesh_entities[&mesh.index()]),
+                        material: MaterialId(
+                            material_entities[&mesh
+                                .primitives()
+                                .next()
+                                .unwrap()
+                                .material()
+                                .index()
+                                .unwrap()],
+                        ),
+                        transform: Transform::from_xyz(0., 0., 0.),
+                    });
+                }
+            }
         }
     }
 }
