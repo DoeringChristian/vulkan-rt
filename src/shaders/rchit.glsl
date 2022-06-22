@@ -61,9 +61,12 @@ void main() {
     vec3 pos2 = vec3(model_positions[inst.positions].positions[3 * indices.z + 0],
                     model_positions[inst.positions].positions[3 * indices.z + 1],
                     model_positions[inst.positions].positions[3 * indices.z + 2]);
+    // Apply transform
+    pos0 = (transform * vec4(pos0, 1.)).xyz;
+    pos1 = (transform * vec4(pos1, 1.)).xyz;
+    pos2 = (transform * vec4(pos2, 1.)).xyz;
 
     vec3 pos = pos0 * barycentric.x + pos1 * barycentric.y + pos2 * barycentric.z;
-    pos = (transform * vec4(pos, 1.)).xyz;
     
     vec3 geo_norm = normalize(cross(pos1 - pos0, pos2 - pos0));
     
