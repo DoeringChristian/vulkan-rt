@@ -158,7 +158,7 @@ impl Material {
 
 pub struct Tlas {
     instance_buf: TypedBuffer<vk::AccelerationStructureInstanceKHR>,
-    pub material_buf: MaterialBuffer,
+    pub material_buf: TypedBuffer<GlslMaterial>,
     pub accel: Arc<AccelerationStructure>,
     pub instancedata_buf: TypedBuffer<GlslInstanceData>,
     geometry_info: AccelerationStructureGeometryInfo,
@@ -235,7 +235,8 @@ impl Tlas {
             vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
                 | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS,
         );
-        let material_buf = MaterialBuffer::create(device, &materials);
+        let material_buf =
+            TypedBuffer::create(device, &materials, vk::BufferUsageFlags::STORAGE_BUFFER);
         let geometry_info = AccelerationStructureGeometryInfo {
             ty: vk::AccelerationStructureTypeKHR::TOP_LEVEL,
             flags: vk::BuildAccelerationStructureFlagsKHR::empty(),

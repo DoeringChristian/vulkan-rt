@@ -48,87 +48,10 @@ pub struct GlslInstanceData {
     //pub _pad: [u32; 2],
 }
 
-pub struct InstanceDataBuf {
-    pub data: Arc<Buffer>,
-    pub count: usize,
-}
-
-impl InstanceDataBuf {
-    pub fn create(device: &Arc<Device>, attributes: &[GlslInstanceData]) -> Self {
-        let buf = Arc::new({
-            let data = cast_slice(attributes);
-            let mut buf = Buffer::create(
-                device,
-                BufferInfo::new_mappable(data.len() as _, vk::BufferUsageFlags::STORAGE_BUFFER),
-            )
-            .unwrap();
-            Buffer::copy_from_slice(&mut buf, 0, data);
-            buf
-        });
-        let count = attributes.len();
-
-        Self { data: buf, count }
-    }
-}
-
-pub struct InstanceBuffer {
-    pub data: Arc<Buffer>,
-    pub count: usize,
-}
-
-impl InstanceBuffer {
-    pub fn create(
-        device: &Arc<Device>,
-        instances: &[vk::AccelerationStructureInstanceKHR],
-    ) -> Self {
-        let buf_size = instances.len() * size_of::<vk::AccelerationStructureInstanceKHR>();
-        let mut buf = Buffer::create(
-            device,
-            BufferInfo::new_mappable(
-                (size_of::<vk::AccelerationStructureInstanceKHR>() * instances.len()) as _,
-                vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
-                    | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS,
-            ),
-        )
-        .unwrap();
-        Buffer::copy_from_slice(&mut buf, 0, unsafe {
-            std::slice::from_raw_parts(instances as *const _ as *const _, buf_size as _)
-        });
-        Self {
-            data: Arc::new(buf),
-            count: instances.len(),
-        }
-    }
-}
-
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct GlslMaterial {
     pub diffuse: [f32; 4],
     pub mra: [f32; 4],
     pub emission: [f32; 4],
-}
-
-pub struct MaterialBuffer {
-    pub data: Arc<Buffer>,
-    pub count: usize,
-}
-
-impl MaterialBuffer {
-    pub fn create(device: &Arc<Device>, materials: &[GlslMaterial]) -> Self {
-        let buf = Arc::new({
-            let data = cast_slice(materials);
-            let mut buf = Buffer::create(
-                device,
-                BufferInfo::new_mappable(data.len() as _, vk::BufferUsageFlags::STORAGE_BUFFER),
-            )
-            .unwrap();
-            trace!("data_len: {}", data.len());
-            Buffer::copy_from_slice(&mut buf, 0, data);
-            buf
-        });
-        let count = materials.len();
-
-        Self { data: buf, count }
-    }
 }

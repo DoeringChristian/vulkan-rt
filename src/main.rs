@@ -118,7 +118,7 @@ fn main() -> anyhow::Result<()> {
             .collect::<Vec<_>>();
         let material_node = frame
             .render_graph
-            .bind_node(&gpu_scene.tlas.material_buf.data);
+            .bind_node(&gpu_scene.tlas.material_buf.buf);
         let instancedata_nodes = frame
             .render_graph
             .bind_node(&gpu_scene.tlas.instancedata_buf.buf);
