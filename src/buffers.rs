@@ -45,7 +45,7 @@ pub struct PositionsBuffer {
 }
 
 impl PositionsBuffer {
-    pub fn create(device: &Arc<Device>, positions: &[f32]) -> Self {
+    pub fn create(device: &Arc<Device>, positions: &[[f32; 3]]) -> Self {
         let data = Arc::new({
             let data = cast_slice(positions);
             let mut buf = Buffer::create(
@@ -61,7 +61,7 @@ impl PositionsBuffer {
             Buffer::copy_from_slice(&mut buf, 0, data);
             buf
         });
-        let count = positions.len() / 3;
+        let count = positions.len();
         let stride = 3 * size_of::<f32>();
         let format = vk::Format::R32G32B32_SFLOAT;
         Self {

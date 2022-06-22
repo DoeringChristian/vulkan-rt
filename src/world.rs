@@ -1,9 +1,10 @@
 use crate::accel::{Blas, BlasGeometry, Material, Tlas};
 use crate::buffers::{GlslInstanceData, GlslMaterial};
-use crate::model::{Indices, InstanceBundle, MaterialId, MeshId, Positions};
+use crate::model::{AsSlice, Index, InstanceBundle, MaterialId, MeshId, Position, VertexData};
 
 use bevy_ecs::prelude::*;
 use bevy_transform::prelude::*;
+use bytemuck::cast_slice;
 use screen_13::prelude::*;
 use slotmap::*;
 use std::collections::{BTreeMap, HashMap};
@@ -21,13 +22,16 @@ impl GpuScene {
     pub fn create(device: &Arc<Device>, scene: &mut Scene) -> Self {
         let geometries = scene
             .world
-            .query::<(Entity, &Positions, &Indices)>()
+            .query::<(Entity, &VertexData<Position>, &VertexData<Index>)>()
             .iter(&scene.world)
             .enumerate()
             .map(|(i, (e, positions, indices))| {
                 (
                     e,
-                    (i, BlasGeometry::create(device, &indices.0, &positions.0)),
+                    (
+                        i,
+                        BlasGeometry::create(device, indices.as_slice(), positions.as_slice()),
+                    ),
                 )
             })
             .collect::<HashMap<_, _>>();
@@ -151,25 +155,28 @@ impl Scene {
                         emission,
                     })
                     .id();
-                let mut indices = Indices(Vec::new());
-                let mut positions = Positions(Vec::new());
+                let mut indices: VertexData<Index> = VertexData(Vec::new());
+                let mut positions: VertexData<Position> = VertexData(Vec::new());
                 let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
                 if let Some(iter) = reader.read_positions() {
                     for position in iter {
+                        /*
                         positions.0.push(position[0]);
                         positions.0.push(position[1]);
                         positions.0.push(position[2]);
+                        */
+                        positions.0.push(Position(position));
                     }
                 }
                 if let Some(iter) = reader.read_indices() {
                     for index in iter.into_u32() {
-                        indices.0.push(index)
+                        indices.0.push(Index(index))
                     }
                 }
                 //let model = self.world.spawn().insert(model).id();
-                let model = self.world.spawn().insert(indices).insert(positions).id();
+                let mesh = self.world.spawn().insert(indices).insert(positions).id();
                 self.world.spawn().insert_bundle(InstanceBundle {
-                    mesh: MeshId(model),
+                    mesh: MeshId(mesh),
                     material: MaterialId(material_id),
                     transform: Transform::from_xyz(0., 0., 0.),
                 });

@@ -14,7 +14,7 @@ pub struct BlasGeometry {
 }
 
 impl BlasGeometry {
-    pub fn create(device: &Arc<Device>, indices: &[u32], positions: &[f32]) -> Self {
+    pub fn create(device: &Arc<Device>, indices: &[u32], positions: &[[f32; 3]]) -> Self {
         let positions = Arc::new(PositionsBuffer::create(device, positions));
         let indices = Arc::new(IndexBuffer::create(device, indices));
 
