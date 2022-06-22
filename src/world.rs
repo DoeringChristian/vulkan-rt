@@ -1,6 +1,8 @@
 use crate::accel::{Blas, BlasGeometry, BlasInfo, Material, Tlas};
-use crate::buffers::{GlslInstanceData, GlslMaterial, TypedBuffer};
-use crate::model::{AsSlice, Index, InstanceBundle, MaterialId, MeshId, Position, VertexData};
+use crate::buffers::TypedBuffer;
+use crate::model::{
+    GlslInstanceData, GlslMaterial, Index, InstanceBundle, MaterialId, MeshId, Position, VertexData,
+};
 
 use bevy_ecs::prelude::*;
 use bevy_transform::prelude::*;

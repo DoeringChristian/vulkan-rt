@@ -38,20 +38,3 @@ impl<T: Copy + Sized> TypedBuffer<T> {
         self.count
     }
 }
-
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct GlslInstanceData {
-    pub mat_index: u32,
-    pub indices: u32,
-    pub positions: u32,
-    //pub _pad: [u32; 2],
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct GlslMaterial {
-    pub diffuse: [f32; 4],
-    pub mra: [f32; 4],
-    pub emission: [f32; 4],
-}
