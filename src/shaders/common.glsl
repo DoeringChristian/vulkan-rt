@@ -9,7 +9,8 @@ struct Material {
 
 struct Instance{
     uint mat_index;
-    uint model;
+    uint indices;
+    uint positions;
 };
 
 struct Payload{

@@ -108,7 +108,8 @@ impl IndexBuffer {
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct GlslInstanceData {
     pub mat_index: u32,
-    pub model: u32,
+    pub indices: u32,
+    pub positions: u32,
     //pub _pad: [u32; 2],
 }
 

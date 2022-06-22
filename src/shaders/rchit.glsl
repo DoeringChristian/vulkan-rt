@@ -44,24 +44,24 @@ void main() {
     //===========================================================
     Instance inst = instances[gl_InstanceCustomIndexEXT];
     Material mat = materials[inst.mat_index];
-    uint model_id = inst.model;
+    //uint model_id = inst.model;
     //uint idx0 = model_indices[id].indices[0];
 
-    ivec3 indices = ivec3(model_indices[model_id].indices[3 * gl_PrimitiveID + 0],
-                        model_indices[model_id].indices[3 * gl_PrimitiveID + 1],
-                        model_indices[model_id].indices[3 * gl_PrimitiveID + 2]);
+    ivec3 indices = ivec3(model_indices[inst.indices].indices[3 * gl_PrimitiveID + 0],
+                        model_indices[inst.indices].indices[3 * gl_PrimitiveID + 1],
+                        model_indices[inst.indices].indices[3 * gl_PrimitiveID + 2]);
 
     vec3 barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
 
-    vec3 pos0 = vec3(model_positions[model_id].positions[3 * indices.x + 0],
-                    model_positions[model_id].positions[3 * indices.x + 1],
-                    model_positions[model_id].positions[3 * indices.x + 2]);
-    vec3 pos1 = vec3(model_positions[model_id].positions[3 * indices.y + 0],
-                    model_positions[model_id].positions[3 * indices.y + 1],
-                    model_positions[model_id].positions[3 * indices.y + 2]);
-    vec3 pos2 = vec3(model_positions[model_id].positions[3 * indices.z + 0],
-                    model_positions[model_id].positions[3 * indices.z + 1],
-                    model_positions[model_id].positions[3 * indices.z + 2]);
+    vec3 pos0 = vec3(model_positions[inst.positions].positions[3 * indices.x + 0],
+                    model_positions[inst.positions].positions[3 * indices.x + 1],
+                    model_positions[inst.positions].positions[3 * indices.x + 2]);
+    vec3 pos1 = vec3(model_positions[inst.positions].positions[3 * indices.y + 0],
+                    model_positions[inst.positions].positions[3 * indices.y + 1],
+                    model_positions[inst.positions].positions[3 * indices.y + 2]);
+    vec3 pos2 = vec3(model_positions[inst.positions].positions[3 * indices.z + 0],
+                    model_positions[inst.positions].positions[3 * indices.z + 1],
+                    model_positions[inst.positions].positions[3 * indices.z + 2]);
 
     vec3 pos = pos0 * barycentric.x + pos1 * barycentric.y + pos2 * barycentric.z;
     vec3 geo_norm = normalize(cross(pos1 - pos0, pos2 - pos0));

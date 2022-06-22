@@ -67,7 +67,8 @@ impl GpuScene {
             });
             instancedata.push(GlslInstanceData {
                 mat_index: (materials.len() - 1) as _,
-                model: blases[&mesh_id.0].0 as _,
+                indices: blases[&mesh_id.0].0 as _,
+                positions: blases[&mesh_id.0].0 as _,
                 //_pad: [0, 0],
             });
             let matrix = transform.compute_matrix();
