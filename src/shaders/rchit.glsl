@@ -43,9 +43,8 @@ void main() {
     // Extract geometry information:
     //===========================================================
     Instance inst = instances[gl_InstanceCustomIndexEXT];
+    mat4 transform = mat4(inst.trans0, inst.trans1, inst.trans2, inst.trans3);
     Material mat = materials[inst.mat_index];
-    //uint model_id = inst.model;
-    //uint idx0 = model_indices[id].indices[0];
 
     ivec3 indices = ivec3(model_indices[inst.indices].indices[3 * gl_PrimitiveID + 0],
                         model_indices[inst.indices].indices[3 * gl_PrimitiveID + 1],
@@ -64,6 +63,8 @@ void main() {
                     model_positions[inst.positions].positions[3 * indices.z + 2]);
 
     vec3 pos = pos0 * barycentric.x + pos1 * barycentric.y + pos2 * barycentric.z;
+    pos = (transform * vec4(pos, 1.)).xyz;
+    
     vec3 geo_norm = normalize(cross(pos1 - pos0, pos2 - pos0));
     
     vec3 prev_pos = payload.orig;
