@@ -70,21 +70,15 @@ impl GpuScene {
                 },
             ));
         }
-        let mut instances = vec![];
         let mut materials = vec![];
-        let mut instancedata = vec![];
-        for (i, (entity, material_id, mesh_id, transform)) in scene
+        let mut material_idxs = HashMap::new();
+        for (i, (entity, material)) in scene
             .world
-            .query::<(Entity, &MaterialId, &MeshId, &Transform)>()
+            .query::<(Entity, &Material)>()
             .iter(&scene.world)
             .enumerate()
         {
-            let material: &Material = scene
-                .world
-                .get_entity(material_id.0)
-                .unwrap()
-                .get()
-                .unwrap();
+            material_idxs.insert(entity, materials.len());
             materials.push(GlslMaterial {
                 diffuse: material.diffuse,
                 mra: material.mra,
@@ -95,8 +89,18 @@ impl GpuScene {
                     0.,
                 ],
             });
+        }
+        let mut instances = vec![];
+        //let mut materials = vec![];
+        let mut instancedata = vec![];
+        for (i, (entity, material_id, mesh_id, transform)) in scene
+            .world
+            .query::<(Entity, &MaterialId, &MeshId, &Transform)>()
+            .iter(&scene.world)
+            .enumerate()
+        {
             instancedata.push(GlslInstanceData {
-                mat_index: (materials.len() - 1) as _,
+                mat_index: material_idxs[&material_id.0] as _,
                 positions: mesh_idxs[&mesh_id.0].positions as _,
                 indices: mesh_idxs[&mesh_id.0].indices as _,
                 //_pad: [0, 0],
