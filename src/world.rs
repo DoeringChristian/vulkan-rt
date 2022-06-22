@@ -1,6 +1,6 @@
 use crate::accel::{Blas, BlasGeometry, BlasInstance, Material, Tlas};
 use crate::buffers::{GlslInstanceData, GlslMaterial};
-use crate::model::Model;
+use crate::model::{Indices, Positions};
 
 use bevy_ecs::prelude::*;
 use screen_13::prelude::*;
@@ -20,13 +20,13 @@ impl GpuScene {
     pub fn create(device: &Arc<Device>, scene: &mut Scene) -> Self {
         let geometries = scene
             .world
-            .query::<(Entity, &Model)>()
+            .query::<(Entity, &Positions, &Indices)>()
             .iter(&scene.world)
             .enumerate()
-            .map(|(i, (e, m))| {
+            .map(|(i, (e, positions, indices))| {
                 (
                     e,
-                    (i, BlasGeometry::create(device, &m.indices, &m.positions)),
+                    (i, BlasGeometry::create(device, &indices.0, &positions.0)),
                 )
             })
             .collect::<HashMap<_, _>>();
@@ -140,25 +140,30 @@ impl Scene {
                         emission,
                     })
                     .id();
+                /*
                 let mut model = Model {
                     indices: Vec::new(),
                     positions: Vec::new(),
                     //uvs: Vec::new(),
                 };
+                */
+                let mut indices = Indices(Vec::new());
+                let mut positions = Positions(Vec::new());
                 let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
                 if let Some(iter) = reader.read_positions() {
                     for position in iter {
-                        model.positions.push(position[0]);
-                        model.positions.push(position[1]);
-                        model.positions.push(position[2]);
+                        positions.0.push(position[0]);
+                        positions.0.push(position[1]);
+                        positions.0.push(position[2]);
                     }
                 }
                 if let Some(iter) = reader.read_indices() {
                     for index in iter.into_u32() {
-                        model.indices.push(index)
+                        indices.0.push(index)
                     }
                 }
-                let model = self.world.spawn().insert(model).id();
+                //let model = self.world.spawn().insert(model).id();
+                let model = self.world.spawn().insert(indices).insert(positions).id();
                 self.world.spawn().insert(BlasInstance {
                     model,
                     material: material_id,
