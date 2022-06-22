@@ -157,10 +157,10 @@ impl Material {
 */
 
 pub struct Tlas {
-    instance_buf: InstanceBuffer,
+    instance_buf: TypedBuffer<vk::AccelerationStructureInstanceKHR>,
     pub material_buf: MaterialBuffer,
     pub accel: Arc<AccelerationStructure>,
-    pub instancedata_buf: InstanceDataBuf,
+    pub instancedata_buf: TypedBuffer<GlslInstanceData>,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
 }
@@ -183,7 +183,7 @@ impl Tlas {
                 .unwrap(),
         );
         let accel_node = rgraph.bind_node(&self.accel);
-        let instance_node = rgraph.bind_node(&self.instance_buf.data);
+        let instance_node = rgraph.bind_node(&self.instance_buf.buf);
         let tlas_node = rgraph.bind_node(&self.accel);
         let geometry_info = self.geometry_info.clone();
         let primitive_count = scene.blases.len();
@@ -224,8 +224,17 @@ impl Tlas {
         materials: &[GlslMaterial],
     ) -> Self {
         // gl_CustomIndexEXT should index into attributes.
-        let instancedata_buf = InstanceDataBuf::create(device, &instances_data);
-        let instance_buf = InstanceBuffer::create(device, &instances);
+        let instancedata_buf = TypedBuffer::create(
+            device,
+            &instances_data,
+            vk::BufferUsageFlags::STORAGE_BUFFER,
+        );
+        let instance_buf = TypedBuffer::create(
+            device,
+            &instances,
+            vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
+                | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS,
+        );
         let material_buf = MaterialBuffer::create(device, &materials);
         let geometry_info = AccelerationStructureGeometryInfo {
             ty: vk::AccelerationStructureTypeKHR::TOP_LEVEL,
@@ -236,7 +245,7 @@ impl Tlas {
                 geometry: AccelerationStructureGeometryData::Instances {
                     array_of_pointers: false,
                     data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(
-                        &instance_buf.data,
+                        &instance_buf.buf,
                     )),
                 },
             }],

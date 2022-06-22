@@ -121,7 +121,7 @@ fn main() -> anyhow::Result<()> {
             .bind_node(&gpu_scene.tlas.material_buf.data);
         let instancedata_nodes = frame
             .render_graph
-            .bind_node(&gpu_scene.tlas.instancedata_buf.data);
+            .bind_node(&gpu_scene.tlas.instancedata_buf.buf);
         let tlas_node = frame.render_graph.bind_node(&gpu_scene.tlas.accel);
         let sbt_node = frame.render_graph.bind_node(sbt.buffer());
         let index_nodes = gpu_scene
