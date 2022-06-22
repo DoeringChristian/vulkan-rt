@@ -5,6 +5,7 @@ use crate::model::{
 };
 
 use bevy_ecs::prelude::*;
+use bevy_math::Mat4;
 use bevy_transform::prelude::*;
 use bytemuck::cast_slice;
 use screen_13::prelude::*;
@@ -216,6 +217,7 @@ impl Scene {
             }
             for node in gltf.nodes() {
                 if let Some(mesh) = node.mesh() {
+                    let matrix = node.transform().matrix();
                     self.world.spawn().insert_bundle(InstanceBundle {
                         mesh: MeshId(mesh_entities[&mesh.index()]),
                         material: MaterialId(
@@ -227,7 +229,7 @@ impl Scene {
                                 .index()
                                 .unwrap()],
                         ),
-                        transform: Transform::from_xyz(0., 0., 0.),
+                        transform: Transform::from_matrix(Mat4::from_cols_array_2d(&matrix)),
                     });
                 }
             }
