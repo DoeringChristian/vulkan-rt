@@ -61,28 +61,6 @@ impl GpuScene {
                 },
             ));
         }
-        /*
-        let geometries = scene
-            .world
-            .query::<(Entity, &VertexData<Position>, &VertexData<Index>)>()
-            .iter(&scene.world)
-            .enumerate()
-            .map(|(i, (e, positions, indices))| {
-                (
-                    e,
-                    (
-                        i,
-                        BlasGeometry::create(device, indices.as_slice(), positions.as_slice()),
-                    ),
-                )
-            })
-            .collect::<HashMap<_, _>>();
-
-        let blases = geometries
-            .into_iter()
-            .map(|(e, (i, g))| (e, (i, Blas::create(device, g))))
-            .collect::<BTreeMap<_, _>>();
-            */
         let mut instances = vec![];
         let mut materials = vec![];
         let mut instancedata = vec![];
@@ -148,21 +126,11 @@ impl GpuScene {
         }
         trace!("instances: {}", instancedata.len());
 
-        // TODO: very convoluted need better way.
-        /*
-        let mut blases = blases
-            .into_iter()
-            .map(|(_, (i, b))| (i, b))
-            .collect::<Vec<_>>();
-        blases.sort_by(|(i0, _), (i1, _)| i0.cmp(i1));
-        */
-
         let material_buf =
             TypedBuffer::create(device, &materials, vk::BufferUsageFlags::STORAGE_BUFFER);
         let instancedata_buf =
             TypedBuffer::create(device, &instancedata, vk::BufferUsageFlags::STORAGE_BUFFER);
 
-        //let blases = blases.into_iter().map(|(i, b)| b).collect::<Vec<_>>();
         let tlas = Tlas::create(device, &instances);
 
         Self {
