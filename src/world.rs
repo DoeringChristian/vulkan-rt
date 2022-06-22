@@ -28,16 +28,25 @@ impl GpuScene {
         let mut positions_bufs = vec![];
         let mut indices_bufs = vec![];
         let mut blases = vec![];
-        let mut mesh_ids = HashMap::new();
+        let mut mesh_idxs = HashMap::new();
+        struct MeshIdxs {
+            positions: usize,
+            indices: usize,
+            blas: usize,
+        }
         for (i, (entity, positions, indices)) in scene
             .world
             .query::<(Entity, &VertexData<Position>, &VertexData<Index>)>()
             .iter(&scene.world)
             .enumerate()
         {
-            mesh_ids.insert(
+            mesh_idxs.insert(
                 entity,
-                (positions_bufs.len(), indices_bufs.len(), blases.len()),
+                MeshIdxs {
+                    positions: positions_bufs.len(),
+                    indices: indices_bufs.len(),
+                    blas: blases.len(),
+                },
             );
             positions_bufs.push(Arc::new(TypedBuffer::create(
                 device,
@@ -88,8 +97,8 @@ impl GpuScene {
             });
             instancedata.push(GlslInstanceData {
                 mat_index: (materials.len() - 1) as _,
-                positions: mesh_ids[&mesh_id.0].0 as _,
-                indices: mesh_ids[&mesh_id.0].1 as _,
+                positions: mesh_idxs[&mesh_id.0].positions as _,
+                indices: mesh_idxs[&mesh_id.0].indices as _,
                 //_pad: [0, 0],
             });
             let matrix = transform.compute_matrix();
@@ -119,7 +128,7 @@ impl GpuScene {
                 ),
                 acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
                     device_handle: AccelerationStructure::device_address(
-                        &blases[mesh_ids[&mesh_id.0].2].accel,
+                        &blases[mesh_idxs[&mesh_id.0].blas].accel,
                     ),
                 },
             });
