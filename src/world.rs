@@ -1,8 +1,9 @@
 use crate::accel::{Blas, BlasGeometry, BlasInstance, Material, Tlas};
 use crate::buffers::{GlslInstanceData, GlslMaterial};
-use crate::model::{Indices, Positions};
+use crate::model::{Indices, InstanceBundle, MaterialId, MeshId, Positions};
 
 use bevy_ecs::prelude::*;
+use bevy_transform::prelude::*;
 use screen_13::prelude::*;
 use slotmap::*;
 use std::collections::{BTreeMap, HashMap};
@@ -38,15 +39,15 @@ impl GpuScene {
         let mut instances = vec![];
         let mut materials = vec![];
         let mut instancedata = vec![];
-        for (i, (entity, instance)) in scene
+        for (i, (entity, material_id, mesh_id, transform)) in scene
             .world
-            .query::<(Entity, &BlasInstance)>()
+            .query::<(Entity, &MaterialId, &MeshId, &Transform)>()
             .iter(&scene.world)
             .enumerate()
         {
             let material: &Material = scene
                 .world
-                .get_entity(instance.material)
+                .get_entity(material_id.0)
                 .unwrap()
                 .get()
                 .unwrap();
@@ -62,11 +63,26 @@ impl GpuScene {
             });
             instancedata.push(GlslInstanceData {
                 mat_index: (materials.len() - 1) as _,
-                model: blases[&instance.model].0 as _,
+                model: blases[&mesh_id.0].0 as _,
                 //_pad: [0, 0],
             });
+            let matrix = transform.compute_matrix();
+            let matrix = [
+                matrix.x_axis.x,
+                matrix.y_axis.x,
+                matrix.z_axis.x,
+                matrix.w_axis.x,
+                matrix.x_axis.y,
+                matrix.y_axis.y,
+                matrix.z_axis.y,
+                matrix.w_axis.y,
+                matrix.x_axis.z,
+                matrix.y_axis.z,
+                matrix.z_axis.z,
+                matrix.w_axis.z,
+            ];
             instances.push(vk::AccelerationStructureInstanceKHR {
-                transform: instance.transform,
+                transform: vk::TransformMatrixKHR { matrix },
                 instance_custom_index_and_mask: vk::Packed24_8::new(
                     (instancedata.len() - 1) as _,
                     0xff,
@@ -77,7 +93,7 @@ impl GpuScene {
                 ),
                 acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
                     device_handle: AccelerationStructure::device_address(
-                        &blases[&instance.model].1.accel,
+                        &blases[&mesh_id.0].1.accel,
                     ),
                 },
             });
@@ -164,6 +180,12 @@ impl Scene {
                 }
                 //let model = self.world.spawn().insert(model).id();
                 let model = self.world.spawn().insert(indices).insert(positions).id();
+                self.world.spawn().insert_bundle(InstanceBundle {
+                    mesh: MeshId(model),
+                    material: MaterialId(material_id),
+                    transform: Transform::from_xyz(0., 0., 0.),
+                });
+                /*
                 self.world.spawn().insert(BlasInstance {
                     model,
                     material: material_id,
@@ -171,6 +193,7 @@ impl Scene {
                         matrix: [1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0.],
                     },
                 });
+                */
             });
         }
     }
