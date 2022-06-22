@@ -34,11 +34,10 @@ impl GpuScene {
             indices: usize,
             blas: usize,
         }
-        for (i, (entity, positions, indices)) in scene
+        for (entity, positions, indices) in scene
             .world
             .query::<(Entity, &VertexData<Position>, &VertexData<Index>)>()
             .iter(&scene.world)
-            .enumerate()
         {
             mesh_idxs.insert(
                 entity,
@@ -72,11 +71,10 @@ impl GpuScene {
         }
         let mut materials = vec![];
         let mut material_idxs = HashMap::new();
-        for (i, (entity, material)) in scene
+        for (entity, material) in scene
             .world
             .query::<(Entity, &Material)>()
             .iter(&scene.world)
-            .enumerate()
         {
             material_idxs.insert(entity, materials.len());
             materials.push(GlslMaterial {
@@ -93,11 +91,10 @@ impl GpuScene {
         let mut instances = vec![];
         //let mut materials = vec![];
         let mut instancedata = vec![];
-        for (i, (entity, material_id, mesh_id, transform)) in scene
+        for (entity, material_id, mesh_id, transform) in scene
             .world
             .query::<(Entity, &MaterialId, &MeshId, &Transform)>()
             .iter(&scene.world)
-            .enumerate()
         {
             instancedata.push(GlslInstanceData {
                 mat_index: material_idxs[&material_id.0] as _,
