@@ -1,4 +1,4 @@
-use crate::accel::{Blas, BlasGeometry, BlasInstance, Material, Tlas};
+use crate::accel::{Blas, BlasGeometry, Material, Tlas};
 use crate::buffers::{GlslInstanceData, GlslMaterial};
 use crate::model::{Indices, InstanceBundle, MaterialId, MeshId, Positions};
 
@@ -117,11 +117,6 @@ impl GpuScene {
             .iter()
             .map(|b| b.build(self, cache, rgraph))
             .collect::<Vec<_>>();
-        /*
-        for blas in self.blases.iter() {
-            blas.build(self, cache, rgraph);
-        }
-        */
         self.tlas.build(self, cache, rgraph, &blas_nodes);
     }
 }
@@ -156,13 +151,6 @@ impl Scene {
                         emission,
                     })
                     .id();
-                /*
-                let mut model = Model {
-                    indices: Vec::new(),
-                    positions: Vec::new(),
-                    //uvs: Vec::new(),
-                };
-                */
                 let mut indices = Indices(Vec::new());
                 let mut positions = Positions(Vec::new());
                 let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
@@ -185,15 +173,6 @@ impl Scene {
                     material: MaterialId(material_id),
                     transform: Transform::from_xyz(0., 0., 0.),
                 });
-                /*
-                self.world.spawn().insert(BlasInstance {
-                    model,
-                    material: material_id,
-                    transform: vk::TransformMatrixKHR {
-                        matrix: [1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0.],
-                    },
-                });
-                */
             });
         }
     }

@@ -120,15 +120,6 @@ impl Blas {
 }
 
 #[derive(Component)]
-pub struct BlasInstance {
-    // TODO: model index instead of blas index.
-    pub model: Entity,
-    // TODO: add shader references.
-    pub material: Entity,
-    pub transform: vk::TransformMatrixKHR,
-}
-
-#[derive(Component)]
 pub struct Material {
     pub diffuse: [f32; 4],
     pub mra: [f32; 4],
