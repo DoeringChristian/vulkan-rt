@@ -3,20 +3,39 @@ use screen_13::prelude::*;
 use slotmap::DefaultKey;
 use std::{collections::HashMap, sync::Arc};
 
-use crate::world::{GpuScene, Scene};
+use crate::{
+    model::{Index, Position},
+    world::{GpuScene, Scene},
+};
 
 use super::buffers::*;
 
 #[derive(Component)]
 pub struct BlasGeometry {
-    pub positions: Arc<PositionsBuffer>,
-    pub indices: Arc<IndexBuffer>,
+    //pub positions: Arc<PositionsBuffer>,
+    //pub indices: Arc<IndexBuffer>,
+    pub positions: TypedBuffer<[f32; 3]>,
+    pub indices: TypedBuffer<u32>,
 }
 
 impl BlasGeometry {
     pub fn create(device: &Arc<Device>, indices: &[u32], positions: &[[f32; 3]]) -> Self {
-        let positions = Arc::new(PositionsBuffer::create(device, positions));
-        let indices = Arc::new(IndexBuffer::create(device, indices));
+        //let positions = Arc::new(PositionsBuffer::create(device, positions));
+        //let indices = Arc::new(IndexBuffer::create(device, indices));
+        let positions = TypedBuffer::create(
+            device,
+            positions,
+            vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
+                | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+                | vk::BufferUsageFlags::STORAGE_BUFFER,
+        );
+        let indices = TypedBuffer::create(
+            device,
+            indices,
+            vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
+                | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+                | vk::BufferUsageFlags::STORAGE_BUFFER,
+        );
 
         Self { positions, indices }
     }
@@ -37,8 +56,8 @@ impl Blas {
         rgraph: &mut RenderGraph,
     ) -> AnyAccelerationStructureNode {
         //let geometry = scene.geometries.get(self.geometry).unwrap();
-        let index_node = rgraph.bind_node(&self.geometry.indices.data);
-        let vertex_node = rgraph.bind_node(&self.geometry.positions.data);
+        let index_node = rgraph.bind_node(&self.geometry.indices.buf);
+        let vertex_node = rgraph.bind_node(&self.geometry.positions.buf);
         let accel_node = rgraph.bind_node(&self.accel);
 
         let scratch_buf = rgraph.bind_node(
@@ -51,7 +70,7 @@ impl Blas {
                 .unwrap(),
         );
 
-        let triangle_count = self.geometry.indices.count / 3;
+        let triangle_count = self.geometry.indices.count() / 3;
         let geometry_info = self.geometry_info.clone();
 
         rgraph
@@ -76,8 +95,8 @@ impl Blas {
         AnyAccelerationStructureNode::AccelerationStructure(accel_node)
     }
     pub fn create(device: &Arc<Device>, geometry: BlasGeometry) -> Self {
-        let triangle_count = geometry.indices.count / 3;
-        let vertex_count = geometry.positions.count / 3;
+        let triangle_count = geometry.indices.count() / 3;
+        let vertex_count = geometry.positions.count();
 
         let geometry_info = AccelerationStructureGeometryInfo {
             ty: vk::AccelerationStructureTypeKHR::BOTTOM_LEVEL,
@@ -87,16 +106,16 @@ impl Blas {
                 flags: vk::GeometryFlagsKHR::OPAQUE,
                 geometry: AccelerationStructureGeometryData::Triangles {
                     index_data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(
-                        &geometry.indices.data,
+                        &geometry.indices.buf,
                     )),
-                    index_type: geometry.indices.ty,
+                    index_type: vk::IndexType::UINT32,
                     transform_data: None,
                     max_vertex: vertex_count as _,
                     vertex_data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(
-                        &geometry.positions.data,
+                        &geometry.positions.buf,
                     )),
-                    vertex_format: geometry.positions.format,
-                    vertex_stride: geometry.positions.stride as _,
+                    vertex_format: vk::Format::R32G32B32_SFLOAT,
+                    vertex_stride: std::mem::size_of::<[f32; 3]>() as _,
                 },
             }],
         };

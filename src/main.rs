@@ -127,12 +127,12 @@ fn main() -> anyhow::Result<()> {
         let index_nodes = gpu_scene
             .blases
             .iter()
-            .map(|b| frame.render_graph.bind_node(&b.geometry.indices.data))
+            .map(|b| frame.render_graph.bind_node(&b.geometry.indices.buf))
             .collect::<Vec<_>>();
         let position_nodes = gpu_scene
             .blases
             .iter()
-            .map(|b| frame.render_graph.bind_node(&b.geometry.positions.data))
+            .map(|b| frame.render_graph.bind_node(&b.geometry.positions.buf))
             .collect::<Vec<_>>();
 
         let sbt_rgen = sbt.rgen();
