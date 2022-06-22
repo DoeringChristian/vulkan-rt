@@ -1,4 +1,4 @@
-use crate::accel::{Blas, BlasGeometry, Material, Tlas};
+use crate::accel::{Blas, BlasGeometry, BlasInfo, Material, Tlas};
 use crate::buffers::{GlslInstanceData, GlslMaterial, TypedBuffer};
 use crate::model::{AsSlice, Index, InstanceBundle, MaterialId, MeshId, Position, VertexData};
 
@@ -16,12 +16,52 @@ pub struct GpuScene {
     //pub geometries: Vec<BlasGeometry>,
     pub blases: Vec<Blas>,
     pub tlas: Tlas,
+
     pub material_buf: TypedBuffer<GlslMaterial>,
     pub instancedata_buf: TypedBuffer<GlslInstanceData>,
+    pub positions_bufs: Vec<Arc<TypedBuffer<Position>>>,
+    pub indices_bufs: Vec<Arc<TypedBuffer<Index>>>,
 }
 
 impl GpuScene {
     pub fn create(device: &Arc<Device>, scene: &mut Scene) -> Self {
+        let mut positions_bufs = vec![];
+        let mut indices_bufs = vec![];
+        let mut blases = vec![];
+        let mut mesh_ids = HashMap::new();
+        for (i, (entity, positions, indices)) in scene
+            .world
+            .query::<(Entity, &VertexData<Position>, &VertexData<Index>)>()
+            .iter(&scene.world)
+            .enumerate()
+        {
+            mesh_ids.insert(
+                entity,
+                (positions_bufs.len(), indices_bufs.len(), blases.len()),
+            );
+            positions_bufs.push(Arc::new(TypedBuffer::create(
+                device,
+                &positions.0,
+                vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
+                    | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+                    | vk::BufferUsageFlags::STORAGE_BUFFER,
+            )));
+            indices_bufs.push(Arc::new(TypedBuffer::create(
+                device,
+                &indices.0,
+                vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
+                    | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+                    | vk::BufferUsageFlags::STORAGE_BUFFER,
+            )));
+            blases.push(Blas::create(
+                device,
+                &BlasInfo {
+                    indices: indices_bufs.last().unwrap(),
+                    positions: positions_bufs.last().unwrap(),
+                },
+            ));
+        }
+        /*
         let geometries = scene
             .world
             .query::<(Entity, &VertexData<Position>, &VertexData<Index>)>()
@@ -42,6 +82,7 @@ impl GpuScene {
             .into_iter()
             .map(|(e, (i, g))| (e, (i, Blas::create(device, g))))
             .collect::<BTreeMap<_, _>>();
+            */
         let mut instances = vec![];
         let mut materials = vec![];
         let mut instancedata = vec![];
@@ -69,8 +110,8 @@ impl GpuScene {
             });
             instancedata.push(GlslInstanceData {
                 mat_index: (materials.len() - 1) as _,
-                indices: blases[&mesh_id.0].0 as _,
-                positions: blases[&mesh_id.0].0 as _,
+                positions: mesh_ids[&mesh_id.0].0 as _,
+                indices: mesh_ids[&mesh_id.0].1 as _,
                 //_pad: [0, 0],
             });
             let matrix = transform.compute_matrix();
@@ -100,7 +141,7 @@ impl GpuScene {
                 ),
                 acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
                     device_handle: AccelerationStructure::device_address(
-                        &blases[&mesh_id.0].1.accel,
+                        &blases[mesh_ids[&mesh_id.0].2].accel,
                     ),
                 },
             });
@@ -108,18 +149,20 @@ impl GpuScene {
         trace!("instances: {}", instancedata.len());
 
         // TODO: very convoluted need better way.
+        /*
         let mut blases = blases
             .into_iter()
             .map(|(_, (i, b))| (i, b))
             .collect::<Vec<_>>();
         blases.sort_by(|(i0, _), (i1, _)| i0.cmp(i1));
+        */
 
         let material_buf =
             TypedBuffer::create(device, &materials, vk::BufferUsageFlags::STORAGE_BUFFER);
         let instancedata_buf =
             TypedBuffer::create(device, &instancedata, vk::BufferUsageFlags::STORAGE_BUFFER);
 
-        let blases = blases.into_iter().map(|(i, b)| b).collect::<Vec<_>>();
+        //let blases = blases.into_iter().map(|(i, b)| b).collect::<Vec<_>>();
         let tlas = Tlas::create(device, &instances);
 
         Self {
@@ -127,6 +170,8 @@ impl GpuScene {
             tlas,
             material_buf,
             instancedata_buf,
+            positions_bufs,
+            indices_bufs,
         }
     }
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {

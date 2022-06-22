@@ -123,14 +123,14 @@ fn main() -> anyhow::Result<()> {
         let tlas_node = frame.render_graph.bind_node(&gpu_scene.tlas.accel);
         let sbt_node = frame.render_graph.bind_node(sbt.buffer());
         let index_nodes = gpu_scene
-            .blases
+            .indices_bufs
             .iter()
-            .map(|b| frame.render_graph.bind_node(&b.geometry.indices.buf))
+            .map(|buf| frame.render_graph.bind_node(&buf.buf))
             .collect::<Vec<_>>();
         let position_nodes = gpu_scene
-            .blases
+            .positions_bufs
             .iter()
-            .map(|b| frame.render_graph.bind_node(&b.geometry.positions.buf))
+            .map(|buf| frame.render_graph.bind_node(&buf.buf))
             .collect::<Vec<_>>();
 
         let sbt_rgen = sbt.rgen();

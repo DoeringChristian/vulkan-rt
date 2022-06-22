@@ -1,7 +1,10 @@
 use bevy_ecs::prelude::*;
 use screen_13::prelude::*;
 use slotmap::DefaultKey;
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Weak},
+};
 
 use crate::{
     model::{Index, Position},
@@ -41,9 +44,16 @@ impl BlasGeometry {
     }
 }
 
+pub struct BlasInfo<'a> {
+    pub indices: &'a Arc<TypedBuffer<Index>>,
+    pub positions: &'a Arc<TypedBuffer<Position>>,
+}
+
 pub struct Blas {
     pub accel: Arc<AccelerationStructure>,
-    pub geometry: BlasGeometry,
+    // Not sure about the use of weaks.
+    pub indices: Weak<TypedBuffer<Index>>,
+    pub positions: Weak<TypedBuffer<Position>>,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
 }
@@ -56,8 +66,10 @@ impl Blas {
         rgraph: &mut RenderGraph,
     ) -> AnyAccelerationStructureNode {
         //let geometry = scene.geometries.get(self.geometry).unwrap();
-        let index_node = rgraph.bind_node(&self.geometry.indices.buf);
-        let vertex_node = rgraph.bind_node(&self.geometry.positions.buf);
+        let indices = self.indices.upgrade().unwrap();
+        let positions = self.positions.upgrade().unwrap();
+        let index_node = rgraph.bind_node(&indices.buf);
+        let vertex_node = rgraph.bind_node(&positions.buf);
         let accel_node = rgraph.bind_node(&self.accel);
 
         let scratch_buf = rgraph.bind_node(
@@ -70,7 +82,7 @@ impl Blas {
                 .unwrap(),
         );
 
-        let triangle_count = self.geometry.indices.count() / 3;
+        let triangle_count = indices.count() / 3;
         let geometry_info = self.geometry_info.clone();
 
         rgraph
@@ -94,9 +106,12 @@ impl Blas {
             });
         AnyAccelerationStructureNode::AccelerationStructure(accel_node)
     }
-    pub fn create(device: &Arc<Device>, geometry: BlasGeometry) -> Self {
-        let triangle_count = geometry.indices.count() / 3;
-        let vertex_count = geometry.positions.count();
+    // Maybee blas should safe the index of the indices/positions.
+    pub fn create(device: &Arc<Device>, info: &BlasInfo) -> Self {
+        //let triangle_count = geometry.indices.count() / 3;
+        let triangle_count = info.indices.count() / 3;
+        let vertex_count = info.positions.count() / 3;
+        //let vertex_count = geometry.positions.count();
 
         let geometry_info = AccelerationStructureGeometryInfo {
             ty: vk::AccelerationStructureTypeKHR::BOTTOM_LEVEL,
@@ -106,13 +121,13 @@ impl Blas {
                 flags: vk::GeometryFlagsKHR::OPAQUE,
                 geometry: AccelerationStructureGeometryData::Triangles {
                     index_data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(
-                        &geometry.indices.buf,
+                        &info.indices.buf,
                     )),
                     index_type: vk::IndexType::UINT32,
                     transform_data: None,
                     max_vertex: vertex_count as _,
                     vertex_data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(
-                        &geometry.positions.buf,
+                        &info.positions.buf,
                     )),
                     vertex_format: vk::Format::R32G32B32_SFLOAT,
                     vertex_stride: std::mem::size_of::<[f32; 3]>() as _,
@@ -131,7 +146,8 @@ impl Blas {
         Self {
             //geometry: gkey,
             accel: Arc::new(accel),
-            geometry,
+            indices: Arc::downgrade(&info.indices),
+            positions: Arc::downgrade(&info.positions),
             geometry_info,
             size: accel_size,
         }
