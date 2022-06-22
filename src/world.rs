@@ -1,5 +1,5 @@
 use crate::accel::{Blas, BlasGeometry, Material, Tlas};
-use crate::buffers::{GlslInstanceData, GlslMaterial};
+use crate::buffers::{GlslInstanceData, GlslMaterial, TypedBuffer};
 use crate::model::{AsSlice, Index, InstanceBundle, MaterialId, MeshId, Position, VertexData};
 
 use bevy_ecs::prelude::*;
@@ -16,6 +16,8 @@ pub struct GpuScene {
     //pub geometries: Vec<BlasGeometry>,
     pub blases: Vec<Blas>,
     pub tlas: Tlas,
+    pub material_buf: TypedBuffer<GlslMaterial>,
+    pub instancedata_buf: TypedBuffer<GlslInstanceData>,
 }
 
 impl GpuScene {
@@ -111,10 +113,21 @@ impl GpuScene {
             .map(|(_, (i, b))| (i, b))
             .collect::<Vec<_>>();
         blases.sort_by(|(i0, _), (i1, _)| i0.cmp(i1));
-        let blases = blases.into_iter().map(|(i, b)| b).collect::<Vec<_>>();
-        let tlas = Tlas::create(device, &instancedata, &instances, &materials);
 
-        Self { blases, tlas }
+        let material_buf =
+            TypedBuffer::create(device, &materials, vk::BufferUsageFlags::STORAGE_BUFFER);
+        let instancedata_buf =
+            TypedBuffer::create(device, &instancedata, vk::BufferUsageFlags::STORAGE_BUFFER);
+
+        let blases = blases.into_iter().map(|(i, b)| b).collect::<Vec<_>>();
+        let tlas = Tlas::create(device, &instances);
+
+        Self {
+            blases,
+            tlas,
+            material_buf,
+            instancedata_buf,
+        }
     }
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
         let blas_nodes = self

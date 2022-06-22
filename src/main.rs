@@ -116,12 +116,10 @@ fn main() -> anyhow::Result<()> {
             .iter()
             .map(|b| frame.render_graph.bind_node(&b.accel))
             .collect::<Vec<_>>();
-        let material_node = frame
-            .render_graph
-            .bind_node(&gpu_scene.tlas.material_buf.buf);
+        let material_node = frame.render_graph.bind_node(&gpu_scene.material_buf.buf);
         let instancedata_nodes = frame
             .render_graph
-            .bind_node(&gpu_scene.tlas.instancedata_buf.buf);
+            .bind_node(&gpu_scene.instancedata_buf.buf);
         let tlas_node = frame.render_graph.bind_node(&gpu_scene.tlas.accel);
         let sbt_node = frame.render_graph.bind_node(sbt.buffer());
         let index_nodes = gpu_scene

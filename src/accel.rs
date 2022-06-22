@@ -158,9 +158,9 @@ impl Material {
 
 pub struct Tlas {
     instance_buf: TypedBuffer<vk::AccelerationStructureInstanceKHR>,
-    pub material_buf: TypedBuffer<GlslMaterial>,
+    //pub material_buf: TypedBuffer<GlslMaterial>,
     pub accel: Arc<AccelerationStructure>,
-    pub instancedata_buf: TypedBuffer<GlslInstanceData>,
+    //pub instancedata_buf: TypedBuffer<GlslInstanceData>,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
 }
@@ -219,24 +219,26 @@ impl Tlas {
     }
     pub fn create(
         device: &Arc<Device>,
-        instances_data: &[GlslInstanceData],
+        //instances_data: &[GlslInstanceData],
         instances: &[vk::AccelerationStructureInstanceKHR],
-        materials: &[GlslMaterial],
+        //materials: &[GlslMaterial],
     ) -> Self {
         // gl_CustomIndexEXT should index into attributes.
+        /*
         let instancedata_buf = TypedBuffer::create(
             device,
             &instances_data,
             vk::BufferUsageFlags::STORAGE_BUFFER,
         );
+        let material_buf =
+            TypedBuffer::create(device, &materials, vk::BufferUsageFlags::STORAGE_BUFFER);
+            */
         let instance_buf = TypedBuffer::create(
             device,
             &instances,
             vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
                 | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS,
         );
-        let material_buf =
-            TypedBuffer::create(device, &materials, vk::BufferUsageFlags::STORAGE_BUFFER);
         let geometry_info = AccelerationStructureGeometryInfo {
             ty: vk::AccelerationStructureTypeKHR::TOP_LEVEL,
             flags: vk::BuildAccelerationStructureFlagsKHR::empty(),
@@ -262,9 +264,9 @@ impl Tlas {
         let accel = Arc::new(AccelerationStructure::create(device, info).unwrap());
 
         Self {
-            instancedata_buf,
+            //instancedata_buf,
             instance_buf,
-            material_buf,
+            //material_buf,
             size,
             geometry_info,
             accel,
