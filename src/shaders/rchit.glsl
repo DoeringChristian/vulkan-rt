@@ -97,7 +97,7 @@ void main() {
         norm2 = normalize(norm2);
 
         norm = norm0 * barycentric.x + norm1 * barycentric.y + norm2 * barycentric.z;
-        norm = inverse(transpose(mat3(transform))) * norm;
+        norm = normalize(inverse(transpose(mat3(transform))) * norm);
     }
     else{
         norm = normalize(cross(pos1 - pos0, pos2 - pos0));
@@ -150,7 +150,7 @@ void main() {
     payload.attenuation *= brdf / p_rr;
 
     // DEBUG:
-    //payload.color = vec3(inter_mat.mr, 0.);
+    //payload.color = barycentric;
     
     if (rand(vec3(payload.dir)) >= p_rr){
         payload.ray_active = 0;
