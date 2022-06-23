@@ -174,15 +174,17 @@
         },
         {
             "doubleSided" : true,
-            "name" : "Material",
+            "name" : "cube",
+            "normalTexture" : {
+                "index" : 0
+            },
             "pbrMetallicRoughness" : {
-                "baseColorFactor" : [
-                    0.8000000715255737,
-                    0.49183353781700134,
-                    0.25485655665397644,
-                    1
-                ],
-                "roughnessFactor" : 0.3590909242630005
+                "baseColorTexture" : {
+                    "index" : 1
+                },
+                "metallicRoughnessTexture" : {
+                    "index" : 2
+                }
             }
         }
     ],
@@ -312,6 +314,37 @@
                     "material" : 7
                 }
             ]
+        }
+    ],
+    "textures" : [
+        {
+            "sampler" : 0,
+            "source" : 0
+        },
+        {
+            "sampler" : 0,
+            "source" : 1
+        },
+        {
+            "sampler" : 0,
+            "source" : 2
+        }
+    ],
+    "images" : [
+        {
+            "mimeType" : "image/jpeg",
+            "name" : "MetalPlates012_2K_NormalDX",
+            "uri" : "MetalPlates012_2K_NormalDX.jpg"
+        },
+        {
+            "mimeType" : "image/jpeg",
+            "name" : "MetalPlates012_2K_Color",
+            "uri" : "MetalPlates012_2K_Color.jpg"
+        },
+        {
+            "mimeType" : "image/png",
+            "name" : "MetalPlates012_2K_Metalness-MetalPlates012_2K_Roughness",
+            "uri" : "MetalPlates012_2K_Metalness-MetalPlates012_2K_Roughness.png"
         }
     ],
     "accessors" : [
@@ -758,6 +791,12 @@
             "buffer" : 0,
             "byteLength" : 5802,
             "byteOffset" : 20684
+        }
+    ],
+    "samplers" : [
+        {
+            "magFilter" : 9729,
+            "minFilter" : 9987
         }
     ],
     "buffers" : [

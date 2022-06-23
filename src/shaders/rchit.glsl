@@ -108,24 +108,25 @@ void main() {
 
     // TODO: material interpolation and tangent space.
     if (mat.albedo_tex != INDEX_UNDEF && mat.albedo_texco != INDEX_UNDEF){
-        vec2 texco0 = vec2(model_tex_coords[mat.albedo_texco].tex_coords[2 * indices.x + 0],
-                           model_tex_coords[mat.albedo_texco].tex_coords[2 * indices.x + 1]);
-        vec2 texco1 = vec2(model_tex_coords[mat.albedo_texco].tex_coords[2 * indices.y + 0],
-                           model_tex_coords[mat.albedo_texco].tex_coords[2 * indices.y + 1]);
-        vec2 texco2 = vec2(model_tex_coords[mat.albedo_texco].tex_coords[2 * indices.z + 0],
-                           model_tex_coords[mat.albedo_texco].tex_coords[2 * indices.z + 1]);
+        vec2 texco0 = vec2(model_tex_coords[inst.tex_coords + mat.albedo_texco].tex_coords[2 * indices.x + 0],
+                           model_tex_coords[inst.tex_coords + mat.albedo_texco].tex_coords[2 * indices.x + 1]);
+        vec2 texco1 = vec2(model_tex_coords[inst.tex_coords + mat.albedo_texco].tex_coords[2 * indices.y + 0],
+                           model_tex_coords[inst.tex_coords + mat.albedo_texco].tex_coords[2 * indices.y + 1]);
+        vec2 texco2 = vec2(model_tex_coords[inst.tex_coords + mat.albedo_texco].tex_coords[2 * indices.z + 0],
+                           model_tex_coords[inst.tex_coords + mat.albedo_texco].tex_coords[2 * indices.z + 1]);
         vec2 texco = texco0 * barycentric.x + texco1 * barycentric.y + texco2 * barycentric.z;
         inter_mat.albedo = texture(textures[mat.albedo_tex], texco);
     }
     if (mat.mr_tex != INDEX_UNDEF && mat.mr_tex != INDEX_UNDEF){
-        vec2 texco0 = vec2(model_tex_coords[mat.mr_texco].tex_coords[2 * indices.x + 0],
-                           model_tex_coords[mat.mr_texco].tex_coords[2 * indices.x + 1]);
-        vec2 texco1 = vec2(model_tex_coords[mat.mr_texco].tex_coords[2 * indices.y + 0],
-                           model_tex_coords[mat.mr_texco].tex_coords[2 * indices.y + 1]);
-        vec2 texco2 = vec2(model_tex_coords[mat.mr_texco].tex_coords[2 * indices.z + 0],
-                           model_tex_coords[mat.mr_texco].tex_coords[2 * indices.z + 1]);
+        vec2 texco0 = vec2(model_tex_coords[inst.tex_coords + mat.mr_texco].tex_coords[2 * indices.x + 0],
+                           model_tex_coords[inst.tex_coords + mat.mr_texco].tex_coords[2 * indices.x + 1]);
+        vec2 texco1 = vec2(model_tex_coords[inst.tex_coords + mat.mr_texco].tex_coords[2 * indices.y + 0],
+                           model_tex_coords[inst.tex_coords + mat.mr_texco].tex_coords[2 * indices.y + 1]);
+        vec2 texco2 = vec2(model_tex_coords[inst.tex_coords + mat.mr_texco].tex_coords[2 * indices.z + 0],
+                           model_tex_coords[inst.tex_coords + mat.mr_texco].tex_coords[2 * indices.z + 1]);
         vec2 texco = texco0 * barycentric.x + texco1 * barycentric.y + texco2 * barycentric.z;
-        inter_mat.mr = texture(textures[mat.mr_tex], texco).gb;
+        // As specified by gltf specs the blue chanel stores metallness, the green chanel roughness.
+        inter_mat.mr = texture(textures[mat.mr_tex], texco).bg;
     }
     
     vec3 prev_pos = payload.orig;
@@ -150,7 +151,7 @@ void main() {
     payload.attenuation *= brdf / p_rr;
 
     // DEBUG:
-    //payload.color = barycentric;
+    //payload.color = vec3(inter_mat.mr.y);
     
     if (rand(vec3(payload.dir)) >= p_rr){
         payload.ray_active = 0;
