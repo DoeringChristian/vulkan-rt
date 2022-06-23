@@ -72,12 +72,15 @@
     "materials" : [
         {
             "doubleSided" : true,
-            "name" : "cube",
+            "name" : "cuboid",
             "pbrMetallicRoughness" : {
-                "baseColorTexture" : {
-                    "index" : 0
-                },
-                "metallicFactor" : 0
+                "baseColorFactor" : [
+                    0.800000011920929,
+                    0.800000011920929,
+                    0.800000011920929,
+                    1
+                ],
+                "roughnessFactor" : 0.2818181812763214
             }
         },
         {
@@ -95,7 +98,7 @@
         },
         {
             "doubleSided" : true,
-            "name" : "cuboid",
+            "name" : "back_wall",
             "pbrMetallicRoughness" : {
                 "baseColorFactor" : [
                     0.800000011920929,
@@ -103,7 +106,7 @@
                     0.800000011920929,
                     1
                 ],
-                "roughnessFactor" : 0.2818181812763214
+                "metallicFactor" : 0
             }
         },
         {
@@ -134,15 +137,17 @@
         },
         {
             "doubleSided" : true,
-            "name" : "back_wall",
+            "name" : "cube",
+            "normalTexture" : {
+                "index" : 0
+            },
             "pbrMetallicRoughness" : {
-                "baseColorFactor" : [
-                    0.800000011920929,
-                    0.800000011920929,
-                    0.800000011920929,
-                    1
-                ],
-                "metallicFactor" : 0
+                "baseColorTexture" : {
+                    "index" : 1
+                },
+                "metallicRoughnessTexture" : {
+                    "index" : 2
+                }
             }
         },
         {
@@ -324,13 +329,31 @@
         {
             "sampler" : 0,
             "source" : 0
+        },
+        {
+            "sampler" : 0,
+            "source" : 1
+        },
+        {
+            "sampler" : 0,
+            "source" : 2
         }
     ],
     "images" : [
         {
+            "mimeType" : "image/jpeg",
+            "name" : "MetalPlates012_2K_NormalDX",
+            "uri" : "MetalPlates012_2K_NormalDX.jpg"
+        },
+        {
+            "mimeType" : "image/jpeg",
+            "name" : "MetalPlates012_2K_Color",
+            "uri" : "MetalPlates012_2K_Color.jpg"
+        },
+        {
             "mimeType" : "image/png",
-            "name" : "Untitled",
-            "uri" : "Untitled.png"
+            "name" : "MetalPlates012_2K_Metalness-MetalPlates012_2K_Roughness",
+            "uri" : "MetalPlates012_2K_Metalness-MetalPlates012_2K_Roughness.png"
         }
     ],
     "accessors" : [

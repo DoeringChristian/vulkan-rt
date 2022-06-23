@@ -60,6 +60,7 @@ pub struct Material {
     pub albedo_tex: Option<TextureId>,
     pub mr_tex: Option<TextureId>,
     pub emission_tex: Option<TextureId>,
+    pub normal_tex: Option<TextureId>,
 }
 
 //===================================
@@ -97,5 +98,7 @@ pub struct GlslMaterial {
     pub mr_texco: u32,
     pub emission_tex: u32,
     pub emission_texco: u32,
-    pub _pad: [u32; 2],
+    pub normal_tex: u32,
+    pub normal_texco: u32,
+    //pub _pad: [u32; 2],
 }

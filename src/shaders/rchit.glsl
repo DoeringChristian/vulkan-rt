@@ -117,6 +117,16 @@ void main() {
         vec2 texco = texco0 * barycentric.x + texco1 * barycentric.y + texco2 * barycentric.z;
         inter_mat.albedo = texture(textures[mat.albedo_tex], texco);
     }
+    if (mat.mr_tex != INDEX_UNDEF && mat.mr_tex != INDEX_UNDEF){
+        vec2 texco0 = vec2(model_tex_coords[mat.mr_texco].tex_coords[2 * indices.x + 0],
+                           model_tex_coords[mat.mr_texco].tex_coords[2 * indices.x + 1]);
+        vec2 texco1 = vec2(model_tex_coords[mat.mr_texco].tex_coords[2 * indices.y + 0],
+                           model_tex_coords[mat.mr_texco].tex_coords[2 * indices.y + 1]);
+        vec2 texco2 = vec2(model_tex_coords[mat.mr_texco].tex_coords[2 * indices.z + 0],
+                           model_tex_coords[mat.mr_texco].tex_coords[2 * indices.z + 1]);
+        vec2 texco = texco0 * barycentric.x + texco1 * barycentric.y + texco2 * barycentric.z;
+        inter_mat.mr = texture(textures[mat.mr_tex], texco).gb;
+    }
     
     vec3 prev_pos = payload.orig;
     vec3 prev_dir = payload.dir;

@@ -116,6 +116,7 @@ impl GpuScene {
         let mut img_loader = ImageLoader::new(device).unwrap();
         for (entity, texture) in scene.world.query::<(Entity, &Texture)>().iter(&scene.world) {
             textures_idxs.insert(entity, textures.len());
+            trace!("text: {:#?}", texture.0.color());
             let img = texture.0.as_rgba8().unwrap();
             let img = img_loader
                 .decode_linear(
@@ -174,7 +175,16 @@ impl GpuScene {
                     .as_ref()
                     .map(|dt| dt.coords)
                     .unwrap_or(INDEX_UNDEF as _) as _,
-                _pad: [0, 0],
+                normal_tex: material
+                    .normal_tex
+                    .as_ref()
+                    .map(|dt| textures_idxs[&dt.texture])
+                    .unwrap_or(INDEX_UNDEF as _) as _,
+                normal_texco: material
+                    .normal_tex
+                    .as_ref()
+                    .map(|dt| dt.coords)
+                    .unwrap_or(INDEX_UNDEF as _) as _,
             });
         }
         let mut instances = vec![];
@@ -293,10 +303,12 @@ impl Scene {
                     gltf::image::Source::Uri { uri, mime_type } => {
                         let parent = Path::new(path).parent().unwrap();
                         let image_path = parent.join(uri);
-                        image::io::Reader::open(image_path)
+                        let img = image::io::Reader::open(image_path)
                             .unwrap()
                             .decode()
                             .unwrap()
+                            .into_rgba8();
+                        image::DynamicImage::ImageRgba8(img)
                     }
                     _ => panic!("not supported"),
                 };
@@ -375,6 +387,10 @@ impl Scene {
                     texture: texture_entities[&b.texture().index()],
                     coords: b.tex_coord(),
                 });
+                let normal_tex = material.normal_texture().map(|b| TextureId {
+                    texture: texture_entities[&b.texture().index()],
+                    coords: b.tex_coord(),
+                });
                 let material_entity = self
                     .world
                     .spawn()
@@ -385,6 +401,7 @@ impl Scene {
                         albedo_tex,
                         mr_tex,
                         emission_tex,
+                        normal_tex,
                     })
                     .id();
                 material_entities.insert(material.index().unwrap(), material_entity);
