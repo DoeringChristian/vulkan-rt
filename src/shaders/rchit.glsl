@@ -33,6 +33,7 @@ layout(set = 0, binding = 6) buffer Normals{
 layout(set = 1, binding = 0) buffer TexCoords{
     float tex_coords[];
 }model_tex_coords[];
+layout(set = 1, binding = 1) uniform sampler2D textures[];
 
 void main() {
     if (payload.ray_active == 0) {
@@ -101,6 +102,11 @@ void main() {
     else{
         norm = normalize(cross(pos1 - pos0, pos2 - pos0));
     }
+
+    // Interpolate materials
+    InterMaterial inter_mat = InterMaterial(mat.albedo, vec2(mat.mr.x, mat.mr.y), mat.emission);
+
+    // TODO: material interpolation and tangent space.
     
     vec3 prev_pos = payload.orig;
     vec3 prev_dir = payload.dir;
@@ -108,8 +114,8 @@ void main() {
     payload.orig = pos;
 
     vec3 wo = normalize(-prev_dir);
-    vec4 wip = generate_sample(norm, wo, mat, pos);
-    vec3 brdf = eval(norm, wo, wip.xyz, mat) / wip.w;
+    vec4 wip = generate_sample(norm, wo, inter_mat, pos);
+    vec3 brdf = eval(norm, wo, wip.xyz, inter_mat) / wip.w;
 
     payload.dir = wip.xyz;
 
@@ -120,7 +126,7 @@ void main() {
         p_rr = 1.;
     }
 
-    payload.color += payload.attenuation * mat.emission.xyz;
+    payload.color += payload.attenuation * inter_mat.emission.xyz;
     payload.attenuation *= brdf / p_rr;
 
     //payload.prop *= p_rr;

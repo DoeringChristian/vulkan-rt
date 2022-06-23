@@ -19,6 +19,8 @@ use std::ops::Range;
 use std::path::Path;
 use std::sync::Arc;
 
+const INDEX_UNDEF: u32 = 0xffffffff;
+
 pub struct GpuScene {
     //pub world: World,
     //pub geometries: Vec<BlasGeometry>,
@@ -141,6 +143,37 @@ impl GpuScene {
                     material.emission[2],
                     0.,
                 ],
+                diffuse_tex: material
+                    .diffuse_tex
+                    .as_ref()
+                    .map(|dt| textures_idxs[&dt.texture])
+                    .unwrap_or(INDEX_UNDEF as _) as _,
+                diffuse_texco: material
+                    .diffuse_tex
+                    .as_ref()
+                    .map(|dt| dt.coords)
+                    .unwrap_or(INDEX_UNDEF as _) as _,
+                mr_tex: material
+                    .mr_tex
+                    .as_ref()
+                    .map(|dt| textures_idxs[&dt.texture])
+                    .unwrap_or(INDEX_UNDEF as _) as _,
+                mr_texco: material
+                    .mr_tex
+                    .as_ref()
+                    .map(|dt| dt.coords)
+                    .unwrap_or(INDEX_UNDEF as _) as _,
+                emission_tex: material
+                    .emission_tex
+                    .as_ref()
+                    .map(|dt| textures_idxs[&dt.texture])
+                    .unwrap_or(INDEX_UNDEF as _) as _,
+                emission_texco: material
+                    .emission_tex
+                    .as_ref()
+                    .map(|dt| dt.coords)
+                    .unwrap_or(INDEX_UNDEF as _) as _,
+                _pad: [0, 0],
             });
         }
         let mut instances = vec![];
@@ -157,8 +190,11 @@ impl GpuScene {
                 mat_index: material_idxs[&material_id.0] as _,
                 positions: mesh_idx.positions as _,
                 indices: mesh_idx.indices as _,
-                normals: mesh_idx.normals.unwrap_or(0xffffffff) as _,
-                tex_coords: mesh_idx.tex_coords.map(|(i, _)| i).unwrap_or(0xffffffff) as _,
+                normals: mesh_idx.normals.unwrap_or(INDEX_UNDEF as usize) as _,
+                tex_coords: mesh_idx
+                    .tex_coords
+                    .map(|(i, _)| i)
+                    .unwrap_or(INDEX_UNDEF as usize) as _,
                 tex_coords_num: mesh_idx.tex_coords.map(|(_, n)| n).unwrap_or(0) as _,
                 _pad: [0, 0],
             });

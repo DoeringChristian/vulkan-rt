@@ -5,6 +5,18 @@ struct Material {
     vec4 albedo;
     vec4 mr;
     vec4 emission;
+    uint albedo_tex;
+    uint albedo_texco;
+    uint mr_tex;
+    uint mr_texco;
+    uint emission_tex;
+    uint emission_texco;
+};
+
+struct InterMaterial{
+    vec4 albedo;
+    vec2 mr;
+    vec4 emission;
 };
 
 #define INDEX_UNDEF 0xffffffff

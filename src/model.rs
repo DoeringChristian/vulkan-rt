@@ -91,4 +91,11 @@ pub struct GlslMaterial {
     pub diffuse: [f32; 4],
     pub mr: [f32; 4],
     pub emission: [f32; 4],
+    pub diffuse_tex: u32,
+    pub diffuse_texco: u32,
+    pub mr_tex: u32,
+    pub mr_texco: u32,
+    pub emission_tex: u32,
+    pub emission_texco: u32,
+    pub _pad: [u32; 2],
 }

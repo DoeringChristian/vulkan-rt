@@ -28,7 +28,7 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 }
 
 
-vec3 eval(vec3 n, vec3 wo, vec3 wi, Material mat){
+vec3 eval(vec3 n, vec3 wo, vec3 wi, InterMaterial mat){
     float roughness = mat.mr.y;
     float metallic = mat.mr.x;
     
@@ -65,7 +65,7 @@ vec3 eval(vec3 n, vec3 wo, vec3 wi, Material mat){
 
 // from https://agraphicsguy.wordpress.com/2015/11/01/sampling-microfacet-brdf/
 // Generate a sample xyz with a probability w
-vec4 generate_sample(vec3 n, vec3 wo, Material mat, vec3 seed){
+vec4 generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
     /*
     vec4 wip = sample_DistributionGGX(n, wo, mat.mr.y, seed);
     vec3 w = reflect(wo.xyz, wip.xyz);
