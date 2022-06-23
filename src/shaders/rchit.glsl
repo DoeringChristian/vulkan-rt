@@ -149,7 +149,8 @@ void main() {
     payload.color += payload.attenuation * inter_mat.emission.xyz;
     payload.attenuation *= brdf / p_rr;
 
-    //payload.prop *= p_rr;
+    // DEBUG:
+    //payload.color = vec3(inter_mat.mr, 0.);
     
     if (rand(vec3(payload.dir)) >= p_rr){
         payload.ray_active = 0;

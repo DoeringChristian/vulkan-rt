@@ -44,6 +44,7 @@ impl GpuScene {
         let mut tex_coords_bufs = vec![];
         let mut blases = vec![];
         let mut mesh_idxs = HashMap::new();
+        #[derive(Debug)]
         struct MeshIdxs {
             positions: usize,
             indices: usize,
@@ -196,12 +197,6 @@ impl GpuScene {
             .iter(&scene.world)
         {
             let mesh_idx = &mesh_idxs[&mesh_id.0];
-            /*
-            trace!(
-                "texco: {:#?}",
-                mesh_idx.tex_coords.map(|(_, n)| n).unwrap_or(0)
-            );
-            */
             instancedata.push(GlslInstanceData {
                 transform: transform.compute_matrix().to_cols_array_2d(),
                 mat_index: material_idxs[&material_id.0] as _,
@@ -249,7 +244,7 @@ impl GpuScene {
                 },
             });
         }
-        trace!("instances: {}", instancedata.len());
+        //trace!("instancedata: {:#?}", instancedata);
 
         let material_buf =
             TypedBuffer::create(device, &materials, vk::BufferUsageFlags::STORAGE_BUFFER);
