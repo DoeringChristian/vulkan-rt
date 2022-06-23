@@ -2,14 +2,16 @@ use crate::accel::{Blas, BlasGeometry, BlasInfo, Tlas};
 use crate::buffers::TypedBuffer;
 use crate::model::{
     GlslInstanceData, GlslMaterial, Index, InstanceBundle, Material, MaterialId, MeshId, Normal,
-    Position, Tangent, TexCoord, TexCoords, Texture, VertexData,
+    Position, Tangent, TexCoord, TexCoords, Texture, TextureId, VertexData,
 };
 
 use bevy_ecs::prelude::*;
 use bevy_math::Mat4;
 use bevy_transform::prelude::*;
 use bytemuck::cast_slice;
+use image::GenericImageView;
 use screen_13::prelude::*;
+use screen_13_fx::ImageLoader;
 use slotmap::*;
 use std::collections::{BTreeMap, HashMap};
 use std::io::BufReader;
@@ -29,6 +31,7 @@ pub struct GpuScene {
     pub indices_bufs: Vec<Arc<TypedBuffer<Index>>>,
     pub normals_bufs: Vec<Arc<TypedBuffer<Normal>>>,
     pub tex_coords_bufs: Vec<Arc<TypedBuffer<TexCoord>>>,
+    pub textures: Vec<Arc<Image>>,
 }
 
 impl GpuScene {
@@ -104,6 +107,22 @@ impl GpuScene {
                 },
             ));
             mesh_idxs.insert(entity, mesh_idx);
+        }
+        let mut textures = vec![];
+        let mut textures_idxs = HashMap::new();
+        let mut img_loader = ImageLoader::new(device).unwrap();
+        for (entity, texture) in scene.world.query::<(Entity, &Texture)>().iter(&scene.world) {
+            textures_idxs.insert(entity, textures.len());
+            let img = texture.0.as_rgba8().unwrap();
+            let img = img_loader
+                .decode_linear(
+                    img,
+                    screen_13_fx::ImageFormat::R8G8B8A8,
+                    img.width(),
+                    img.height(),
+                )
+                .unwrap();
+            textures.push(img);
         }
         let mut materials = vec![];
         let mut material_idxs = HashMap::new();
@@ -193,6 +212,7 @@ impl GpuScene {
             indices_bufs,
             normals_bufs,
             tex_coords_bufs,
+            textures,
         }
     }
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
@@ -292,6 +312,24 @@ impl Scene {
             for material in gltf.materials() {
                 let mr = material.pbr_metallic_roughness();
                 let emission = material.emissive_factor();
+                let diffuse_tex = material
+                    .pbr_metallic_roughness()
+                    .base_color_texture()
+                    .map(|b| TextureId {
+                        texture: texture_entities[&b.texture().index()],
+                        coords: b.tex_coord(),
+                    });
+                let mr_tex = material
+                    .pbr_metallic_roughness()
+                    .metallic_roughness_texture()
+                    .map(|b| TextureId {
+                        texture: texture_entities[&b.texture().index()],
+                        coords: b.tex_coord(),
+                    });
+                let emission_tex = material.emissive_texture().map(|b| TextureId {
+                    texture: texture_entities[&b.texture().index()],
+                    coords: b.tex_coord(),
+                });
                 let material_entity = self
                     .world
                     .spawn()

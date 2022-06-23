@@ -48,8 +48,8 @@ pub struct InstanceBundle {
 }
 
 pub struct TextureId {
-    texture: Entity,
-    coords: u32,
+    pub texture: Entity,
+    pub coords: u32,
 }
 
 #[derive(Component)]
