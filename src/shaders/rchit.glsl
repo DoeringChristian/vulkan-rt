@@ -26,6 +26,9 @@ layout(set = 0, binding = 4) buffer Indices{
 layout(set = 0, binding = 5) buffer Positions{
     float positions[];
 }model_positions[];
+layout(set = 0, binding = 6) buffer Normals{
+    float normals[];
+}model_normals[];
 
 void main() {
     if (payload.ray_active == 0) {
@@ -47,20 +50,20 @@ void main() {
     Material mat = materials[inst.mat_index];
 
     ivec3 indices = ivec3(model_indices[inst.indices].indices[3 * gl_PrimitiveID + 0],
-                        model_indices[inst.indices].indices[3 * gl_PrimitiveID + 1],
-                        model_indices[inst.indices].indices[3 * gl_PrimitiveID + 2]);
+                          model_indices[inst.indices].indices[3 * gl_PrimitiveID + 1],
+                          model_indices[inst.indices].indices[3 * gl_PrimitiveID + 2]);
 
     vec3 barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
 
     vec3 pos0 = vec3(model_positions[inst.positions].positions[3 * indices.x + 0],
-                    model_positions[inst.positions].positions[3 * indices.x + 1],
-                    model_positions[inst.positions].positions[3 * indices.x + 2]);
+                     model_positions[inst.positions].positions[3 * indices.x + 1],
+                     model_positions[inst.positions].positions[3 * indices.x + 2]);
     vec3 pos1 = vec3(model_positions[inst.positions].positions[3 * indices.y + 0],
-                    model_positions[inst.positions].positions[3 * indices.y + 1],
-                    model_positions[inst.positions].positions[3 * indices.y + 2]);
+                     model_positions[inst.positions].positions[3 * indices.y + 1],
+                     model_positions[inst.positions].positions[3 * indices.y + 2]);
     vec3 pos2 = vec3(model_positions[inst.positions].positions[3 * indices.z + 0],
-                    model_positions[inst.positions].positions[3 * indices.z + 1],
-                    model_positions[inst.positions].positions[3 * indices.z + 2]);
+                     model_positions[inst.positions].positions[3 * indices.z + 1],
+                     model_positions[inst.positions].positions[3 * indices.z + 2]);
     // Apply transform
     pos0 = (transform * vec4(pos0, 1.)).xyz;
     pos1 = (transform * vec4(pos1, 1.)).xyz;
@@ -68,7 +71,32 @@ void main() {
 
     vec3 pos = pos0 * barycentric.x + pos1 * barycentric.y + pos2 * barycentric.z;
     
-    vec3 norm = normalize(cross(pos1 - pos0, pos2 - pos0));
+    // get or generate normals
+    
+    vec3 norm = vec3(0.);
+    vec3 norm0 = vec3(0.);
+    vec3 norm1 = vec3(0.);
+    vec3 norm2 = vec3(0.);
+    if (inst.normals != INDEX_UNDEF){
+        norm0 = vec3(model_normals[inst.normals].normals[3 * indices.x + 0],
+                     model_normals[inst.normals].normals[3 * indices.x + 1],
+                     model_normals[inst.normals].normals[3 * indices.x + 2]);
+        norm1 = vec3(model_normals[inst.normals].normals[3 * indices.y + 0],
+                     model_normals[inst.normals].normals[3 * indices.y + 1],
+                     model_normals[inst.normals].normals[3 * indices.y + 2]);
+        norm2 = vec3(model_normals[inst.normals].normals[3 * indices.z + 0],
+                     model_normals[inst.normals].normals[3 * indices.z + 1],
+                     model_normals[inst.normals].normals[3 * indices.z + 2]);
+        //norm0 = normalize(norm0);
+        //norm1 = normalize(norm1);
+        //norm2 = normalize(norm2);
+
+        norm = norm0 * barycentric.x + norm1 * barycentric.y + norm2 * barycentric.z;
+        //norm = normalize(norm);
+    }
+    else{
+        norm = normalize(cross(pos1 - pos0, pos2 - pos0));
+    }
     
     vec3 prev_pos = payload.orig;
     vec3 prev_dir = payload.dir;

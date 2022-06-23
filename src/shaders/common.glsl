@@ -7,6 +7,7 @@ struct Material {
     vec4 emission;
 };
 
+#define INDEX_UNDEF 0xffffffff
 struct Instance{
     //mat4 trans;
     vec4 trans0;

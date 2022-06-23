@@ -25,6 +25,7 @@ pub struct GpuScene {
     pub instancedata_buf: TypedBuffer<GlslInstanceData>,
     pub positions_bufs: Vec<Arc<TypedBuffer<Position>>>,
     pub indices_bufs: Vec<Arc<TypedBuffer<Index>>>,
+    pub normal_bufs: Vec<Arc<TypedBuffer<Normal>>>,
 }
 
 impl GpuScene {
@@ -59,6 +60,7 @@ impl GpuScene {
                     blas: blases.len(),
                 },
             );
+            //trace!("positions: {}", positions.0.len());
             positions_bufs.push(Arc::new(TypedBuffer::create(
                 device,
                 &positions.0,
@@ -171,6 +173,7 @@ impl GpuScene {
             instancedata_buf,
             positions_bufs,
             indices_bufs,
+            normal_bufs,
         }
     }
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
