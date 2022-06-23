@@ -136,7 +136,7 @@ impl GpuScene {
         {
             material_idxs.insert(entity, materials.len());
             materials.push(GlslMaterial {
-                diffuse: material.diffuse,
+                albedo: material.albedo,
                 mr: material.mr,
                 emission: [
                     material.emission[0],
@@ -145,12 +145,12 @@ impl GpuScene {
                     0.,
                 ],
                 diffuse_tex: material
-                    .diffuse_tex
+                    .albedo_tex
                     .as_ref()
                     .map(|dt| textures_idxs[&dt.texture])
                     .unwrap_or(INDEX_UNDEF as _) as _,
                 diffuse_texco: material
-                    .diffuse_tex
+                    .albedo_tex
                     .as_ref()
                     .map(|dt| dt.coords)
                     .unwrap_or(INDEX_UNDEF as _) as _,
@@ -357,7 +357,7 @@ impl Scene {
             for material in gltf.materials() {
                 let mr = material.pbr_metallic_roughness();
                 let emission = material.emissive_factor();
-                let diffuse_tex = material
+                let albedo_tex = material
                     .pbr_metallic_roughness()
                     .base_color_texture()
                     .map(|b| TextureId {
@@ -379,10 +379,10 @@ impl Scene {
                     .world
                     .spawn()
                     .insert(Material {
-                        diffuse: mr.base_color_factor(),
+                        albedo: mr.base_color_factor(),
                         mr: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
                         emission,
-                        diffuse_tex,
+                        albedo_tex,
                         mr_tex,
                         emission_tex,
                     })

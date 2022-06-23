@@ -54,10 +54,10 @@ pub struct TextureId {
 
 #[derive(Component)]
 pub struct Material {
-    pub diffuse: [f32; 4],
+    pub albedo: [f32; 4],
     pub mr: [f32; 4],
     pub emission: [f32; 3],
-    pub diffuse_tex: Option<TextureId>,
+    pub albedo_tex: Option<TextureId>,
     pub mr_tex: Option<TextureId>,
     pub emission_tex: Option<TextureId>,
 }
@@ -88,7 +88,7 @@ pub struct GlslInstanceData {
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct GlslMaterial {
-    pub diffuse: [f32; 4],
+    pub albedo: [f32; 4],
     pub mr: [f32; 4],
     pub emission: [f32; 4],
     pub diffuse_tex: u32,
