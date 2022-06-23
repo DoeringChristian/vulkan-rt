@@ -11,6 +11,8 @@ struct Material {
     uint mr_texco;
     uint emission_tex;
     uint emission_texco;
+    uint normal_tex;
+    uint normal_texco;
 };
 
 struct InterMaterial{

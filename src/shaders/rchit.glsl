@@ -35,15 +35,17 @@ layout(set = 1, binding = 0) buffer TexCoords{
 }model_tex_coords[];
 layout(set = 1, binding = 1) uniform sampler2D textures[];
 
+mat3 compute_TBN(vec2 duv0, vec2 duv1, vec3 dpos0, vec3 dpos1, vec3 n){
+    float r = 1./(duv0.x * duv1.y - duv0.y * duv1.x);
+    vec3 t = (dpos0 * duv1.y - dpos1 * duv0.y)*r;
+    vec3 b = (dpos1 * duv0.x - dpos0 * duv1.x)*r;
+    return mat3(t, b, n);
+}
+
 void main() {
     if (payload.ray_active == 0) {
         return;
     }
-    /*
-    if (payload.depth >= 2){
-        return;
-    }
-*/
 
     const uint min_rr = 2;
 
@@ -127,6 +129,21 @@ void main() {
         vec2 texco = texco0 * barycentric.x + texco1 * barycentric.y + texco2 * barycentric.z;
         // As specified by gltf specs the blue chanel stores metallness, the green chanel roughness.
         inter_mat.mr = texture(textures[mat.mr_tex], texco).bg;
+    }
+    if (mat.normal_tex != INDEX_UNDEF && mat.normal_texco != INDEX_UNDEF){
+        vec2 texco0 = vec2(model_tex_coords[inst.tex_coords + mat.normal_texco].tex_coords[2 * indices.x + 0],
+                           model_tex_coords[inst.tex_coords + mat.normal_texco].tex_coords[2 * indices.x + 1]);
+        vec2 texco1 = vec2(model_tex_coords[inst.tex_coords + mat.normal_texco].tex_coords[2 * indices.y + 0],
+                           model_tex_coords[inst.tex_coords + mat.normal_texco].tex_coords[2 * indices.y + 1]);
+        vec2 texco2 = vec2(model_tex_coords[inst.tex_coords + mat.normal_texco].tex_coords[2 * indices.z + 0],
+                           model_tex_coords[inst.tex_coords + mat.normal_texco].tex_coords[2 * indices.z + 1]);
+        vec2 texco = texco0 * barycentric.x + texco1 * barycentric.y + texco2 * barycentric.z;
+        
+        mat3 TBN = compute_TBN(texco1 - texco0, texco2 - texco0, pos1 - pos0, pos2 - pos0, norm);
+        
+        vec3 norm_tex = texture(textures[mat.normal_tex], texco).rgb;
+        norm_tex = normalize(norm_tex * 2. - 1.);
+        norm = normalize(TBN * norm_tex);
     }
     
     vec3 prev_pos = payload.orig;
