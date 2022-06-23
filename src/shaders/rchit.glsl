@@ -68,7 +68,7 @@ void main() {
 
     vec3 pos = pos0 * barycentric.x + pos1 * barycentric.y + pos2 * barycentric.z;
     
-    vec3 geo_norm = normalize(cross(pos1 - pos0, pos2 - pos0));
+    vec3 norm = normalize(cross(pos1 - pos0, pos2 - pos0));
     
     vec3 prev_pos = payload.orig;
     vec3 prev_dir = payload.dir;
@@ -76,8 +76,8 @@ void main() {
     payload.orig = pos;
 
     vec3 wo = normalize(-prev_dir);
-    vec4 wip = generate_sample(geo_norm, wo, mat, pos);
-    vec3 brdf = eval(geo_norm, wo, wip.xyz, mat) / wip.w;
+    vec4 wip = generate_sample(norm, wo, mat, pos);
+    vec3 brdf = eval(norm, wo, wip.xyz, mat) / wip.w;
 
     payload.dir = wip.xyz;
 

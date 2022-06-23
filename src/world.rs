@@ -1,7 +1,8 @@
 use crate::accel::{Blas, BlasGeometry, BlasInfo, Material, Tlas};
 use crate::buffers::TypedBuffer;
 use crate::model::{
-    GlslInstanceData, GlslMaterial, Index, InstanceBundle, MaterialId, MeshId, Position, VertexData,
+    GlslInstanceData, GlslMaterial, Index, InstanceBundle, MaterialId, MeshId, Normal, Position,
+    Tangent, TexCoord, TexCoords, VertexData,
 };
 
 use bevy_ecs::prelude::*;
@@ -30,16 +31,23 @@ impl GpuScene {
     pub fn create(device: &Arc<Device>, scene: &mut Scene) -> Self {
         let mut positions_bufs = vec![];
         let mut indices_bufs = vec![];
+        let mut normal_bufs = vec![];
         let mut blases = vec![];
         let mut mesh_idxs = HashMap::new();
         struct MeshIdxs {
             positions: usize,
             indices: usize,
+            normals: Option<usize>,
             blas: usize,
         }
-        for (entity, positions, indices) in scene
+        for (entity, positions, indices, normals) in scene
             .world
-            .query::<(Entity, &VertexData<Position>, &VertexData<Index>)>()
+            .query::<(
+                Entity,
+                &VertexData<Position>,
+                &VertexData<Index>,
+                Option<&VertexData<Normal>>,
+            )>()
             .iter(&scene.world)
         {
             mesh_idxs.insert(
@@ -47,6 +55,7 @@ impl GpuScene {
                 MeshIdxs {
                     positions: positions_bufs.len(),
                     indices: indices_bufs.len(),
+                    normals: normals.map(|_| normal_bufs.len()),
                     blas: blases.len(),
                 },
             );
@@ -64,6 +73,13 @@ impl GpuScene {
                     | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                     | vk::BufferUsageFlags::STORAGE_BUFFER,
             )));
+            if let Some(normals) = normals {
+                normal_bufs.push(Arc::new(TypedBuffer::create(
+                    device,
+                    &normals.0,
+                    vk::BufferUsageFlags::STORAGE_BUFFER,
+                )));
+            }
             blases.push(Blas::create(
                 device,
                 &BlasInfo {
@@ -99,12 +115,13 @@ impl GpuScene {
             .query::<(Entity, &MaterialId, &MeshId, &Transform)>()
             .iter(&scene.world)
         {
+            let mesh_idx = &mesh_idxs[&mesh_id.0];
             instancedata.push(GlslInstanceData {
                 transform: transform.compute_matrix().to_cols_array_2d(),
                 mat_index: material_idxs[&material_id.0] as _,
-                positions: mesh_idxs[&mesh_id.0].positions as _,
-                indices: mesh_idxs[&mesh_id.0].indices as _,
-                _pad: [0],
+                positions: mesh_idx.positions as _,
+                indices: mesh_idx.indices as _,
+                normals: mesh_idx.normals.unwrap_or(0xffffffff) as _,
             });
             let matrix = transform.compute_matrix();
             let matrix = [
@@ -187,6 +204,9 @@ impl Scene {
                 let primitive = mesh.primitives().next().unwrap();
                 let mut indices: VertexData<Index> = VertexData(Vec::new());
                 let mut positions: VertexData<Position> = VertexData(Vec::new());
+                let mut normals: Option<VertexData<Normal>> = None;
+                let mut tangents: Option<VertexData<Tangent>> = None;
+                let mut tex_coords = TexCoords(Vec::new());
                 let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
                 if let Some(iter) = reader.read_positions() {
                     for position in iter {
@@ -195,10 +215,38 @@ impl Scene {
                 }
                 if let Some(iter) = reader.read_indices() {
                     for index in iter.into_u32() {
-                        indices.0.push(Index(index))
+                        indices.0.push(Index(index));
                     }
                 }
-                let entity = self.world.spawn().insert(indices).insert(positions).id();
+                if let Some(iter) = reader.read_normals() {
+                    normals = Some(VertexData(Vec::new()));
+                    for normal in iter {
+                        normals.as_mut().unwrap().0.push(Normal(normal));
+                    }
+                }
+                if let Some(iter) = reader.read_tangents() {
+                    tangents = Some(VertexData(Vec::new()));
+                    for tangent in iter {
+                        tangents.as_mut().unwrap().0.push(Tangent(tangent));
+                    }
+                }
+                while let Some(iter) = reader.read_tex_coords(tex_coords.0.len() as _) {
+                    tex_coords.0.push(VertexData(Vec::new()));
+                    for tex_coord in iter.into_f32() {
+                        tex_coords.0.last_mut().unwrap().0.push(TexCoord(tex_coord));
+                    }
+                }
+                let mut entity = self.world.spawn();
+                entity.insert(indices).insert(positions).insert(tex_coords);
+
+                if let Some(normals) = normals {
+                    entity.insert(normals);
+                }
+                if let Some(tangents) = tangents {
+                    entity.insert(tangents);
+                }
+
+                let entity = entity.id();
                 mesh_entities.insert(mesh.index(), entity);
             }
             let mut material_entities = HashMap::new();

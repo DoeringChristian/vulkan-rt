@@ -10,6 +10,21 @@ pub struct Position(pub [f32; 3]);
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Index(pub u32);
 
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Normal(pub [f32; 3]);
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Tangent(pub [f32; 4]);
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct TexCoord(pub [f32; 2]);
+
+#[derive(Component)]
+pub struct TexCoords(pub Vec<VertexData<TexCoord>>);
+
 #[derive(Component)]
 pub struct VertexData<T>(pub Vec<T>);
 
@@ -43,7 +58,7 @@ pub struct GlslInstanceData {
     pub mat_index: u32,
     pub indices: u32,
     pub positions: u32,
-    pub _pad: [u32; 1],
+    pub normals: u32,
 }
 
 ///

@@ -16,6 +16,7 @@ struct Instance{
     uint mat_index;
     uint indices;
     uint positions;
+    uint normals;
 };
 
 struct Payload{
