@@ -87,12 +87,12 @@ void main() {
         norm2 = vec3(model_normals[inst.normals].normals[3 * indices.z + 0],
                      model_normals[inst.normals].normals[3 * indices.z + 1],
                      model_normals[inst.normals].normals[3 * indices.z + 2]);
-        //norm0 = normalize(norm0);
-        //norm1 = normalize(norm1);
-        //norm2 = normalize(norm2);
+        norm0 = normalize(norm0);
+        norm1 = normalize(norm1);
+        norm2 = normalize(norm2);
 
         norm = norm0 * barycentric.x + norm1 * barycentric.y + norm2 * barycentric.z;
-        //norm = normalize(norm);
+        norm = inverse(transpose(mat3(transform))) * norm;
     }
     else{
         norm = normalize(cross(pos1 - pos0, pos2 - pos0));
