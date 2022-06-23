@@ -107,6 +107,16 @@ void main() {
     InterMaterial inter_mat = InterMaterial(mat.albedo, vec2(mat.mr.x, mat.mr.y), mat.emission);
 
     // TODO: material interpolation and tangent space.
+    if (mat.albedo_tex != INDEX_UNDEF && mat.albedo_texco != INDEX_UNDEF){
+        vec2 texco0 = vec2(model_tex_coords[mat.albedo_texco].tex_coords[2 * indices.x + 0],
+                           model_tex_coords[mat.albedo_texco].tex_coords[2 * indices.x + 1]);
+        vec2 texco1 = vec2(model_tex_coords[mat.albedo_texco].tex_coords[2 * indices.y + 0],
+                           model_tex_coords[mat.albedo_texco].tex_coords[2 * indices.y + 1]);
+        vec2 texco2 = vec2(model_tex_coords[mat.albedo_texco].tex_coords[2 * indices.z + 0],
+                           model_tex_coords[mat.albedo_texco].tex_coords[2 * indices.z + 1]);
+        vec2 texco = texco0 * barycentric.x + texco1 * barycentric.y + texco2 * barycentric.z;
+        inter_mat.albedo = texture(textures[mat.albedo_tex], texco);
+    }
     
     vec3 prev_pos = payload.orig;
     vec3 prev_dir = payload.dir;

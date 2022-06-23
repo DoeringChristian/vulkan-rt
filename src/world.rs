@@ -98,7 +98,7 @@ impl GpuScene {
                         &tex_coords.0,
                         vk::BufferUsageFlags::STORAGE_BUFFER,
                     )));
-                    mesh_idx.tex_coords.unwrap().1 += 1;
+                    mesh_idx.tex_coords.as_mut().unwrap().1 += 1;
                 }
             }
             blases.push(Blas::create(
@@ -108,6 +108,7 @@ impl GpuScene {
                     positions: positions_bufs.last().unwrap(),
                 },
             ));
+            //trace!("texco: {:#?}", mesh_idx.tex_coords);
             mesh_idxs.insert(entity, mesh_idx);
         }
         let mut textures = vec![];
@@ -185,6 +186,12 @@ impl GpuScene {
             .iter(&scene.world)
         {
             let mesh_idx = &mesh_idxs[&mesh_id.0];
+            /*
+            trace!(
+                "texco: {:#?}",
+                mesh_idx.tex_coords.map(|(_, n)| n).unwrap_or(0)
+            );
+            */
             instancedata.push(GlslInstanceData {
                 transform: transform.compute_matrix().to_cols_array_2d(),
                 mat_index: material_idxs[&material_id.0] as _,
@@ -198,6 +205,8 @@ impl GpuScene {
                 tex_coords_num: mesh_idx.tex_coords.map(|(_, n)| n).unwrap_or(0) as _,
                 _pad: [0, 0],
             });
+            //trace!("instancedata: {:#?}", instancedata.last());
+            //trace!("tex_coords_num: {:#?}", mesh_idx.tex_coords);
             let matrix = transform.compute_matrix();
             let matrix = [
                 matrix.x_axis.x,
@@ -373,9 +382,9 @@ impl Scene {
                         diffuse: mr.base_color_factor(),
                         mr: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
                         emission,
-                        diffuse_tex: None,
-                        mr_tex: None,
-                        emission_tex: None,
+                        diffuse_tex,
+                        mr_tex,
+                        emission_tex,
                     })
                     .id();
                 material_entities.insert(material.index().unwrap(), material_entity);

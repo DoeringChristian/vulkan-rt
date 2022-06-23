@@ -70,7 +70,7 @@ pub struct Material {
 /// Data relating to an instance used to acces materials etc. in the shader.
 ///
 #[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct GlslInstanceData {
     pub transform: [[f32; 4]; 4],
     pub mat_index: u32,
