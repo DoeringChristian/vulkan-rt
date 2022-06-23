@@ -85,7 +85,8 @@ fn main() -> anyhow::Result<()> {
         Image::create(
             &event_loop.device,
             ImageInfo::new_2d(
-                vk::Format::R8G8B8A8_UNORM,
+                //vk::Format::R8G8B8A8_UNORM,
+                vk::Format::R32G32B32A32_SFLOAT,
                 1000,
                 1000,
                 vk::ImageUsageFlags::STORAGE
