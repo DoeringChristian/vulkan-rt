@@ -154,24 +154,6 @@ impl Blas {
     }
 }
 
-#[derive(Component)]
-pub struct Material {
-    pub diffuse: [f32; 4],
-    pub mra: [f32; 4],
-    pub emission: [f32; 3],
-}
-
-/*
-impl Material {
-    pub fn to_vk(&self, scene: &Scene) -> GlslMaterial {
-        GlslMaterial {
-            diffuse: self.diffuse,
-            mra: self.mra,
-        }
-    }
-}
-*/
-
 pub struct Tlas {
     instance_buf: TypedBuffer<vk::AccelerationStructureInstanceKHR>,
     //pub material_buf: TypedBuffer<GlslMaterial>,

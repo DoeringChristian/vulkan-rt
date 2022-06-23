@@ -44,6 +44,13 @@ pub struct InstanceBundle {
     pub transform: Transform,
 }
 
+#[derive(Component)]
+pub struct Material {
+    pub diffuse: [f32; 4],
+    pub mra: [f32; 4],
+    pub emission: [f32; 3],
+}
+
 //===================================
 // Data that can be used in shaders.
 //===================================
