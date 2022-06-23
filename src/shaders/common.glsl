@@ -3,7 +3,7 @@
 
 struct Material {
     vec4 albedo;
-    vec4 mra;
+    vec4 mr;
     vec4 emission;
 };
 
@@ -18,6 +18,8 @@ struct Instance{
     uint indices;
     uint positions;
     uint normals;
+    uint tex_coords;
+    uint tex_coords_num;
 };
 
 struct Payload{

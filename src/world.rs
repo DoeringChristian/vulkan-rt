@@ -13,6 +13,7 @@ use screen_13::prelude::*;
 use slotmap::*;
 use std::collections::{BTreeMap, HashMap};
 use std::io::BufReader;
+use std::ops::Range;
 use std::sync::Arc;
 
 pub struct GpuScene {
@@ -25,41 +26,42 @@ pub struct GpuScene {
     pub instancedata_buf: TypedBuffer<GlslInstanceData>,
     pub positions_bufs: Vec<Arc<TypedBuffer<Position>>>,
     pub indices_bufs: Vec<Arc<TypedBuffer<Index>>>,
-    pub normal_bufs: Vec<Arc<TypedBuffer<Normal>>>,
+    pub normals_bufs: Vec<Arc<TypedBuffer<Normal>>>,
 }
 
 impl GpuScene {
     pub fn create(device: &Arc<Device>, scene: &mut Scene) -> Self {
         let mut positions_bufs = vec![];
         let mut indices_bufs = vec![];
-        let mut normal_bufs = vec![];
+        let mut normals_bufs = vec![];
+        let mut tex_coords_bufs = vec![];
         let mut blases = vec![];
         let mut mesh_idxs = HashMap::new();
         struct MeshIdxs {
             positions: usize,
             indices: usize,
             normals: Option<usize>,
+            tex_coords: Option<(usize, usize)>,
             blas: usize,
         }
-        for (entity, positions, indices, normals) in scene
+        for (entity, positions, indices, normals, tex_coords) in scene
             .world
             .query::<(
                 Entity,
                 &VertexData<Position>,
                 &VertexData<Index>,
                 Option<&VertexData<Normal>>,
+                Option<&TexCoords>,
             )>()
             .iter(&scene.world)
         {
-            mesh_idxs.insert(
-                entity,
-                MeshIdxs {
-                    positions: positions_bufs.len(),
-                    indices: indices_bufs.len(),
-                    normals: normals.map(|_| normal_bufs.len()),
-                    blas: blases.len(),
-                },
-            );
+            let mut mesh_idx = MeshIdxs {
+                positions: positions_bufs.len(),
+                indices: indices_bufs.len(),
+                normals: normals.map(|_| normals_bufs.len()),
+                tex_coords: tex_coords.map(|_| (tex_coords_bufs.len(), 0)),
+                blas: blases.len(),
+            };
             //trace!("positions: {}", positions.0.len());
             positions_bufs.push(Arc::new(TypedBuffer::create(
                 device,
@@ -76,11 +78,21 @@ impl GpuScene {
                     | vk::BufferUsageFlags::STORAGE_BUFFER,
             )));
             if let Some(normals) = normals {
-                normal_bufs.push(Arc::new(TypedBuffer::create(
+                normals_bufs.push(Arc::new(TypedBuffer::create(
                     device,
                     &normals.0,
                     vk::BufferUsageFlags::STORAGE_BUFFER,
                 )));
+            }
+            if let Some(tex_coords) = tex_coords {
+                for tex_coords in tex_coords.0.iter() {
+                    tex_coords_bufs.push(Arc::new(TypedBuffer::create(
+                        device,
+                        &tex_coords.0,
+                        vk::BufferUsageFlags::STORAGE_BUFFER,
+                    )));
+                    mesh_idx.tex_coords.unwrap().1 += 1;
+                }
             }
             blases.push(Blas::create(
                 device,
@@ -89,6 +101,7 @@ impl GpuScene {
                     positions: positions_bufs.last().unwrap(),
                 },
             ));
+            mesh_idxs.insert(entity, mesh_idx);
         }
         let mut materials = vec![];
         let mut material_idxs = HashMap::new();
@@ -100,7 +113,7 @@ impl GpuScene {
             material_idxs.insert(entity, materials.len());
             materials.push(GlslMaterial {
                 diffuse: material.diffuse,
-                mra: material.mra,
+                mr: material.mr,
                 emission: [
                     material.emission[0],
                     material.emission[1],
@@ -124,6 +137,9 @@ impl GpuScene {
                 positions: mesh_idx.positions as _,
                 indices: mesh_idx.indices as _,
                 normals: mesh_idx.normals.unwrap_or(0xffffffff) as _,
+                tex_coords: mesh_idx.tex_coords.map(|(i, _)| i).unwrap_or(0xffffffff) as _,
+                tex_coords_num: mesh_idx.tex_coords.map(|(_, n)| n).unwrap_or(0) as _,
+                _pad: [0, 0],
             });
             let matrix = transform.compute_matrix();
             let matrix = [
@@ -173,7 +189,7 @@ impl GpuScene {
             instancedata_buf,
             positions_bufs,
             indices_bufs,
-            normal_bufs,
+            normals_bufs,
         }
     }
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
@@ -261,7 +277,7 @@ impl Scene {
                     .spawn()
                     .insert(Material {
                         diffuse: mr.base_color_factor(),
-                        mra: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
+                        mr: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
                         emission,
                     })
                     .id();

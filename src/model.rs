@@ -44,10 +44,15 @@ pub struct InstanceBundle {
     pub transform: Transform,
 }
 
+pub struct TextureId {
+    texture: Entity,
+    coords: u32,
+}
+
 #[derive(Component)]
 pub struct Material {
     pub diffuse: [f32; 4],
-    pub mra: [f32; 4],
+    pub mr: [f32; 4],
     pub emission: [f32; 3],
 }
 
@@ -66,6 +71,9 @@ pub struct GlslInstanceData {
     pub indices: u32,
     pub positions: u32,
     pub normals: u32,
+    pub tex_coords: u32,
+    pub tex_coords_num: u32,
+    pub _pad: [u32; 2],
 }
 
 ///
@@ -75,6 +83,6 @@ pub struct GlslInstanceData {
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct GlslMaterial {
     pub diffuse: [f32; 4],
-    pub mra: [f32; 4],
+    pub mr: [f32; 4],
     pub emission: [f32; 4],
 }

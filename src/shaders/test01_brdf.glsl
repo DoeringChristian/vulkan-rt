@@ -29,8 +29,8 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 
 
 vec3 eval(vec3 n, vec3 wo, vec3 wi, Material mat){
-    float roughness = mat.mra.y;
-    float metallic = mat.mra.x;
+    float roughness = mat.mr.y;
+    float metallic = mat.mr.x;
     
     /*
     vec3 dir_len = prev_pos - pos;
@@ -67,7 +67,7 @@ vec3 eval(vec3 n, vec3 wo, vec3 wi, Material mat){
 // Generate a sample xyz with a probability w
 vec4 generate_sample(vec3 n, vec3 wo, Material mat, vec3 seed){
     /*
-    vec4 wip = sample_DistributionGGX(n, wo, mat.mra.y, seed);
+    vec4 wip = sample_DistributionGGX(n, wo, mat.mr.y, seed);
     vec3 w = reflect(wo.xyz, wip.xyz);
     return vec4(w.x, w.y, w.z, wip.w);
     */
@@ -76,7 +76,7 @@ vec4 generate_sample(vec3 n, vec3 wo, Material mat, vec3 seed){
     w = allign_hemisphere(w, n);
     return vec4(w.x, w.y, w.z, 1. / (2. * M_PI ));
     */
-    float roughness = mat.mra.y;
+    float roughness = mat.mr.y;
     float a = roughness * roughness;
     float a2 = a * a;
 

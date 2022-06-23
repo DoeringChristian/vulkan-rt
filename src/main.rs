@@ -133,7 +133,7 @@ fn main() -> anyhow::Result<()> {
             .map(|buf| frame.render_graph.bind_node(&buf.buf))
             .collect::<Vec<_>>();
         let normal_nodes = gpu_scene
-            .normal_bufs
+            .normals_bufs
             .iter()
             .map(|buf| frame.render_graph.bind_node(&buf.buf))
             .collect::<Vec<_>>();
