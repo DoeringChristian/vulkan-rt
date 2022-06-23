@@ -51,6 +51,8 @@ void main() {
         traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
                     payload.orig, 0.001, payload.dir, 10000.0, 0);
     }
+    // DEBUG: boost light:
+    payload.color *= 10.;
     color = 1/float((fc + 1)) * payload.color + float(fc)/float(fc + 1)*color; 
 
     //vec4 color = vec4(payload.color, 1.0);
