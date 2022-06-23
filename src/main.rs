@@ -137,6 +137,11 @@ fn main() -> anyhow::Result<()> {
             .iter()
             .map(|buf| frame.render_graph.bind_node(&buf.buf))
             .collect::<Vec<_>>();
+        let tex_coords_nodes = gpu_scene
+            .tex_coords_bufs
+            .iter()
+            .map(|buf| frame.render_graph.bind_node(&buf.buf))
+            .collect::<Vec<_>>();
 
         let sbt_rgen = sbt.rgen();
         let sbt_miss = sbt.miss();
@@ -175,6 +180,9 @@ fn main() -> anyhow::Result<()> {
         }
         for (i, node) in normal_nodes.iter().enumerate() {
             pass = pass.read_descriptor((0, 6, [i as _]), *node);
+        }
+        for (i, node) in tex_coords_nodes.iter().enumerate() {
+            pass = pass.read_descriptor((1, 0, [i as _]), *node);
         }
         let push_constant = PushConstant {
             frame_count: fc as _,

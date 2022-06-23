@@ -29,6 +29,9 @@ pub struct TexCoords(pub Vec<VertexData<TexCoord>>);
 pub struct VertexData<T>(pub Vec<T>);
 
 #[derive(Component)]
+pub struct Texture(pub image::DynamicImage);
+
+#[derive(Component)]
 pub struct MeshId(pub Entity);
 
 #[derive(Component)]
@@ -54,6 +57,9 @@ pub struct Material {
     pub diffuse: [f32; 4],
     pub mr: [f32; 4],
     pub emission: [f32; 3],
+    pub diffuse_tex: Option<TextureId>,
+    pub mr_tex: Option<TextureId>,
+    pub emission_tex: Option<TextureId>,
 }
 
 //===================================

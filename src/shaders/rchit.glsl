@@ -26,9 +26,13 @@ layout(set = 0, binding = 4) buffer Indices{
 layout(set = 0, binding = 5) buffer Positions{
     float positions[];
 }model_positions[];
+// 6 bindings per set seem to be max.
 layout(set = 0, binding = 6) buffer Normals{
     float normals[];
 }model_normals[];
+layout(set = 1, binding = 0) buffer TexCoords{
+    float tex_coords[];
+}model_tex_coords[];
 
 void main() {
     if (payload.ray_active == 0) {

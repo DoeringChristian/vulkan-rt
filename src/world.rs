@@ -2,7 +2,7 @@ use crate::accel::{Blas, BlasGeometry, BlasInfo, Tlas};
 use crate::buffers::TypedBuffer;
 use crate::model::{
     GlslInstanceData, GlslMaterial, Index, InstanceBundle, Material, MaterialId, MeshId, Normal,
-    Position, Tangent, TexCoord, TexCoords, VertexData,
+    Position, Tangent, TexCoord, TexCoords, Texture, VertexData,
 };
 
 use bevy_ecs::prelude::*;
@@ -14,6 +14,7 @@ use slotmap::*;
 use std::collections::{BTreeMap, HashMap};
 use std::io::BufReader;
 use std::ops::Range;
+use std::path::Path;
 use std::sync::Arc;
 
 pub struct GpuScene {
@@ -27,6 +28,7 @@ pub struct GpuScene {
     pub positions_bufs: Vec<Arc<TypedBuffer<Position>>>,
     pub indices_bufs: Vec<Arc<TypedBuffer<Index>>>,
     pub normals_bufs: Vec<Arc<TypedBuffer<Normal>>>,
+    pub tex_coords_bufs: Vec<Arc<TypedBuffer<TexCoord>>>,
 }
 
 impl GpuScene {
@@ -190,6 +192,7 @@ impl GpuScene {
             positions_bufs,
             indices_bufs,
             normals_bufs,
+            tex_coords_bufs,
         }
     }
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
@@ -216,8 +219,25 @@ impl Scene {
         }
     }
     pub fn load_gltf(&mut self, device: &Arc<Device>) {
-        let (gltf, buffers, _) = gltf::import("./src/res/cube_scene.gltf").unwrap();
+        let path = "./src/res/cube_scene.gltf";
+        let (gltf, buffers, _) = gltf::import(path).unwrap();
         {
+            let mut texture_entities = HashMap::new();
+            for texture in gltf.textures() {
+                let image = match texture.source().source() {
+                    gltf::image::Source::Uri { uri, mime_type } => {
+                        let parent = Path::new(path).parent().unwrap();
+                        let image_path = parent.join(uri);
+                        image::io::Reader::open(image_path)
+                            .unwrap()
+                            .decode()
+                            .unwrap()
+                    }
+                    _ => panic!("not supported"),
+                };
+                let entity = self.world.spawn().insert(Texture(image)).id();
+                texture_entities.insert(texture.index(), entity);
+            }
             let mut mesh_entities = HashMap::new();
             for mesh in gltf.meshes() {
                 let primitive = mesh.primitives().next().unwrap();
@@ -279,6 +299,9 @@ impl Scene {
                         diffuse: mr.base_color_factor(),
                         mr: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
                         emission,
+                        diffuse_tex: None,
+                        mr_tex: None,
+                        emission_tex: None,
                     })
                     .id();
                 material_entities.insert(material.index().unwrap(), material_entity);
