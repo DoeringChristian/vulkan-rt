@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::{
-    model::{Index, Position},
+    model::{Index, Position, Vertex},
     world::{GpuScene, Scene},
 };
 
@@ -46,14 +46,14 @@ impl BlasGeometry {
 
 pub struct BlasInfo<'a> {
     pub indices: &'a Arc<TypedBuffer<Index>>,
-    pub positions: &'a Arc<TypedBuffer<Position>>,
+    pub positions: &'a Arc<TypedBuffer<Vertex>>,
 }
 
 pub struct Blas {
     pub accel: Arc<AccelerationStructure>,
     // Not sure about the use of weaks.
     pub indices: Weak<TypedBuffer<Index>>,
-    pub positions: Weak<TypedBuffer<Position>>,
+    pub positions: Weak<TypedBuffer<Vertex>>,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
 }
@@ -130,7 +130,7 @@ impl Blas {
                         &info.positions.buf,
                     )),
                     vertex_format: vk::Format::R32G32B32_SFLOAT,
-                    vertex_stride: std::mem::size_of::<[f32; 3]>() as _,
+                    vertex_stride: std::mem::size_of::<Vertex>() as _,
                 },
             }],
         };

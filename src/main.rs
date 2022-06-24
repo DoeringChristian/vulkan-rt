@@ -148,6 +148,11 @@ fn main() -> anyhow::Result<()> {
             .iter()
             .map(|tex| frame.render_graph.bind_node(tex))
             .collect::<Vec<_>>();
+        let vertex_nodes = gpu_scene
+            .vertices_bufs
+            .iter()
+            .map(|buf| frame.render_graph.bind_node(&buf.buf))
+            .collect::<Vec<_>>();
 
         let push_constant = PushConstant {
             camera: gpu_scene.camera,
@@ -186,7 +191,7 @@ fn main() -> anyhow::Result<()> {
         for (i, node) in index_nodes.iter().enumerate() {
             pass = pass.read_descriptor((0, 4, [i as _]), *node);
         }
-        for (i, node) in position_nodes.iter().enumerate() {
+        for (i, node) in vertex_nodes.iter().enumerate() {
             pass = pass.read_descriptor((0, 5, [i as _]), *node);
         }
         for (i, node) in normal_nodes.iter().enumerate() {

@@ -59,4 +59,10 @@ struct Camera{
     uint fc;
 };
 
+struct Vertex{
+    vec4 pos;
+    vec4 normal;
+    vec4 uv;
+};
+
 #endif //COMMON_GLSL

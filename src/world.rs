@@ -2,7 +2,7 @@ use crate::accel::{Blas, BlasGeometry, BlasInfo, Tlas};
 use crate::buffers::TypedBuffer;
 use crate::model::{
     Camera, GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceBundle, Material,
-    MaterialId, MeshId, Normal, Position, Tangent, TexCoord, TexCoords, Texture, TextureId,
+    MaterialId, MeshId, Normal, Position, Tangent, TexCoord, TexCoords, Texture, TextureId, Vertex,
     VertexData,
 };
 
@@ -34,6 +34,7 @@ pub struct GpuMeshId {
     pub indices: usize,
     pub normals: Option<usize>,
     pub tex_coords: Option<(usize, usize)>,
+    pub vertices: usize,
     pub blas: usize,
     pub state: UpdateState,
 }
@@ -54,6 +55,7 @@ pub struct GpuScene {
     pub instancedata_buf: TypedBuffer<GlslInstanceData>,
     pub positions_bufs: Vec<Arc<TypedBuffer<Position>>>,
     pub indices_bufs: Vec<Arc<TypedBuffer<Index>>>,
+    pub vertices_bufs: Vec<Arc<TypedBuffer<Vertex>>>,
     pub normals_bufs: Vec<Arc<TypedBuffer<Normal>>>,
     pub tex_coords_bufs: Vec<Arc<TypedBuffer<TexCoord>>>,
     pub textures: Vec<Arc<Image>>,
@@ -66,15 +68,17 @@ impl GpuScene {
         let mut indices_bufs = vec![];
         let mut normals_bufs = vec![];
         let mut tex_coords_bufs = vec![];
+        let mut vertices_bufs = vec![];
         let mut blases = vec![];
         //let mut mesh_idxs = HashMap::new();
         let mut queue = CommandQueue::from_world(&mut scene.world);
-        for (entity, positions, indices, normals, tex_coords) in scene
+        for (entity, positions, indices, vertices, normals, tex_coords) in scene
             .world
             .query::<(
                 Entity,
                 &VertexData<Position>,
                 &VertexData<Index>,
+                &VertexData<Vertex>,
                 Option<&VertexData<Normal>>,
                 Option<&TexCoords>,
             )>()
@@ -85,6 +89,7 @@ impl GpuScene {
                 indices: indices_bufs.len(),
                 normals: normals.map(|_| normals_bufs.len()),
                 tex_coords: tex_coords.map(|_| (tex_coords_bufs.len(), 0)),
+                vertices: vertices_bufs.len(),
                 blas: blases.len(),
                 state: UpdateState::Updated,
             };
@@ -92,6 +97,13 @@ impl GpuScene {
             positions_bufs.push(Arc::new(TypedBuffer::create(
                 device,
                 &positions.0,
+                vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
+                    | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+                    | vk::BufferUsageFlags::STORAGE_BUFFER,
+            )));
+            vertices_bufs.push(Arc::new(TypedBuffer::create(
+                device,
+                &vertices.0,
                 vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
                     | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                     | vk::BufferUsageFlags::STORAGE_BUFFER,
@@ -124,7 +136,7 @@ impl GpuScene {
                 device,
                 &BlasInfo {
                     indices: indices_bufs.last().unwrap(),
-                    positions: positions_bufs.last().unwrap(),
+                    positions: vertices_bufs.last().unwrap(),
                 },
             ));
             Commands::new(&mut queue, &scene.world)
@@ -246,7 +258,8 @@ impl GpuScene {
             instancedata.push(GlslInstanceData {
                 transform: transform.compute_matrix().to_cols_array_2d(),
                 mat_index: material_idxs[&material_id.0] as _,
-                positions: mesh_idx.positions as _,
+                //positions: mesh_idx.positions as _,
+                vertices: mesh_idx.vertices as _,
                 indices: mesh_idx.indices as _,
                 normals: mesh_idx.normals.unwrap_or(INDEX_UNDEF as usize) as _,
                 tex_coords: mesh_idx
@@ -327,6 +340,7 @@ impl GpuScene {
             instancedata_buf,
             positions_bufs,
             indices_bufs,
+            vertices_bufs,
             normals_bufs,
             tex_coords_bufs,
             textures,
@@ -388,7 +402,24 @@ impl Scene {
                 let mut normals: Option<VertexData<Normal>> = None;
                 let mut tangents: Option<VertexData<Tangent>> = None;
                 let mut tex_coords = TexCoords(Vec::new());
+                let mut vertices: VertexData<Vertex> = VertexData(Vec::new());
                 let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
+
+                let mut normal_iter = reader.read_normals();
+                let mut uv_iter = reader.read_tex_coords(0).map(|i| i.into_f32());
+                for pos in reader.read_positions().unwrap() {
+                    let normal = normal_iter.as_mut().unwrap().next().unwrap_or([0., 0., 0.]);
+                    let mut uv = [0., 0.];
+                    if let Some(uv_iter) = uv_iter.as_mut() {
+                        uv = uv_iter.next().unwrap_or([0., 0.]);
+                    }
+                    vertices.0.push(Vertex {
+                        pos: [pos[0], pos[1], pos[2], 1.],
+                        normal: [normal[0], normal[1], normal[2], 0.],
+                        uv0: [uv[0], uv[1], 0., 0.],
+                    });
+                }
+
                 if let Some(iter) = reader.read_positions() {
                     for position in iter {
                         positions.0.push(Position(position));
@@ -418,7 +449,11 @@ impl Scene {
                     }
                 }
                 let mut entity = self.world.spawn();
-                entity.insert(indices).insert(positions).insert(tex_coords);
+                entity
+                    .insert(indices)
+                    .insert(positions)
+                    .insert(vertices)
+                    .insert(tex_coords);
 
                 if let Some(normals) = normals {
                     entity.insert(normals);

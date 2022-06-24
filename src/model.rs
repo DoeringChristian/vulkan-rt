@@ -4,6 +4,14 @@ use bytemuck::cast_slice;
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Vertex {
+    pub pos: [f32; 4],
+    pub normal: [f32; 4],
+    pub uv0: [f32; 4],
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Position(pub [f32; 3]);
 
 #[repr(C)]
@@ -86,7 +94,7 @@ pub struct GlslInstanceData {
     pub transform: [[f32; 4]; 4],
     pub mat_index: u32,
     pub indices: u32,
-    pub positions: u32,
+    pub vertices: u32,
     pub normals: u32,
     pub tex_coords: u32,
     pub tex_coords_num: u32,

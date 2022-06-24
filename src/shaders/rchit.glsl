@@ -23,9 +23,14 @@ layout(set = 0, binding = 3) buffer Materials{
 layout(set = 0, binding = 4) buffer Indices{
     uint indices[];
 }model_indices[];
+layout(set = 0, binding = 5) buffer Vertices{
+    Vertex vertices[];
+}model_vertices[];
+/*
 layout(set = 0, binding = 5) buffer Positions{
     float positions[];
 }model_positions[];
+*/
 // 6 bindings per set seem to be max.
 layout(set = 0, binding = 6) buffer Normals{
     float normals[];
@@ -62,15 +67,13 @@ void main() {
 
     vec3 barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
 
-    vec3 pos0 = vec3(model_positions[inst.positions].positions[3 * indices.x + 0],
-                     model_positions[inst.positions].positions[3 * indices.x + 1],
-                     model_positions[inst.positions].positions[3 * indices.x + 2]);
-    vec3 pos1 = vec3(model_positions[inst.positions].positions[3 * indices.y + 0],
-                     model_positions[inst.positions].positions[3 * indices.y + 1],
-                     model_positions[inst.positions].positions[3 * indices.y + 2]);
-    vec3 pos2 = vec3(model_positions[inst.positions].positions[3 * indices.z + 0],
-                     model_positions[inst.positions].positions[3 * indices.z + 1],
-                     model_positions[inst.positions].positions[3 * indices.z + 2]);
+    Vertex vert0 = model_vertices[inst.positions].vertices[indices.x];
+    Vertex vert1 = model_vertices[inst.positions].vertices[indices.y];
+    Vertex vert2 = model_vertices[inst.positions].vertices[indices.z];
+
+    vec3 pos0 = vert0.pos.xyz;
+    vec3 pos1 = vert1.pos.xyz;
+    vec3 pos2 = vert2.pos.xyz;
     // Apply transform
     pos0 = (transform * vec4(pos0, 1.)).xyz;
     pos1 = (transform * vec4(pos1, 1.)).xyz;
