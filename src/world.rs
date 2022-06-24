@@ -39,6 +39,11 @@ pub struct GpuMeshId {
 }
 
 #[derive(Component, Debug, Clone, Copy)]
+pub struct GpuCameraId {
+    pub state: UpdateState,
+}
+
+#[derive(Component, Debug, Clone, Copy)]
 pub struct GpuTextureId {
     pub tex: usize,
     pub state: UpdateState,
@@ -240,27 +245,41 @@ impl GpuScene {
                 },
             });
         }
-        let camera = if let Some(camera) = scene.world.get_resource::<Camera>() {
-            GlslCamera {
-                up: [camera.up[0], camera.up[1], camera.up[2], 1.],
-                right: [camera.right[0], camera.right[1], camera.right[2], 1.],
-                pos: [camera.pos[0], camera.pos[1], camera.pos[2], 1.],
-                focus: camera.focus,
-                diameter: camera.diameter,
-                fov: camera.fov,
-                fc: 0,
-            }
-        } else {
-            GlslCamera {
-                up: [0., 0., 1., 1.],
-                right: [0., 1., 0., 1.],
-                pos: [1., 0., 0., 1.],
-                focus: 1.,
-                diameter: 0.1,
-                fov: 1.,
-                fc: 0,
-            }
+        let camera = {
+            let camera = scene
+                .world
+                .query::<(Entity, &Camera)>()
+                .iter(&scene.world)
+                .next();
+            let camera = if let Some((entity, camera)) = camera {
+                Commands::new(&mut queue, &scene.world)
+                    .entity(entity)
+                    .insert(GpuCameraId {
+                        state: UpdateState::Updated,
+                    });
+                GlslCamera {
+                    up: [camera.up[0], camera.up[1], camera.up[2], 1.],
+                    right: [camera.right[0], camera.right[1], camera.right[2], 1.],
+                    pos: [camera.pos[0], camera.pos[1], camera.pos[2], 1.],
+                    focus: camera.focus,
+                    diameter: camera.diameter,
+                    fov: camera.fov,
+                    fc: 0,
+                }
+            } else {
+                GlslCamera {
+                    up: [0., 0., 1., 1.],
+                    right: [0., 1., 0., 1.],
+                    pos: [1., 0., 0., 1.],
+                    focus: 1.,
+                    diameter: 0.1,
+                    fov: 1.,
+                    fc: 0,
+                }
+            };
+            camera
         };
+
         //trace!("instancedata: {:#?}", instancedata);
 
         let material_buf =
@@ -437,7 +456,8 @@ impl Scene {
                         };
                         trace!("Camera: {:#?}", camera);
 
-                        self.world.insert_resource(camera);
+                        //self.world.insert_resource(camera);
+                        self.world.spawn().insert(camera);
                     }
                 }
                 if let Some(mesh) = node.mesh() {
