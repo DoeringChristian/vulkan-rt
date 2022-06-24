@@ -230,6 +230,8 @@ fn main() -> anyhow::Result<()> {
             },
         );
 
+        gpu_scene.update(&mut scene, tmp_image_node, &mut cache, frame.render_graph);
+
         fc += 1;
         //frame.exit();
     })?;

@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use bevy_ecs::prelude::*;
 use bevy_transform::prelude::*;
 use bytemuck::cast_slice;
