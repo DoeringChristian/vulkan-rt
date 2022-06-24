@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::{
-    model::{Index, Position, Vertex},
+    model::{Index, Vertex},
     world::{GpuScene, Scene},
 };
 

@@ -2,8 +2,7 @@ use crate::accel::{Blas, BlasGeometry, BlasInfo, Tlas};
 use crate::buffers::TypedBuffer;
 use crate::model::{
     Camera, GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceBundle, Material,
-    MaterialId, MeshId, Normal, Position, Tangent, TexCoord, TexCoords, Texture, TextureId, Vertex,
-    VertexData, Vertices,
+    MaterialId, MeshId, Texture, TextureId, Vertex, VertexData, Vertices,
 };
 
 use bevy_ecs::prelude::*;
