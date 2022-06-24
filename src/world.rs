@@ -23,14 +23,24 @@ use std::sync::Arc;
 
 const INDEX_UNDEF: u32 = 0xffffffff;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum UpdateState {
     Updated,
 }
 
-#[derive(Component, Debug)]
-pub struct GpuResource {
-    pub index: usize,
+#[derive(Component, Debug, Clone, Copy)]
+pub struct GpuMeshId {
+    pub positions: usize,
+    pub indices: usize,
+    pub normals: Option<usize>,
+    pub tex_coords: Option<(usize, usize)>,
+    pub blas: usize,
+    pub state: UpdateState,
+}
+
+#[derive(Component, Debug, Clone, Copy)]
+pub struct GpuTextureId {
+    pub tex: usize,
     pub state: UpdateState,
 }
 
@@ -59,14 +69,6 @@ impl GpuScene {
         let mut blases = vec![];
         //let mut mesh_idxs = HashMap::new();
         let mut queue = CommandQueue::from_world(&mut scene.world);
-        #[derive(Component, Debug, Clone, Copy)]
-        pub struct GpuMesh {
-            positions: usize,
-            indices: usize,
-            normals: Option<usize>,
-            tex_coords: Option<(usize, usize)>,
-            blas: usize,
-        }
         for (entity, positions, indices, normals, tex_coords) in scene
             .world
             .query::<(
@@ -78,12 +80,13 @@ impl GpuScene {
             )>()
             .iter(&scene.world)
         {
-            let mut mesh_idx = GpuMesh {
+            let mut mesh_idx = GpuMeshId {
                 positions: positions_bufs.len(),
                 indices: indices_bufs.len(),
                 normals: normals.map(|_| normals_bufs.len()),
                 tex_coords: tex_coords.map(|_| (tex_coords_bufs.len(), 0)),
                 blas: blases.len(),
+                state: UpdateState::Updated,
             };
             //trace!("positions: {}", positions.0.len());
             positions_bufs.push(Arc::new(TypedBuffer::create(
@@ -133,10 +136,15 @@ impl GpuScene {
         }
         queue.apply(&mut scene.world);
         let mut textures = vec![];
-        let mut textures_idxs = HashMap::new();
+        //let mut textures_idxs = HashMap::new();
         let mut img_loader = ImageLoader::new(device).unwrap();
         for (entity, texture) in scene.world.query::<(Entity, &Texture)>().iter(&scene.world) {
-            textures_idxs.insert(entity, textures.len());
+            //textures_idxs.insert(entity, textures.len());
+            let tex_id = GpuTextureId {
+                tex: textures.len(),
+                state: UpdateState::Updated,
+            };
+
             trace!("text: {:#?}", texture.0.color());
             let img = texture.0.as_rgba8().unwrap();
             let img = img_loader
@@ -148,7 +156,11 @@ impl GpuScene {
                 )
                 .unwrap();
             textures.push(img);
+            Commands::new(&mut queue, &scene.world)
+                .entity(entity)
+                .insert(tex_id);
         }
+        queue.apply(&mut scene.world);
         let mut materials = vec![];
         let mut material_idxs = HashMap::new();
         for (entity, material) in scene
@@ -156,6 +168,14 @@ impl GpuScene {
             .query::<(Entity, &Material)>()
             .iter(&scene.world)
         {
+            let gputex_id = |entity: Entity| -> GpuTextureId {
+                *scene
+                    .world
+                    .get_entity(entity)
+                    .unwrap()
+                    .get::<GpuTextureId>()
+                    .unwrap()
+            };
             material_idxs.insert(entity, materials.len());
             materials.push(GlslMaterial {
                 albedo: material.albedo,
@@ -169,7 +189,7 @@ impl GpuScene {
                 diffuse_tex: material
                     .albedo_tex
                     .as_ref()
-                    .map(|dt| textures_idxs[&dt.texture])
+                    .map(|dt| gputex_id(dt.texture).tex)
                     .unwrap_or(INDEX_UNDEF as _) as _,
                 diffuse_texco: material
                     .albedo_tex
@@ -179,7 +199,7 @@ impl GpuScene {
                 mr_tex: material
                     .mr_tex
                     .as_ref()
-                    .map(|dt| textures_idxs[&dt.texture])
+                    .map(|dt| gputex_id(dt.texture).tex)
                     .unwrap_or(INDEX_UNDEF as _) as _,
                 mr_texco: material
                     .mr_tex
@@ -189,7 +209,7 @@ impl GpuScene {
                 emission_tex: material
                     .emission_tex
                     .as_ref()
-                    .map(|dt| textures_idxs[&dt.texture])
+                    .map(|dt| gputex_id(dt.texture).tex)
                     .unwrap_or(INDEX_UNDEF as _) as _,
                 emission_texco: material
                     .emission_tex
@@ -199,7 +219,7 @@ impl GpuScene {
                 normal_tex: material
                     .normal_tex
                     .as_ref()
-                    .map(|dt| textures_idxs[&dt.texture])
+                    .map(|dt| gputex_id(dt.texture).tex)
                     .unwrap_or(INDEX_UNDEF as _) as _,
                 normal_texco: material
                     .normal_tex
@@ -221,7 +241,7 @@ impl GpuScene {
                 .world
                 .get_entity(mesh_id.0)
                 .unwrap()
-                .get::<GpuMesh>()
+                .get::<GpuMeshId>()
                 .unwrap();
             instancedata.push(GlslInstanceData {
                 transform: transform.compute_matrix().to_cols_array_2d(),
