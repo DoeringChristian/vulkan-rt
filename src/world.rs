@@ -3,7 +3,7 @@ use crate::buffers::TypedBuffer;
 use crate::model::{
     Camera, GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceBundle, Material,
     MaterialId, MeshId, Normal, Position, Tangent, TexCoord, TexCoords, Texture, TextureId, Vertex,
-    VertexData,
+    VertexData, Vertices,
 };
 
 use bevy_ecs::prelude::*;
@@ -30,11 +30,11 @@ pub enum UpdateState {
 
 #[derive(Component, Debug, Clone, Copy)]
 pub struct GpuMeshId {
-    pub positions: usize,
     pub indices: usize,
-    pub normals: Option<usize>,
-    pub tex_coords: Option<(usize, usize)>,
     pub vertices: usize,
+    pub has_normal: bool,
+    pub has_uv0: bool,
+    pub has_uv1: bool,
     pub blas: usize,
     pub state: UpdateState,
 }
@@ -46,64 +46,43 @@ pub struct GpuTextureId {
 }
 
 pub struct GpuScene {
-    //pub world: World,
-    //pub geometries: Vec<BlasGeometry>,
     pub blases: Vec<Blas>,
     pub tlas: Tlas,
 
     pub material_buf: TypedBuffer<GlslMaterial>,
     pub instancedata_buf: TypedBuffer<GlslInstanceData>,
-    pub positions_bufs: Vec<Arc<TypedBuffer<Position>>>,
     pub indices_bufs: Vec<Arc<TypedBuffer<Index>>>,
     pub vertices_bufs: Vec<Arc<TypedBuffer<Vertex>>>,
-    pub normals_bufs: Vec<Arc<TypedBuffer<Normal>>>,
-    pub tex_coords_bufs: Vec<Arc<TypedBuffer<TexCoord>>>,
+
     pub textures: Vec<Arc<Image>>,
     pub camera: GlslCamera,
 }
 
 impl GpuScene {
     pub fn create(device: &Arc<Device>, scene: &mut Scene) -> Self {
-        let mut positions_bufs = vec![];
+        //let mut positions_bufs = vec![];
         let mut indices_bufs = vec![];
-        let mut normals_bufs = vec![];
-        let mut tex_coords_bufs = vec![];
         let mut vertices_bufs = vec![];
         let mut blases = vec![];
-        //let mut mesh_idxs = HashMap::new();
         let mut queue = CommandQueue::from_world(&mut scene.world);
-        for (entity, positions, indices, vertices, normals, tex_coords) in scene
+        for (entity, indices, vertices) in scene
             .world
-            .query::<(
-                Entity,
-                &VertexData<Position>,
-                &VertexData<Index>,
-                &VertexData<Vertex>,
-                Option<&VertexData<Normal>>,
-                Option<&TexCoords>,
-            )>()
+            .query::<(Entity, &VertexData<Index>, &Vertices)>()
             .iter(&scene.world)
         {
-            let mut mesh_idx = GpuMeshId {
-                positions: positions_bufs.len(),
+            let mesh_idx = GpuMeshId {
                 indices: indices_bufs.len(),
-                normals: normals.map(|_| normals_bufs.len()),
-                tex_coords: tex_coords.map(|_| (tex_coords_bufs.len(), 0)),
                 vertices: vertices_bufs.len(),
+                has_normal: vertices.has_normal,
+                has_uv0: vertices.has_uv0,
+                has_uv1: vertices.has_uv1,
                 blas: blases.len(),
                 state: UpdateState::Updated,
             };
             //trace!("positions: {}", positions.0.len());
-            positions_bufs.push(Arc::new(TypedBuffer::create(
-                device,
-                &positions.0,
-                vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
-                    | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
-                    | vk::BufferUsageFlags::STORAGE_BUFFER,
-            )));
             vertices_bufs.push(Arc::new(TypedBuffer::create(
                 device,
-                &vertices.0,
+                &vertices.vertices,
                 vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
                     | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                     | vk::BufferUsageFlags::STORAGE_BUFFER,
@@ -115,23 +94,6 @@ impl GpuScene {
                     | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                     | vk::BufferUsageFlags::STORAGE_BUFFER,
             )));
-            if let Some(normals) = normals {
-                normals_bufs.push(Arc::new(TypedBuffer::create(
-                    device,
-                    &normals.0,
-                    vk::BufferUsageFlags::STORAGE_BUFFER,
-                )));
-            }
-            if let Some(tex_coords) = tex_coords {
-                for tex_coords in tex_coords.0.iter() {
-                    tex_coords_bufs.push(Arc::new(TypedBuffer::create(
-                        device,
-                        &tex_coords.0,
-                        vk::BufferUsageFlags::STORAGE_BUFFER,
-                    )));
-                    mesh_idx.tex_coords.as_mut().unwrap().1 += 1;
-                }
-            }
             blases.push(Blas::create(
                 device,
                 &BlasInfo {
@@ -203,40 +165,20 @@ impl GpuScene {
                     .as_ref()
                     .map(|dt| gputex_id(dt.texture).tex)
                     .unwrap_or(INDEX_UNDEF as _) as _,
-                diffuse_texco: material
-                    .albedo_tex
-                    .as_ref()
-                    .map(|dt| dt.coords)
-                    .unwrap_or(INDEX_UNDEF as _) as _,
                 mr_tex: material
                     .mr_tex
                     .as_ref()
                     .map(|dt| gputex_id(dt.texture).tex)
-                    .unwrap_or(INDEX_UNDEF as _) as _,
-                mr_texco: material
-                    .mr_tex
-                    .as_ref()
-                    .map(|dt| dt.coords)
                     .unwrap_or(INDEX_UNDEF as _) as _,
                 emission_tex: material
                     .emission_tex
                     .as_ref()
                     .map(|dt| gputex_id(dt.texture).tex)
                     .unwrap_or(INDEX_UNDEF as _) as _,
-                emission_texco: material
-                    .emission_tex
-                    .as_ref()
-                    .map(|dt| dt.coords)
-                    .unwrap_or(INDEX_UNDEF as _) as _,
                 normal_tex: material
                     .normal_tex
                     .as_ref()
                     .map(|dt| gputex_id(dt.texture).tex)
-                    .unwrap_or(INDEX_UNDEF as _) as _,
-                normal_texco: material
-                    .normal_tex
-                    .as_ref()
-                    .map(|dt| dt.coords)
                     .unwrap_or(INDEX_UNDEF as _) as _,
             });
         }
@@ -255,19 +197,15 @@ impl GpuScene {
                 .unwrap()
                 .get::<GpuMeshId>()
                 .unwrap();
+            let normal_uv_mask: u32 = ((mesh_idx.has_normal as u32) << 0)
+                | ((mesh_idx.has_uv0 as u32) << 1)
+                | ((mesh_idx.has_uv1 as u32) << 2);
             instancedata.push(GlslInstanceData {
                 transform: transform.compute_matrix().to_cols_array_2d(),
                 mat_index: material_idxs[&material_id.0] as _,
-                //positions: mesh_idx.positions as _,
                 vertices: mesh_idx.vertices as _,
                 indices: mesh_idx.indices as _,
-                normals: mesh_idx.normals.unwrap_or(INDEX_UNDEF as usize) as _,
-                tex_coords: mesh_idx
-                    .tex_coords
-                    .map(|(i, _)| i)
-                    .unwrap_or(INDEX_UNDEF as usize) as _,
-                tex_coords_num: mesh_idx.tex_coords.map(|(_, n)| n).unwrap_or(0) as _,
-                _pad: [0, 0],
+                normal_uv_mask,
             });
             //trace!("instancedata: {:#?}", instancedata.last());
             //trace!("tex_coords_num: {:#?}", mesh_idx.tex_coords);
@@ -338,11 +276,8 @@ impl GpuScene {
             tlas,
             material_buf,
             instancedata_buf,
-            positions_bufs,
             indices_bufs,
             vertices_bufs,
-            normals_bufs,
-            tex_coords_bufs,
             textures,
             camera,
         }
@@ -398,69 +333,44 @@ impl Scene {
             for mesh in gltf.meshes() {
                 let primitive = mesh.primitives().next().unwrap();
                 let mut indices: VertexData<Index> = VertexData(Vec::new());
-                let mut positions: VertexData<Position> = VertexData(Vec::new());
-                let mut normals: Option<VertexData<Normal>> = None;
-                let mut tangents: Option<VertexData<Tangent>> = None;
-                let mut tex_coords = TexCoords(Vec::new());
-                let mut vertices: VertexData<Vertex> = VertexData(Vec::new());
+                let mut vertices: Vertices = Vertices {
+                    vertices: Vec::new(),
+                    has_normal: false,
+                    has_uv0: false,
+                    has_uv1: false,
+                };
                 let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
 
                 let mut normal_iter = reader.read_normals();
-                let mut uv_iter = reader.read_tex_coords(0).map(|i| i.into_f32());
+                vertices.has_normal = normal_iter.is_some();
+                let mut uv0_iter = reader.read_tex_coords(0).map(|i| i.into_f32());
+                vertices.has_uv0 = uv0_iter.is_some();
+                let mut uv1_iter = reader.read_tex_coords(0).map(|i| i.into_f32());
+                vertices.has_uv1 = uv1_iter.is_some();
                 for pos in reader.read_positions().unwrap() {
                     let normal = normal_iter.as_mut().unwrap().next().unwrap_or([0., 0., 0.]);
-                    let mut uv = [0., 0.];
-                    if let Some(uv_iter) = uv_iter.as_mut() {
-                        uv = uv_iter.next().unwrap_or([0., 0.]);
+                    let mut uv0 = [0., 0.];
+                    let mut uv1 = [0., 0.];
+                    if let Some(uv_iter) = uv0_iter.as_mut() {
+                        uv0 = uv_iter.next().unwrap_or([0., 0.]);
                     }
-                    vertices.0.push(Vertex {
+                    if let Some(uv_iter) = uv1_iter.as_mut() {
+                        uv1 = uv_iter.next().unwrap_or([0., 0.]);
+                    }
+                    vertices.vertices.push(Vertex {
                         pos: [pos[0], pos[1], pos[2], 1.],
                         normal: [normal[0], normal[1], normal[2], 0.],
-                        uv0: [uv[0], uv[1], 0., 0.],
+                        uv01: [uv0[0], uv0[1], uv1[0], uv1[0]],
                     });
                 }
 
-                if let Some(iter) = reader.read_positions() {
-                    for position in iter {
-                        positions.0.push(Position(position));
-                    }
-                }
                 if let Some(iter) = reader.read_indices() {
                     for index in iter.into_u32() {
                         indices.0.push(Index(index));
                     }
                 }
-                if let Some(iter) = reader.read_normals() {
-                    normals = Some(VertexData(Vec::new()));
-                    for normal in iter {
-                        normals.as_mut().unwrap().0.push(Normal(normal));
-                    }
-                }
-                if let Some(iter) = reader.read_tangents() {
-                    tangents = Some(VertexData(Vec::new()));
-                    for tangent in iter {
-                        tangents.as_mut().unwrap().0.push(Tangent(tangent));
-                    }
-                }
-                while let Some(iter) = reader.read_tex_coords(tex_coords.0.len() as _) {
-                    tex_coords.0.push(VertexData(Vec::new()));
-                    for tex_coord in iter.into_f32() {
-                        tex_coords.0.last_mut().unwrap().0.push(TexCoord(tex_coord));
-                    }
-                }
                 let mut entity = self.world.spawn();
-                entity
-                    .insert(indices)
-                    .insert(positions)
-                    .insert(vertices)
-                    .insert(tex_coords);
-
-                if let Some(normals) = normals {
-                    entity.insert(normals);
-                }
-                if let Some(tangents) = tangents {
-                    entity.insert(tangents);
-                }
+                entity.insert(indices).insert(vertices);
 
                 let entity = entity.id();
                 mesh_entities.insert(mesh.index(), entity);

@@ -128,21 +128,6 @@ fn main() -> anyhow::Result<()> {
             .iter()
             .map(|buf| frame.render_graph.bind_node(&buf.buf))
             .collect::<Vec<_>>();
-        let position_nodes = gpu_scene
-            .positions_bufs
-            .iter()
-            .map(|buf| frame.render_graph.bind_node(&buf.buf))
-            .collect::<Vec<_>>();
-        let normal_nodes = gpu_scene
-            .normals_bufs
-            .iter()
-            .map(|buf| frame.render_graph.bind_node(&buf.buf))
-            .collect::<Vec<_>>();
-        let tex_coords_nodes = gpu_scene
-            .tex_coords_bufs
-            .iter()
-            .map(|buf| frame.render_graph.bind_node(&buf.buf))
-            .collect::<Vec<_>>();
         let texture_nodes = gpu_scene
             .textures
             .iter()
@@ -194,14 +179,18 @@ fn main() -> anyhow::Result<()> {
         for (i, node) in vertex_nodes.iter().enumerate() {
             pass = pass.read_descriptor((0, 5, [i as _]), *node);
         }
+        /*
         for (i, node) in normal_nodes.iter().enumerate() {
             pass = pass.read_descriptor((0, 6, [i as _]), *node);
         }
+        */
+        /*
         for (i, node) in tex_coords_nodes.iter().enumerate() {
             pass = pass.read_descriptor((1, 0, [i as _]), *node);
         }
+        */
         for (i, node) in texture_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((1, 1, [i as _]), *node);
+            pass = pass.read_descriptor((1, 0, [i as _]), *node);
         }
         trace!("fc: {}", fc);
         pass.record_ray_trace(move |ray_trace| {

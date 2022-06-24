@@ -26,19 +26,7 @@ layout(set = 0, binding = 4) buffer Indices{
 layout(set = 0, binding = 5) buffer Vertices{
     Vertex vertices[];
 }model_vertices[];
-/*
-layout(set = 0, binding = 5) buffer Positions{
-    float positions[];
-}model_positions[];
-*/
-// 6 bindings per set seem to be max.
-layout(set = 0, binding = 6) buffer Normals{
-    float normals[];
-}model_normals[];
-layout(set = 1, binding = 0) buffer TexCoords{
-    float tex_coords[];
-}model_tex_coords[];
-layout(set = 1, binding = 1) uniform sampler2D textures[];
+layout(set = 1, binding = 0) uniform sampler2D textures[];
 
 mat3 compute_TBN(vec2 duv0, vec2 duv1, vec3 dpos0, vec3 dpos1, vec3 n){
     float r = 1./(duv0.x * duv1.y - duv0.y * duv1.x);
@@ -67,9 +55,9 @@ void main() {
 
     vec3 barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
 
-    Vertex vert0 = model_vertices[inst.positions].vertices[indices.x];
-    Vertex vert1 = model_vertices[inst.positions].vertices[indices.y];
-    Vertex vert2 = model_vertices[inst.positions].vertices[indices.z];
+    Vertex vert0 = model_vertices[inst.vertices].vertices[indices.x];
+    Vertex vert1 = model_vertices[inst.vertices].vertices[indices.y];
+    Vertex vert2 = model_vertices[inst.vertices].vertices[indices.z];
 
     vec3 pos0 = vert0.pos.xyz;
     vec3 pos1 = vert1.pos.xyz;
@@ -84,19 +72,10 @@ void main() {
     // get or generate normals
     
     vec3 norm = vec3(0.);
-    vec3 norm0 = vec3(0.);
-    vec3 norm1 = vec3(0.);
-    vec3 norm2 = vec3(0.);
-    if (inst.normals != INDEX_UNDEF){
-        norm0 = vec3(model_normals[inst.normals].normals[3 * indices.x + 0],
-                     model_normals[inst.normals].normals[3 * indices.x + 1],
-                     model_normals[inst.normals].normals[3 * indices.x + 2]);
-        norm1 = vec3(model_normals[inst.normals].normals[3 * indices.y + 0],
-                     model_normals[inst.normals].normals[3 * indices.y + 1],
-                     model_normals[inst.normals].normals[3 * indices.y + 2]);
-        norm2 = vec3(model_normals[inst.normals].normals[3 * indices.z + 0],
-                     model_normals[inst.normals].normals[3 * indices.z + 1],
-                     model_normals[inst.normals].normals[3 * indices.z + 2]);
+    vec3 norm0 = vert0.normal.xyz;
+    vec3 norm1 = vert1.normal.xyz;
+    vec3 norm2 = vert2.normal.xyz;
+    if (length(norm0) > 0.1 && length(norm1) > 0.1 && length(norm2) > 0.1){
         norm0 = normalize(norm0);
         norm1 = normalize(norm1);
         norm2 = normalize(norm2);
@@ -112,44 +91,30 @@ void main() {
     InterMaterial inter_mat = InterMaterial(mat.albedo, vec2(mat.mr.x, mat.mr.y), mat.emission);
 
     // TODO: material interpolation and tangent space.
-    if (mat.albedo_tex != INDEX_UNDEF && mat.albedo_texco != INDEX_UNDEF){
-        vec2 texco0 = vec2(model_tex_coords[inst.tex_coords + mat.albedo_texco].tex_coords[2 * indices.x + 0],
-                           model_tex_coords[inst.tex_coords + mat.albedo_texco].tex_coords[2 * indices.x + 1]);
-        vec2 texco1 = vec2(model_tex_coords[inst.tex_coords + mat.albedo_texco].tex_coords[2 * indices.y + 0],
-                           model_tex_coords[inst.tex_coords + mat.albedo_texco].tex_coords[2 * indices.y + 1]);
-        vec2 texco2 = vec2(model_tex_coords[inst.tex_coords + mat.albedo_texco].tex_coords[2 * indices.z + 0],
-                           model_tex_coords[inst.tex_coords + mat.albedo_texco].tex_coords[2 * indices.z + 1]);
-        vec2 texco = texco0 * barycentric.x + texco1 * barycentric.y + texco2 * barycentric.z;
-        inter_mat.albedo = texture(textures[mat.albedo_tex], texco);
+    vec2 uv0 = vert0.uv.xy;
+    vec2 uv1 = vert1.uv.xy;
+    vec2 uv2 = vert2.uv.xy;
+    vec2 uv = uv0 * barycentric.x + uv1 * barycentric.y + uv2 * barycentric.z;
+    if (mat.albedo_tex != INDEX_UNDEF){
+        inter_mat.albedo = texture(textures[mat.albedo_tex], uv);
     }
-    if (mat.mr_tex != INDEX_UNDEF && mat.mr_tex != INDEX_UNDEF){
-        vec2 texco0 = vec2(model_tex_coords[inst.tex_coords + mat.mr_texco].tex_coords[2 * indices.x + 0],
-                           model_tex_coords[inst.tex_coords + mat.mr_texco].tex_coords[2 * indices.x + 1]);
-        vec2 texco1 = vec2(model_tex_coords[inst.tex_coords + mat.mr_texco].tex_coords[2 * indices.y + 0],
-                           model_tex_coords[inst.tex_coords + mat.mr_texco].tex_coords[2 * indices.y + 1]);
-        vec2 texco2 = vec2(model_tex_coords[inst.tex_coords + mat.mr_texco].tex_coords[2 * indices.z + 0],
-                           model_tex_coords[inst.tex_coords + mat.mr_texco].tex_coords[2 * indices.z + 1]);
-        vec2 texco = texco0 * barycentric.x + texco1 * barycentric.y + texco2 * barycentric.z;
+    if (mat.mr_tex != INDEX_UNDEF){
         // As specified by gltf specs the blue chanel stores metallness, the green chanel roughness.
-        inter_mat.mr = texture(textures[mat.mr_tex], texco).bg;
+        inter_mat.mr = texture(textures[mat.mr_tex], uv).bg;
     }
-    if (mat.normal_tex != INDEX_UNDEF && mat.normal_texco != INDEX_UNDEF){
-        vec2 texco0 = vec2(model_tex_coords[inst.tex_coords + mat.normal_texco].tex_coords[2 * indices.x + 0],
-                           model_tex_coords[inst.tex_coords + mat.normal_texco].tex_coords[2 * indices.x + 1]);
-        vec2 texco1 = vec2(model_tex_coords[inst.tex_coords + mat.normal_texco].tex_coords[2 * indices.y + 0],
-                           model_tex_coords[inst.tex_coords + mat.normal_texco].tex_coords[2 * indices.y + 1]);
-        vec2 texco2 = vec2(model_tex_coords[inst.tex_coords + mat.normal_texco].tex_coords[2 * indices.z + 0],
-                           model_tex_coords[inst.tex_coords + mat.normal_texco].tex_coords[2 * indices.z + 1]);
-        vec2 texco = texco0 * barycentric.x + texco1 * barycentric.y + texco2 * barycentric.z;
+    if (mat.normal_tex != INDEX_UNDEF){
+        mat3 TBN = compute_TBN(uv1 - uv0, uv2 - uv0, pos1 - pos0, pos2 - pos0, norm);
         
-        mat3 TBN = compute_TBN(texco1 - texco0, texco2 - texco0, pos1 - pos0, pos2 - pos0, norm);
-        
-        vec3 norm_tex = texture(textures[mat.normal_tex], texco).rgb;
+        vec3 norm_tex = texture(textures[mat.normal_tex], uv).rgb;
         // need to invert the y component of the normal texture.
         norm_tex = vec3(1.-norm_tex.x, 1.-norm_tex.y, norm_tex.z);
         norm_tex = normalize(norm_tex * 2. - 1.);
         norm = normalize(TBN * norm_tex);
     }
+
+
+
+    
     
     vec3 prev_pos = payload.orig;
     vec3 prev_dir = payload.dir;

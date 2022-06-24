@@ -7,7 +7,15 @@ use bytemuck::cast_slice;
 pub struct Vertex {
     pub pos: [f32; 4],
     pub normal: [f32; 4],
-    pub uv0: [f32; 4],
+    pub uv01: [f32; 4],
+}
+
+#[derive(Component)]
+pub struct Vertices {
+    pub vertices: Vec<Vertex>,
+    pub has_normal: bool,
+    pub has_uv0: bool,
+    pub has_uv1: bool,
 }
 
 #[repr(C)]
@@ -95,10 +103,8 @@ pub struct GlslInstanceData {
     pub mat_index: u32,
     pub indices: u32,
     pub vertices: u32,
-    pub normals: u32,
-    pub tex_coords: u32,
-    pub tex_coords_num: u32,
-    pub _pad: [u32; 2],
+
+    pub normal_uv_mask: u32,
 }
 
 ///
@@ -111,13 +117,9 @@ pub struct GlslMaterial {
     pub mr: [f32; 4],
     pub emission: [f32; 4],
     pub diffuse_tex: u32,
-    pub diffuse_texco: u32,
     pub mr_tex: u32,
-    pub mr_texco: u32,
     pub emission_tex: u32,
-    pub emission_texco: u32,
     pub normal_tex: u32,
-    pub normal_texco: u32,
     //pub _pad: [u32; 2],
 }
 

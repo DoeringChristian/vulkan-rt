@@ -6,13 +6,9 @@ struct Material {
     vec4 mr;
     vec4 emission;
     uint albedo_tex;
-    uint albedo_texco;
     uint mr_tex;
-    uint mr_texco;
     uint emission_tex;
-    uint emission_texco;
     uint normal_tex;
-    uint normal_texco;
 };
 
 struct InterMaterial{
@@ -30,10 +26,9 @@ struct Instance{
     vec4 trans3;
     uint mat_index;
     uint indices;
-    uint positions;
-    uint normals;
-    uint tex_coords;
-    uint tex_coords_num;
+    uint vertices;
+
+    uint normal_uv_mask;
 };
 
 struct Payload{
