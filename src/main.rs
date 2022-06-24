@@ -179,18 +179,8 @@ fn main() -> anyhow::Result<()> {
         for (i, node) in vertex_nodes.iter().enumerate() {
             pass = pass.read_descriptor((0, 5, [i as _]), *node);
         }
-        /*
-        for (i, node) in normal_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((0, 6, [i as _]), *node);
-        }
-        */
-        /*
-        for (i, node) in tex_coords_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((1, 0, [i as _]), *node);
-        }
-        */
         for (i, node) in texture_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((1, 0, [i as _]), *node);
+            pass = pass.read_descriptor((0, 6, [i as _]), *node);
         }
         trace!("fc: {}", fc);
         pass.record_ray_trace(move |ray_trace| {

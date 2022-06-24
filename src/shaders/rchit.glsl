@@ -26,7 +26,7 @@ layout(set = 0, binding = 4) buffer Indices{
 layout(set = 0, binding = 5) buffer Vertices{
     Vertex vertices[];
 }model_vertices[];
-layout(set = 1, binding = 0) uniform sampler2D textures[];
+layout(set = 0, binding = 6) uniform sampler2D textures[];
 
 mat3 compute_TBN(vec2 duv0, vec2 duv1, vec3 dpos0, vec3 dpos1, vec3 n){
     float r = 1./(duv0.x * duv1.y - duv0.y * duv1.x);
@@ -69,7 +69,9 @@ void main() {
 
     vec3 pos = pos0 * barycentric.x + pos1 * barycentric.y + pos2 * barycentric.z;
     
-    // get or generate normals
+    //===========================================================
+    // Get/Generate Normals:
+    //===========================================================
     
     vec3 norm = vec3(0.);
     vec3 norm0 = vert0.normal.xyz;
@@ -87,7 +89,9 @@ void main() {
         norm = normalize(cross(pos1 - pos0, pos2 - pos0));
     }
 
-    // Interpolate materials
+    //===========================================================
+    // Interpolate Material:
+    //===========================================================
     InterMaterial inter_mat = InterMaterial(mat.albedo, vec2(mat.mr.x, mat.mr.y), mat.emission);
 
     // TODO: material interpolation and tangent space.
@@ -113,8 +117,10 @@ void main() {
     }
 
 
-
     
+    //===========================================================
+    // Call BRDF functions:
+    //===========================================================
     
     vec3 prev_pos = payload.orig;
     vec3 prev_dir = payload.dir;
