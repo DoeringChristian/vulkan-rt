@@ -49,4 +49,14 @@ struct Payload{
     int ray_active;
 };
 
+struct Camera{
+    vec4 up;
+    vec4 right;
+    vec4 pos;
+    float focus;
+    float diameter;
+    float fov;
+    uint fc;
+};
+
 #endif //COMMON_GLSL

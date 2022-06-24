@@ -22,7 +22,7 @@ use world::*;
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct PushConstant {
-    frame_count: u32,
+    camera: GlslCamera,
 }
 
 fn create_ray_trace_pipeline(device: &Arc<Device>) -> Result<Arc<RayTracePipeline>, DriverError> {
@@ -79,7 +79,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut scene = Scene::new();
     scene.load_gltf(&event_loop.device);
-    let gpu_scene = GpuScene::create(&event_loop.device, &mut scene);
+    let mut gpu_scene = GpuScene::create(&event_loop.device, &mut scene);
 
     let img = Arc::new(
         Image::create(
@@ -149,6 +149,11 @@ fn main() -> anyhow::Result<()> {
             .map(|tex| frame.render_graph.bind_node(tex))
             .collect::<Vec<_>>();
 
+        let push_constant = PushConstant {
+            camera: gpu_scene.camera,
+        };
+        gpu_scene.camera.fc += 1;
+
         let sbt_rgen = sbt.rgen();
         let sbt_miss = sbt.miss();
         let sbt_hit = sbt.hit();
@@ -193,9 +198,6 @@ fn main() -> anyhow::Result<()> {
         for (i, node) in texture_nodes.iter().enumerate() {
             pass = pass.read_descriptor((1, 1, [i as _]), *node);
         }
-        let push_constant = PushConstant {
-            frame_count: fc as _,
-        };
         trace!("fc: {}", fc);
         pass.record_ray_trace(move |ray_trace| {
             ray_trace.push_constants(cast_slice(&[push_constant]));

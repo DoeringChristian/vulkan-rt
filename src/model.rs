@@ -63,6 +63,16 @@ pub struct Material {
     pub normal_tex: Option<TextureId>,
 }
 
+#[derive(Component, Debug)]
+pub struct Camera {
+    pub up: [f32; 3],
+    pub right: [f32; 3],
+    pub pos: [f32; 3],
+    pub focus: f32,
+    pub diameter: f32,
+    pub fov: f32,
+}
+
 //===================================
 // Data that can be used in shaders.
 //===================================
@@ -101,4 +111,16 @@ pub struct GlslMaterial {
     pub normal_tex: u32,
     pub normal_texco: u32,
     //pub _pad: [u32; 2],
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct GlslCamera {
+    pub up: [f32; 4],
+    pub right: [f32; 4],
+    pub pos: [f32; 4],
+    pub focus: f32,
+    pub diameter: f32,
+    pub fov: f32,
+    pub fc: u32,
 }

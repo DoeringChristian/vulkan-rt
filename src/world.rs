@@ -1,12 +1,13 @@
 use crate::accel::{Blas, BlasGeometry, BlasInfo, Tlas};
 use crate::buffers::TypedBuffer;
 use crate::model::{
-    GlslInstanceData, GlslMaterial, Index, InstanceBundle, Material, MaterialId, MeshId, Normal,
-    Position, Tangent, TexCoord, TexCoords, Texture, TextureId, VertexData,
+    Camera, GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceBundle, Material,
+    MaterialId, MeshId, Normal, Position, Tangent, TexCoord, TexCoords, Texture, TextureId,
+    VertexData,
 };
 
 use bevy_ecs::prelude::*;
-use bevy_math::Mat4;
+use bevy_math::{Mat3, Mat4, Vec3, Vec4, Vec4Swizzles};
 use bevy_transform::prelude::*;
 use bytemuck::cast_slice;
 use image::GenericImageView;
@@ -34,6 +35,7 @@ pub struct GpuScene {
     pub normals_bufs: Vec<Arc<TypedBuffer<Normal>>>,
     pub tex_coords_bufs: Vec<Arc<TypedBuffer<TexCoord>>>,
     pub textures: Vec<Arc<Image>>,
+    pub camera: GlslCamera,
 }
 
 impl GpuScene {
@@ -244,6 +246,27 @@ impl GpuScene {
                 },
             });
         }
+        let camera = if let Some(camera) = scene.world.get_resource::<Camera>() {
+            GlslCamera {
+                up: [camera.up[0], camera.up[1], camera.up[2], 1.],
+                right: [camera.right[0], camera.right[1], camera.right[2], 1.],
+                pos: [camera.pos[0], camera.pos[1], camera.pos[2], 1.],
+                focus: camera.focus,
+                diameter: camera.diameter,
+                fov: camera.fov,
+                fc: 0,
+            }
+        } else {
+            GlslCamera {
+                up: [0., 0., 1., 1.],
+                right: [0., 1., 0., 1.],
+                pos: [1., 0., 0., 1.],
+                focus: 1.,
+                diameter: 0.1,
+                fov: 1.,
+                fc: 0,
+            }
+        };
         //trace!("instancedata: {:#?}", instancedata);
 
         let material_buf =
@@ -263,6 +286,7 @@ impl GpuScene {
             normals_bufs,
             tex_coords_bufs,
             textures,
+            camera,
         }
     }
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
@@ -292,6 +316,7 @@ impl Scene {
         let path = "./src/res/cube_scene.gltf";
         let (gltf, buffers, _) = gltf::import(path).unwrap();
         {
+            // Texture loading
             let mut texture_entities = HashMap::new();
             for texture in gltf.textures() {
                 let image = match texture.source().source() {
@@ -310,6 +335,7 @@ impl Scene {
                 let entity = self.world.spawn().insert(Texture(image)).id();
                 texture_entities.insert(texture.index(), entity);
             }
+            // Mesh loading
             let mut mesh_entities = HashMap::new();
             for mesh in gltf.meshes() {
                 let primitive = mesh.primitives().next().unwrap();
@@ -360,6 +386,7 @@ impl Scene {
                 let entity = entity.id();
                 mesh_entities.insert(mesh.index(), entity);
             }
+            // Material loading
             let mut material_entities = HashMap::new();
             for material in gltf.materials() {
                 let mr = material.pbr_metallic_roughness();
@@ -401,7 +428,30 @@ impl Scene {
                     .id();
                 material_entities.insert(material.index().unwrap(), material_entity);
             }
+            // Instance/Node and Camera loading
             for node in gltf.nodes() {
+                if let Some(camera) = node.camera() {
+                    if let gltf::camera::Projection::Perspective(proj) = camera.projection() {
+                        let transform = Mat4::from_cols_array_2d(&node.transform().matrix());
+                        let rot = Mat3::from_mat4(transform);
+                        // Not quite sure about the default vectors.
+                        let up = rot * Vec3::new(1., 0., 0.);
+                        let right = rot * Vec3::new(0., -1., 0.);
+                        let pos = transform * Vec4::new(0., 0., 0., 1.);
+
+                        let camera = Camera {
+                            up: up.to_array(),
+                            right: right.to_array(),
+                            pos: pos.xyz().to_array(),
+                            focus: 1.,
+                            diameter: 0.1,
+                            fov: proj.yfov(),
+                        };
+                        trace!("Camera: {:#?}", camera);
+
+                        self.world.insert_resource(camera);
+                    }
+                }
                 if let Some(mesh) = node.mesh() {
                     let matrix = node.transform().matrix();
                     self.world.spawn().insert_bundle(InstanceBundle {
