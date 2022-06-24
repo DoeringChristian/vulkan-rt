@@ -60,4 +60,10 @@ struct Vertex{
     vec4 uv;
 };
 
+/*
+Vertex interpolate_vertex(Vertex vert0, Vertex vert1, Vertex vert2, vec3 barycentric){
+    
+}
+*/
+
 #endif //COMMON_GLSL

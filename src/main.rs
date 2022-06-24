@@ -2,6 +2,7 @@ use bevy_ecs::prelude::*;
 use {
     bytemuck::cast_slice,
     screen_13::prelude::*,
+    screen_13_egui::Egui,
     std::{io::BufReader, mem::size_of, sync::Arc},
     tobj::{load_mtl_buf, load_obj_buf, GPU_LOAD_OPTIONS},
 };
@@ -57,6 +58,7 @@ fn main() -> anyhow::Result<()> {
     let mut cache = HashPool::new(&event_loop.device);
     let presenter = screen_13_fx::GraphicPresenter::new(&event_loop.device).unwrap();
     let lts = LinearToSrgb::new(&event_loop.device);
+    let mut egui = Egui::new(&event_loop.device, event_loop.window());
 
     // ------------------------------------------------------------------------------------------ //
     // Setup the ray tracing pipeline
@@ -204,6 +206,30 @@ fn main() -> anyhow::Result<()> {
         lts.exec(frame.render_graph, image_node, tmp_image_node);
 
         presenter.present_image(frame.render_graph, tmp_image_node, frame.swapchain_image);
+
+        egui.run(
+            frame.window,
+            frame.events,
+            frame.swapchain_image,
+            &mut frame.render_graph,
+            |ctx| {
+                egui::Window::new("Test").show(&ctx, |ui| {
+                    ui.add(egui::Slider::new(
+                        &mut gpu_scene.camera.pos[0],
+                        -100.0..=100.,
+                    ));
+                    ui.add(egui::Slider::new(
+                        &mut gpu_scene.camera.pos[1],
+                        -100.0..=100.,
+                    ));
+                    ui.add(egui::Slider::new(
+                        &mut gpu_scene.camera.pos[2],
+                        -100.0..=100.,
+                    ));
+                });
+            },
+        );
+
         fc += 1;
         //frame.exit();
     })?;
