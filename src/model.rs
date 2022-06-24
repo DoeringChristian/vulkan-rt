@@ -73,6 +73,15 @@ pub struct Camera {
     pub fov: f32,
 }
 
+#[derive(Debug)]
+pub enum UpdateState {}
+
+#[derive(Component, Debug)]
+pub struct GpuRef {
+    pub index: usize,
+    pub state: UpdateState,
+}
+
 //===================================
 // Data that can be used in shaders.
 //===================================

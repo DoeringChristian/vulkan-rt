@@ -7,6 +7,7 @@ use crate::model::{
 };
 
 use bevy_ecs::prelude::*;
+use bevy_ecs::system::CommandQueue;
 use bevy_math::{Mat3, Mat4, Vec3, Vec4, Vec4Swizzles};
 use bevy_transform::prelude::*;
 use bytemuck::cast_slice;
@@ -21,6 +22,17 @@ use std::path::Path;
 use std::sync::Arc;
 
 const INDEX_UNDEF: u32 = 0xffffffff;
+
+#[derive(Debug)]
+pub enum UpdateState {
+    Updated,
+}
+
+#[derive(Component, Debug)]
+pub struct GpuResource {
+    pub index: usize,
+    pub state: UpdateState,
+}
 
 pub struct GpuScene {
     //pub world: World,
@@ -45,9 +57,10 @@ impl GpuScene {
         let mut normals_bufs = vec![];
         let mut tex_coords_bufs = vec![];
         let mut blases = vec![];
-        let mut mesh_idxs = HashMap::new();
-        #[derive(Debug)]
-        struct MeshIdxs {
+        //let mut mesh_idxs = HashMap::new();
+        let mut queue = CommandQueue::from_world(&mut scene.world);
+        #[derive(Component, Debug, Clone, Copy)]
+        pub struct GpuMesh {
             positions: usize,
             indices: usize,
             normals: Option<usize>,
@@ -65,7 +78,7 @@ impl GpuScene {
             )>()
             .iter(&scene.world)
         {
-            let mut mesh_idx = MeshIdxs {
+            let mut mesh_idx = GpuMesh {
                 positions: positions_bufs.len(),
                 indices: indices_bufs.len(),
                 normals: normals.map(|_| normals_bufs.len()),
@@ -111,9 +124,14 @@ impl GpuScene {
                     positions: positions_bufs.last().unwrap(),
                 },
             ));
+            Commands::new(&mut queue, &scene.world)
+                .entity(entity)
+                .insert(mesh_idx);
+            //scene.world.get_entity_mut(entity).unwrap().insert(mesh_idx);
             //trace!("texco: {:#?}", mesh_idx.tex_coords);
-            mesh_idxs.insert(entity, mesh_idx);
+            //mesh_idxs.insert(entity, mesh_idx);
         }
+        queue.apply(&mut scene.world);
         let mut textures = vec![];
         let mut textures_idxs = HashMap::new();
         let mut img_loader = ImageLoader::new(device).unwrap();
@@ -198,7 +216,13 @@ impl GpuScene {
             .query::<(Entity, &MaterialId, &MeshId, &Transform)>()
             .iter(&scene.world)
         {
-            let mesh_idx = &mesh_idxs[&mesh_id.0];
+            //let mesh_idx = &mesh_idxs[&mesh_id.0];
+            let mesh_idx = scene
+                .world
+                .get_entity(mesh_id.0)
+                .unwrap()
+                .get::<GpuMesh>()
+                .unwrap();
             instancedata.push(GlslInstanceData {
                 transform: transform.compute_matrix().to_cols_array_2d(),
                 mat_index: material_idxs[&material_id.0] as _,
@@ -241,7 +265,7 @@ impl GpuScene {
                 ),
                 acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
                     device_handle: AccelerationStructure::device_address(
-                        &blases[mesh_idxs[&mesh_id.0].blas].accel,
+                        &blases[mesh_idx.blas].accel,
                     ),
                 },
             });
