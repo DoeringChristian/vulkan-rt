@@ -30,7 +30,6 @@ pub struct Blas {
 impl Blas {
     pub fn build(
         &self,
-        scene: &GpuScene,
         cache: &mut HashPool,
         rgraph: &mut RenderGraph,
     ) -> AnyAccelerationStructureNode {

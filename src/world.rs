@@ -24,9 +24,64 @@ use std::sync::Arc;
 
 const INDEX_UNDEF: u32 = 0xffffffff;
 
+#[derive(PartialEq, Eq)]
+pub enum UpdateStatus {
+    Updated,
+    Recreate,
+    Build,
+    //Update,
+}
+impl Default for UpdateStatus {
+    fn default() -> Self {
+        Self::Updated
+    }
+}
+
+pub struct Updateable<T> {
+    pub val: T,
+    pub status: UpdateStatus,
+}
+
+impl<T> Updateable<T> {
+    pub fn new(val: T, status: UpdateStatus) -> Self {
+        Self { val, status }
+    }
+    pub fn recreate(val: T) -> Self {
+        Self {
+            val,
+            status: UpdateStatus::Recreate,
+        }
+    }
+    pub fn updated(val: T) -> Self {
+        Self {
+            val,
+            status: UpdateStatus::Updated,
+        }
+    }
+    pub fn build(val: T) -> Self {
+        Self {
+            val,
+            status: UpdateStatus::Updated,
+        }
+    }
+}
+
+impl<T> Deref for Updateable<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.val
+    }
+}
+impl<T> DerefMut for Updateable<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.val
+    }
+}
+
 pub struct GpuScene {
-    pub blases: HashMap<MeshKey, Blas>,
-    pub tlas: Option<Tlas>,
+    pub blases: HashMap<MeshKey, Updateable<Blas>>,
+    pub tlas: Option<Updateable<Tlas>>,
 
     pub material_buf: Option<TypedBuffer<GlslMaterial>>,
     pub materials: DenseArena<MaterialKey, Material>,
@@ -36,7 +91,7 @@ pub struct GpuScene {
 
     //pub shaders: DenseArena<ShaderKey, Shader>,
 
-    // Assets:
+    // Resources. They are bound to the shader as seperate bindless buffers.
     pub textures: DenseArena<TextureKey, Arc<Image>>,
 
     pub mesh_bufs: DenseArena<MeshKey, (Arc<TypedBuffer<Index>>, Arc<TypedBuffer<Vertex>>)>,
@@ -45,6 +100,8 @@ pub struct GpuScene {
 }
 
 impl GpuScene {
+    pub fn update_stage(&mut self, device: &Arc<Device>) {}
+    pub fn build_stage(&mut self, cache: &mut HashPool, rgraph: &mut RenderGraph) {}
     pub fn set_camera(&mut self, camera: GlslCamera) {
         self.camera = camera;
     }
@@ -52,7 +109,7 @@ impl GpuScene {
         let blas_nodes = self
             .blases
             .iter()
-            .map(|(_, b)| b.build(self, cache, rgraph))
+            .map(|(_, b)| b.build(cache, rgraph))
             .collect::<Vec<_>>();
         self.tlas
             .as_ref()
@@ -61,22 +118,25 @@ impl GpuScene {
     }
     pub fn upload_data(&mut self, device: &Arc<Device>) {
         self.recreate_material_buf(device);
-        self.recreate_instances_and_accels(device);
+        self.recreate_blases(device);
+        self.recreate_instances_and_tlas(device);
     }
-    pub fn recreate_instances_and_accels(&mut self, device: &Arc<Device>) {
-        //let mut blases = HashMap::new();
+    pub fn recreate_blases(&mut self, device: &Arc<Device>) {
         for (key, mesh_buf) in self.mesh_bufs.iter() {
             self.blases.insert(
                 *key,
-                Blas::create(
+                Updateable::build(Blas::create(
                     device,
                     &BlasInfo {
                         indices: &mesh_buf.0,
                         positions: &mesh_buf.1,
                     },
-                ),
+                )),
             );
         }
+    }
+    pub fn recreate_instances_and_tlas(&mut self, device: &Arc<Device>) {
+        //let mut blases = HashMap::new();
         let mut instances = vec![];
         let mut instancedata = vec![];
         for instance in self.instances.values() {
@@ -125,7 +185,7 @@ impl GpuScene {
             &instancedata,
             vk::BufferUsageFlags::STORAGE_BUFFER,
         ));
-        self.tlas = Some(Tlas::create(device, &instances));
+        self.tlas = Some(Updateable::build(Tlas::create(device, &instances)));
     }
     pub fn recreate_material_buf(&mut self, device: &Arc<Device>) {
         let materials = self
