@@ -1,7 +1,10 @@
 use crate::accel::{Blas, BlasInfo, Tlas};
 use crate::buffers::TypedBuffer;
 use crate::dense_arena::{DenseArena, KeyData};
-use crate::model::{Camera, GlslCamera, GlslInstanceData, GlslMaterial, Index, Vertex, Vertices};
+use crate::model::{
+    GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceKey, Material, MaterialKey,
+    MeshInstance, MeshKey, TextureKey, Vertex,
+};
 
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::CommandQueue;
@@ -39,42 +42,15 @@ impl<T> DerefMut for GpuIndexed<T> {
     }
 }
 
-pub struct GpuInstance {
-    pub transform: Transform,
-    pub mesh: MeshKey,
-    pub material: MaterialKey,
-}
-
-pub struct GpuMaterial {
-    pub albedo: [f32; 4],
-    pub mr: [f32; 4],
-    pub emission: [f32; 3],
-    pub albedo_tex: Option<TextureKey>,
-    pub mr_tex: Option<TextureKey>,
-    pub emission_tex: Option<TextureKey>,
-    pub normal_tex: Option<TextureKey>,
-}
-
-new_key_type! {
-    pub struct TextureKey;
-    pub struct MeshKey;
-    pub struct BlasKey;
-    pub struct InstanceKey;
-    pub struct MaterialKey;
-}
-
 pub struct GpuScene {
-    // Maybee use hashmap
     pub blases: Vec<Blas>,
     pub tlas: Option<Tlas>,
 
     pub material_buf: Option<TypedBuffer<GlslMaterial>>,
-    // maybee use dense slotmap
-    pub materials: DenseArena<MaterialKey, GpuMaterial>,
+    pub materials: DenseArena<MaterialKey, Material>,
 
     pub instancedata_buf: Option<TypedBuffer<GlslInstanceData>>,
-    pub instances: DenseArena<InstanceKey, GpuInstance>,
-    //pub instance_count: u32,
+    pub instances: DenseArena<InstanceKey, MeshInstance>,
 
     // Assets:
     pub textures: DenseArena<TextureKey, Arc<Image>>,
@@ -97,36 +73,7 @@ impl GpuScene {
             .build(cache, rgraph, &blas_nodes);
     }
     pub fn upload_data(&mut self, device: &Arc<Device>) {
-        let materials = self
-            .materials
-            .values()
-            .map(|m| GlslMaterial {
-                albedo: m.albedo,
-                mr: m.mr,
-                emission: [m.emission[0], m.emission[1], m.emission[2], 0.],
-                diffuse_tex: m
-                    .albedo_tex
-                    .map(|tex| self.textures.dense_index(tex) as _)
-                    .unwrap_or(INDEX_UNDEF),
-                mr_tex: m
-                    .mr_tex
-                    .map(|tex| self.textures.dense_index(tex) as _)
-                    .unwrap_or(INDEX_UNDEF),
-                emission_tex: m
-                    .emission_tex
-                    .map(|tex| self.textures.dense_index(tex) as _)
-                    .unwrap_or(INDEX_UNDEF),
-                normal_tex: m
-                    .normal_tex
-                    .map(|tex| self.textures.dense_index(tex) as _)
-                    .unwrap_or(INDEX_UNDEF),
-            })
-            .collect::<Vec<_>>();
-        self.material_buf = Some(TypedBuffer::create(
-            device,
-            &materials,
-            vk::BufferUsageFlags::STORAGE_BUFFER,
-        ));
+        self.recreate_material_buf(device);
         let mut blases = HashMap::new();
         for (key, mesh_buf) in self.mesh_bufs.iter() {
             self.blases.push(Blas::create(
@@ -188,6 +135,38 @@ impl GpuScene {
         ));
         self.tlas = Some(Tlas::create(device, &instances));
     }
+    pub fn recreate_material_buf(&mut self, device: &Arc<Device>) {
+        let materials = self
+            .materials
+            .values()
+            .map(|m| GlslMaterial {
+                albedo: m.albedo,
+                mr: m.mr,
+                emission: [m.emission[0], m.emission[1], m.emission[2], 0.],
+                diffuse_tex: m
+                    .albedo_tex
+                    .map(|tex| self.textures.dense_index(tex) as _)
+                    .unwrap_or(INDEX_UNDEF),
+                mr_tex: m
+                    .mr_tex
+                    .map(|tex| self.textures.dense_index(tex) as _)
+                    .unwrap_or(INDEX_UNDEF),
+                emission_tex: m
+                    .emission_tex
+                    .map(|tex| self.textures.dense_index(tex) as _)
+                    .unwrap_or(INDEX_UNDEF),
+                normal_tex: m
+                    .normal_tex
+                    .map(|tex| self.textures.dense_index(tex) as _)
+                    .unwrap_or(INDEX_UNDEF),
+            })
+            .collect::<Vec<_>>();
+        self.material_buf = Some(TypedBuffer::create(
+            device,
+            &materials,
+            vk::BufferUsageFlags::STORAGE_BUFFER,
+        ));
+    }
     pub fn insert_texture(
         &mut self,
         device: &Arc<Device>,
@@ -205,10 +184,10 @@ impl GpuScene {
             .unwrap();
         self.textures.insert(img)
     }
-    pub fn insert_material(&mut self, material: GpuMaterial) -> MaterialKey {
+    pub fn insert_material(&mut self, material: Material) -> MaterialKey {
         self.materials.insert(material)
     }
-    pub fn insert_instance(&mut self, instance: GpuInstance) -> InstanceKey {
+    pub fn insert_instance(&mut self, instance: MeshInstance) -> InstanceKey {
         self.instances.insert(instance)
     }
     pub fn insert_mesh(
@@ -334,7 +313,7 @@ impl GpuScene {
                 let normal_tex = material
                     .normal_texture()
                     .map(|b| texture_entities[&b.texture().index()]);
-                let material_entity = self.insert_material(GpuMaterial {
+                let material_entity = self.insert_material(Material {
                     albedo: mr.base_color_factor(),
                     mr: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
                     emission,
@@ -356,16 +335,6 @@ impl GpuScene {
                         let right = rot * Vec3::new(0., -1., 0.);
                         let pos = transform * Vec4::new(0., 0., 0., 1.);
 
-                        let camera = Camera {
-                            up: up.to_array(),
-                            right: right.to_array(),
-                            pos: pos.xyz().to_array(),
-                            focus: 1.,
-                            diameter: 0.1,
-                            fov: proj.yfov(),
-                        };
-                        trace!("Camera: {:#?}", camera);
-
                         //self.world.insert_resource(camera);
                         let up = up.to_array();
                         let right = right.to_array();
@@ -383,7 +352,7 @@ impl GpuScene {
                 }
                 if let Some(mesh) = node.mesh() {
                     let matrix = node.transform().matrix();
-                    self.insert_instance(GpuInstance {
+                    self.insert_instance(MeshInstance {
                         transform: Transform::from_matrix(Mat4::from_cols_array_2d(&matrix)),
                         material: material_entities[&mesh
                             .primitives()

@@ -1,8 +1,18 @@
 use std::hash::Hash;
+use std::sync::Arc;
 
+use crate::{accel::Blas, buffers::TypedBuffer, dense_arena::*};
 use bevy_ecs::prelude::*;
 use bevy_transform::prelude::*;
 use bytemuck::cast_slice;
+
+new_key_type! {
+    pub struct TextureKey;
+    pub struct MeshKey;
+    pub struct BlasKey;
+    pub struct InstanceKey;
+    pub struct MaterialKey;
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -12,27 +22,25 @@ pub struct Vertex {
     pub uv01: [f32; 4],
 }
 
-#[derive(Component)]
-pub struct Vertices {
-    pub vertices: Vec<Vertex>,
-    pub has_normal: bool,
-    pub has_uv0: bool,
-    pub has_uv1: bool,
+pub struct MeshInstance {
+    pub transform: Transform,
+    pub mesh: MeshKey,
+    pub material: MaterialKey,
+}
+
+pub struct Material {
+    pub albedo: [f32; 4],
+    pub mr: [f32; 4],
+    pub emission: [f32; 3],
+    pub albedo_tex: Option<TextureKey>,
+    pub mr_tex: Option<TextureKey>,
+    pub emission_tex: Option<TextureKey>,
+    pub normal_tex: Option<TextureKey>,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Index(pub u32);
-
-#[derive(Component, Debug)]
-pub struct Camera {
-    pub up: [f32; 3],
-    pub right: [f32; 3],
-    pub pos: [f32; 3],
-    pub focus: f32,
-    pub diameter: f32,
-    pub fov: f32,
-}
 
 //===================================
 // Data that can be used in shaders.
