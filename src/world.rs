@@ -24,64 +24,9 @@ use std::sync::Arc;
 
 const INDEX_UNDEF: u32 = 0xffffffff;
 
-#[derive(PartialEq, Eq)]
-pub enum UpdateStatus {
-    Updated,
-    Recreate,
-    Build,
-    //Update,
-}
-impl Default for UpdateStatus {
-    fn default() -> Self {
-        Self::Updated
-    }
-}
-
-pub struct Updateable<T> {
-    pub val: T,
-    pub status: UpdateStatus,
-}
-
-impl<T> Updateable<T> {
-    pub fn new(val: T, status: UpdateStatus) -> Self {
-        Self { val, status }
-    }
-    pub fn recreate(val: T) -> Self {
-        Self {
-            val,
-            status: UpdateStatus::Recreate,
-        }
-    }
-    pub fn updated(val: T) -> Self {
-        Self {
-            val,
-            status: UpdateStatus::Updated,
-        }
-    }
-    pub fn build(val: T) -> Self {
-        Self {
-            val,
-            status: UpdateStatus::Updated,
-        }
-    }
-}
-
-impl<T> Deref for Updateable<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.val
-    }
-}
-impl<T> DerefMut for Updateable<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.val
-    }
-}
-
 pub struct GpuScene {
-    pub blases: HashMap<MeshKey, Updateable<Blas>>,
-    pub tlas: Option<Updateable<Tlas>>,
+    pub blases: HashMap<MeshKey, Blas>,
+    pub tlas: Option<Tlas>,
 
     pub material_buf: Option<TypedBuffer<GlslMaterial>>,
     pub materials: DenseArena<MaterialKey, Material>,
@@ -100,7 +45,10 @@ pub struct GpuScene {
 }
 
 impl GpuScene {
-    pub fn update_stage(&mut self, device: &Arc<Device>) {}
+    pub fn update_stage(&mut self, device: &Arc<Device>) {
+        self.recreate_blases(device);
+        self.recreate_instances_and_tlas(device);
+    }
     pub fn build_stage(&mut self, cache: &mut HashPool, rgraph: &mut RenderGraph) {}
     pub fn set_camera(&mut self, camera: GlslCamera) {
         self.camera = camera;
@@ -125,13 +73,13 @@ impl GpuScene {
         for (key, mesh_buf) in self.mesh_bufs.iter() {
             self.blases.insert(
                 *key,
-                Updateable::build(Blas::create(
+                Blas::create(
                     device,
                     &BlasInfo {
                         indices: &mesh_buf.0,
                         positions: &mesh_buf.1,
                     },
-                )),
+                ),
             );
         }
     }
@@ -185,7 +133,7 @@ impl GpuScene {
             &instancedata,
             vk::BufferUsageFlags::STORAGE_BUFFER,
         ));
-        self.tlas = Some(Updateable::build(Tlas::create(device, &instances)));
+        self.tlas = Some(Tlas::create(device, &instances));
     }
     pub fn recreate_material_buf(&mut self, device: &Arc<Device>) {
         let materials = self
