@@ -25,7 +25,7 @@ use std::sync::Arc;
 const INDEX_UNDEF: u32 = 0xffffffff;
 
 pub struct GpuScene {
-    pub blases: Vec<Blas>,
+    pub blases: HashMap<MeshKey, Blas>,
     pub tlas: Option<Tlas>,
 
     pub material_buf: Option<TypedBuffer<GlslMaterial>>,
@@ -49,7 +49,7 @@ impl GpuScene {
         let blas_nodes = self
             .blases
             .iter()
-            .map(|b| b.build(self, cache, rgraph))
+            .map(|(_, b)| b.build(self, cache, rgraph))
             .collect::<Vec<_>>();
         self.tlas
             .as_ref()
@@ -61,16 +61,18 @@ impl GpuScene {
         self.recreate_instances_and_accels(device);
     }
     pub fn recreate_instances_and_accels(&mut self, device: &Arc<Device>) {
-        let mut blases = HashMap::new();
+        //let mut blases = HashMap::new();
         for (key, mesh_buf) in self.mesh_bufs.iter() {
-            self.blases.push(Blas::create(
-                device,
-                &BlasInfo {
-                    indices: &mesh_buf.0,
-                    positions: &mesh_buf.1,
-                },
-            ));
-            blases.insert(key, self.blases.len() - 1);
+            self.blases.insert(
+                *key,
+                Blas::create(
+                    device,
+                    &BlasInfo {
+                        indices: &mesh_buf.0,
+                        positions: &mesh_buf.1,
+                    },
+                ),
+            );
         }
         let mut instances = vec![];
         let mut instancedata = vec![];
@@ -102,7 +104,7 @@ impl GpuScene {
                 ),
                 acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
                     device_handle: AccelerationStructure::device_address(
-                        &self.blases[blases[&instance.mesh]].accel,
+                        &self.blases[&instance.mesh].accel,
                     ),
                 },
             });
@@ -211,7 +213,7 @@ impl GpuScene {
             fc: 0,
         };
         Self {
-            blases: Vec::new(),
+            blases: HashMap::new(),
             tlas: None,
             material_buf: None,
             instancedata_buf: None,

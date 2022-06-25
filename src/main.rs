@@ -124,7 +124,7 @@ fn main() -> anyhow::Result<()> {
         let blas_nodes = gpu_scene
             .blases
             .iter()
-            .map(|b| frame.render_graph.bind_node(&b.accel))
+            .map(|(_, b)| frame.render_graph.bind_node(&b.accel))
             .collect::<Vec<_>>();
         let material_node = frame
             .render_graph
