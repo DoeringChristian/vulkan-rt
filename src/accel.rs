@@ -35,8 +35,14 @@ impl Blas {
         rgraph: &mut RenderGraph,
     ) -> AnyAccelerationStructureNode {
         //let geometry = scene.geometries.get(self.geometry).unwrap();
-        let indices = self.indices.upgrade().unwrap();
-        let positions = self.positions.upgrade().unwrap();
+        let indices = self
+            .indices
+            .upgrade()
+            .expect("The Indices referenced by this blas have been droped.");
+        let positions = self
+            .positions
+            .upgrade()
+            .expect("The Positions referenced by this blas have been droped.");
         let index_node = rgraph.bind_node(&indices.buf);
         let vertex_node = rgraph.bind_node(&positions.buf);
         let accel_node = rgraph.bind_node(&self.accel);
@@ -79,7 +85,7 @@ impl Blas {
     pub fn create(device: &Arc<Device>, info: &BlasInfo) -> Self {
         //let triangle_count = geometry.indices.count() / 3;
         let triangle_count = info.indices.count() / 3;
-        let vertex_count = info.positions.count() / 3;
+        let vertex_count = info.positions.count();
         //let vertex_count = geometry.positions.count();
 
         let geometry_info = AccelerationStructureGeometryInfo {
