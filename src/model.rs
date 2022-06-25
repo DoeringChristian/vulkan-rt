@@ -12,6 +12,7 @@ new_key_type! {
     pub struct BlasKey;
     pub struct InstanceKey;
     pub struct MaterialKey;
+    pub struct ShaderKey;
 }
 
 #[repr(C)]
@@ -41,6 +42,23 @@ pub struct Material {
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Index(pub u32);
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct GlslRef(pub u32);
+
+impl GlslRef {
+    const REF_UNDEF: u32 = 0xffffffff;
+    pub fn new(index: u32) -> Self {
+        if index == Self::REF_UNDEF {
+            panic!("This is not a valid index");
+        }
+        Self(index)
+    }
+    pub fn none() -> Self {
+        Self(Self::REF_UNDEF)
+    }
+}
 
 //===================================
 // Data that can be used in shaders.

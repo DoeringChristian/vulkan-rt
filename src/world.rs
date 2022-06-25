@@ -3,7 +3,7 @@ use crate::buffers::TypedBuffer;
 use crate::dense_arena::{DenseArena, KeyData};
 use crate::model::{
     GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceKey, Material, MaterialKey,
-    MeshInstance, MeshKey, TextureKey, Vertex,
+    MeshInstance, MeshKey, ShaderKey, TextureKey, Vertex,
 };
 
 use bevy_ecs::prelude::*;
@@ -24,24 +24,6 @@ use std::sync::Arc;
 
 const INDEX_UNDEF: u32 = 0xffffffff;
 
-pub struct GpuIndexed<T> {
-    pub val: T,
-    pub index: u32,
-}
-
-impl<T> Deref for GpuIndexed<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.val
-    }
-}
-impl<T> DerefMut for GpuIndexed<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.val
-    }
-}
-
 pub struct GpuScene {
     pub blases: Vec<Blas>,
     pub tlas: Option<Tlas>,
@@ -51,6 +33,8 @@ pub struct GpuScene {
 
     pub instancedata_buf: Option<TypedBuffer<GlslInstanceData>>,
     pub instances: DenseArena<InstanceKey, MeshInstance>,
+
+    //pub shaders: DenseArena<ShaderKey, Shader>,
 
     // Assets:
     pub textures: DenseArena<TextureKey, Arc<Image>>,
