@@ -197,15 +197,6 @@ impl Tlas {
         //materials: &[GlslMaterial],
     ) -> Self {
         // gl_CustomIndexEXT should index into attributes.
-        /*
-        let instancedata_buf = TypedBuffer::create(
-            device,
-            &instances_data,
-            vk::BufferUsageFlags::STORAGE_BUFFER,
-        );
-        let material_buf =
-            TypedBuffer::create(device, &materials, vk::BufferUsageFlags::STORAGE_BUFFER);
-            */
         let instance_buf = TypedBuffer::create(
             device,
             &instances,

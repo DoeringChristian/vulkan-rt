@@ -315,25 +315,6 @@ impl GpuScene {
         cache: &mut HashPool,
         rgraph: &mut RenderGraph,
     ) {
-        let camera = scene
-            .world
-            .query::<(&Camera, &GpuCameraId)>()
-            .iter(&scene.world)
-            .next();
-        if let Some((camera, camera_id)) = camera {
-            /*
-            self.camera = GlslCamera {
-                up: [camera.up[0], camera.up[1], camera.up[2], 1.],
-                right: [camera.right[0], camera.right[1], camera.right[2], 1.],
-                pos: [camera.pos[0], camera.pos[1], camera.pos[2], 1.],
-                focus: camera.focus,
-                diameter: camera.diameter,
-                fov: camera.fov,
-                fc: 0,
-            };
-            */
-            //rgraph.clear_color_image(img);
-        }
     }
 }
 
