@@ -18,6 +18,6 @@ bevy_math = "0.7.0"
 bytemuck = "*"
 tobj = "*"
 anyhow = "*"
-slotmap = "*"
+slotmap = { git = "https://github.com/DoeringChristian/slotmap.git", branch = "as_slice"}
 gltf = "*"
 image = "*"

@@ -1,5 +1,6 @@
 use crate::accel::{Blas, BlasInfo, Tlas};
 use crate::buffers::TypedBuffer;
+use crate::dense_arena::{DenseArena, KeyData};
 use crate::model::{Camera, GlslCamera, GlslInstanceData, GlslMaterial, Index, Vertex, Vertices};
 
 use bevy_ecs::prelude::*;
@@ -10,7 +11,8 @@ use bytemuck::cast_slice;
 use image::GenericImageView;
 use screen_13::prelude::*;
 use screen_13_fx::ImageLoader;
-use slotmap::*;
+//use slotmap::*;
+use crate::dense_arena::*;
 use std::collections::{BTreeMap, HashMap};
 use std::io::BufReader;
 use std::ops::{Deref, DerefMut, Range};
@@ -22,25 +24,6 @@ const INDEX_UNDEF: u32 = 0xffffffff;
 pub struct GpuIndexed<T> {
     pub val: T,
     pub index: u32,
-}
-
-pub struct GpuIndexedSlotMap<K: Key, T> {
-    map: SlotMap<K, GpuIndexed<T>>,
-}
-
-impl<K: Key, T> GpuIndexedSlotMap<K, T> {
-    pub fn new() -> Self {
-        Self {
-            map: SlotMap::default(),
-        }
-    }
-
-    pub fn insert(&mut self, val: T) -> K {
-        self.map.insert(GpuIndexed {
-            val,
-            index: self.map.len() as _,
-        })
-    }
 }
 
 impl<T> Deref for GpuIndexed<T> {
@@ -87,20 +70,16 @@ pub struct GpuScene {
 
     pub material_buf: Option<TypedBuffer<GlslMaterial>>,
     // maybee use dense slotmap
-    pub materials: SlotMap<MaterialKey, GpuIndexed<GpuMaterial>>,
-    pub material_count: u32,
+    pub materials: DenseArena<MaterialKey, GpuMaterial>,
 
     pub instancedata_buf: Option<TypedBuffer<GlslInstanceData>>,
-    pub instances: SlotMap<InstanceKey, GpuInstance>,
+    pub instances: DenseArena<InstanceKey, GpuInstance>,
     //pub instance_count: u32,
 
     // Assets:
-    pub textures: SlotMap<TextureKey, GpuIndexed<Arc<Image>>>,
-    pub texture_count: u32,
+    pub textures: DenseArena<TextureKey, Arc<Image>>,
 
-    pub mesh_bufs:
-        SlotMap<MeshKey, GpuIndexed<(Arc<TypedBuffer<Index>>, Arc<TypedBuffer<Vertex>>)>>,
-    pub mesh_count: u32,
+    pub mesh_bufs: DenseArena<MeshKey, (Arc<TypedBuffer<Index>>, Arc<TypedBuffer<Vertex>>)>,
 
     pub camera: GlslCamera,
 }
@@ -118,29 +97,28 @@ impl GpuScene {
             .build(cache, rgraph, &blas_nodes);
     }
     pub fn upload_data(&mut self, device: &Arc<Device>) {
-        let mut materials = self.materials.values().collect::<Vec<_>>();
-        materials.sort_by(|a, b| a.index.cmp(&b.index));
-        let materials = materials
-            .iter()
+        let materials = self
+            .materials
+            .values()
             .map(|m| GlslMaterial {
                 albedo: m.albedo,
                 mr: m.mr,
                 emission: [m.emission[0], m.emission[1], m.emission[2], 0.],
                 diffuse_tex: m
                     .albedo_tex
-                    .map(|tex| self.textures[tex].index)
+                    .map(|tex| self.textures.dense_index(tex) as _)
                     .unwrap_or(INDEX_UNDEF),
                 mr_tex: m
                     .mr_tex
-                    .map(|tex| self.textures[tex].index)
+                    .map(|tex| self.textures.dense_index(tex) as _)
                     .unwrap_or(INDEX_UNDEF),
                 emission_tex: m
                     .emission_tex
-                    .map(|tex| self.textures[tex].index)
+                    .map(|tex| self.textures.dense_index(tex) as _)
                     .unwrap_or(INDEX_UNDEF),
                 normal_tex: m
                     .normal_tex
-                    .map(|tex| self.textures[tex].index)
+                    .map(|tex| self.textures.dense_index(tex) as _)
                     .unwrap_or(INDEX_UNDEF),
             })
             .collect::<Vec<_>>();
@@ -154,8 +132,8 @@ impl GpuScene {
             self.blases.push(Blas::create(
                 device,
                 &BlasInfo {
-                    indices: &mesh_buf.val.0,
-                    positions: &mesh_buf.val.1,
+                    indices: &mesh_buf.0,
+                    positions: &mesh_buf.1,
                 },
             ));
             blases.insert(key, self.blases.len() - 1);
@@ -196,9 +174,10 @@ impl GpuScene {
             });
             instancedata.push(GlslInstanceData {
                 transform: instance.transform.compute_matrix().to_cols_array_2d(),
-                mat_index: self.materials[instance.material].index,
-                indices: self.mesh_bufs[instance.mesh].index,
-                vertices: self.mesh_bufs[instance.mesh].index,
+                //mat_index: self.materials[instance.material].index,
+                mat_index: self.materials.dense_index(instance.material) as _,
+                indices: self.mesh_bufs.dense_index(instance.mesh) as _,
+                vertices: self.mesh_bufs.dense_index(instance.mesh) as _,
                 normal_uv_mask: 0,
             });
         }
@@ -224,24 +203,13 @@ impl GpuScene {
                 img.height(),
             )
             .unwrap();
-        let texture = self.textures.insert(GpuIndexed {
-            val: img,
-            index: self.texture_count,
-        });
-        self.texture_count += 1;
-        texture
+        self.textures.insert(img)
     }
     pub fn insert_material(&mut self, material: GpuMaterial) -> MaterialKey {
-        let material = self.materials.insert(GpuIndexed {
-            val: material,
-            index: self.material_count,
-        });
-        self.material_count += 1;
-        material
+        self.materials.insert(material)
     }
     pub fn insert_instance(&mut self, instance: GpuInstance) -> InstanceKey {
-        let instance = self.instances.insert(instance);
-        instance
+        self.instances.insert(instance)
     }
     pub fn insert_mesh(
         &mut self,
@@ -249,27 +217,22 @@ impl GpuScene {
         indices: &[Index],
         vertices: &[Vertex],
     ) -> MeshKey {
-        let mesh = self.mesh_bufs.insert(GpuIndexed {
-            val: (
-                Arc::new(TypedBuffer::create(
-                    device,
-                    indices,
-                    vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
-                        | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
-                        | vk::BufferUsageFlags::STORAGE_BUFFER,
-                )),
-                Arc::new(TypedBuffer::create(
-                    device,
-                    vertices,
-                    vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
-                        | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
-                        | vk::BufferUsageFlags::STORAGE_BUFFER,
-                )),
-            ),
-            index: self.mesh_count,
-        });
-        self.mesh_count += 1;
-        mesh
+        self.mesh_bufs.insert((
+            Arc::new(TypedBuffer::create(
+                device,
+                indices,
+                vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
+                    | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+                    | vk::BufferUsageFlags::STORAGE_BUFFER,
+            )),
+            Arc::new(TypedBuffer::create(
+                device,
+                vertices,
+                vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
+                    | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+                    | vk::BufferUsageFlags::STORAGE_BUFFER,
+            )),
+        ))
     }
     pub fn new() -> Self {
         let camera = GlslCamera {
@@ -286,13 +249,10 @@ impl GpuScene {
             tlas: None,
             material_buf: None,
             instancedata_buf: None,
-            instances: SlotMap::default(),
-            mesh_bufs: SlotMap::default(),
-            mesh_count: 0,
-            materials: SlotMap::default(),
-            material_count: 0,
-            textures: SlotMap::default(),
-            texture_count: 0,
+            instances: DenseArena::default(),
+            mesh_bufs: DenseArena::default(),
+            materials: DenseArena::default(),
+            textures: DenseArena::default(),
             camera,
         }
     }

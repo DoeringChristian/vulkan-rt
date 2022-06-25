@@ -1880,8 +1880,7 @@ checksum = "eb703cfe953bccee95685111adeedb76fabe4e97549a58d16f03ea7b9367bb32"
 [[package]]
 name = "slotmap"
 version = "1.0.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1e08e261d0e8f5c43123b7adf3e4ca1690d655377ac93a03b2c9d3e98de1342"
+source = "git+https://github.com/DoeringChristian/slotmap.git?branch=as_slice#55520c9d4de9e2d02594e9e8352f553d8bfd17ff"
 dependencies = [
  "version_check",
 ]

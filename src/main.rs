@@ -9,6 +9,8 @@ use {
 
 mod accel;
 mod buffers;
+#[macro_use]
+mod dense_arena;
 mod model;
 mod post;
 mod sbt;
@@ -137,16 +139,17 @@ fn main() -> anyhow::Result<()> {
         let texture_nodes = gpu_scene
             .textures
             .values()
-            .map(|tex| (tex.index, frame.render_graph.bind_node(&tex.val)))
+            .enumerate()
+            .map(|(i, tex)| frame.render_graph.bind_node(tex))
             .collect::<Vec<_>>();
         let mesh_nodes = gpu_scene
             .mesh_bufs
             .values()
-            .map(|mesh| {
+            .enumerate()
+            .map(|(i, mesh)| {
                 (
-                    mesh.index,
-                    frame.render_graph.bind_node(&mesh.val.0.buf),
-                    frame.render_graph.bind_node(&mesh.val.1.buf),
+                    frame.render_graph.bind_node(&mesh.0.buf),
+                    frame.render_graph.bind_node(&mesh.1.buf),
                 )
             })
             .collect::<Vec<_>>();
@@ -185,12 +188,12 @@ fn main() -> anyhow::Result<()> {
             .read_descriptor((0, 3), material_node);
 
         //pass = pass.read_descriptor((0, 4, [0]), index_nodes[0]);
-        for (i, indices, vertices) in mesh_nodes.iter() {
-            pass = pass.read_descriptor((0, 4, [*i]), *indices);
-            pass = pass.read_descriptor((0, 5, [*i]), *vertices);
+        for (i, (indices, vertices)) in mesh_nodes.iter().enumerate() {
+            pass = pass.read_descriptor((0, 4, [i as _]), *indices);
+            pass = pass.read_descriptor((0, 5, [i as _]), *vertices);
         }
-        for (i, node) in texture_nodes.iter() {
-            pass = pass.read_descriptor((0, 6, [*i]), *node);
+        for (i, node) in texture_nodes.iter().enumerate() {
+            pass = pass.read_descriptor((0, 6, [i as _]), *node);
         }
         trace!("fc: {}", fc);
         pass.record_ray_trace(move |ray_trace| {
