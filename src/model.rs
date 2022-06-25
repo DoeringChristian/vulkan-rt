@@ -24,44 +24,6 @@ pub struct Vertices {
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Index(pub u32);
 
-#[derive(Component)]
-pub struct VertexData<T>(pub Vec<T>);
-
-#[derive(Component)]
-pub struct Texture(pub image::DynamicImage);
-
-#[derive(Component)]
-pub struct MeshId(pub Entity);
-
-#[derive(Component)]
-pub struct MaterialId(pub Entity);
-
-#[derive(Component)]
-pub struct MeshInstance;
-
-#[derive(Bundle)]
-pub struct InstanceBundle {
-    pub mesh: MeshId,
-    pub material: MaterialId,
-    pub transform: Transform,
-}
-
-pub struct TextureId {
-    pub texture: Entity,
-    pub coords: u32,
-}
-
-#[derive(Component)]
-pub struct Material {
-    pub albedo: [f32; 4],
-    pub mr: [f32; 4],
-    pub emission: [f32; 3],
-    pub albedo_tex: Option<TextureId>,
-    pub mr_tex: Option<TextureId>,
-    pub emission_tex: Option<TextureId>,
-    pub normal_tex: Option<TextureId>,
-}
-
 #[derive(Component, Debug)]
 pub struct Camera {
     pub up: [f32; 3],

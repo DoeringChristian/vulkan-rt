@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     model::{Index, Vertex},
-    world::{GpuScene, Scene},
+    world::GpuScene,
 };
 
 use super::buffers::*;
