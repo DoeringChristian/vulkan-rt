@@ -74,6 +74,9 @@ impl GpuScene {
     }
     pub fn upload_data(&mut self, device: &Arc<Device>) {
         self.recreate_material_buf(device);
+        self.recreate_instances_and_accels(device);
+    }
+    pub fn recreate_instances_and_accels(&mut self, device: &Arc<Device>) {
         let mut blases = HashMap::new();
         for (key, mesh_buf) in self.mesh_bufs.iter() {
             self.blases.push(Blas::create(
