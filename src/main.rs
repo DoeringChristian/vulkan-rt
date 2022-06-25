@@ -140,7 +140,7 @@ fn main() -> anyhow::Result<()> {
             .map(|tex| (tex.index, frame.render_graph.bind_node(&tex.val)))
             .collect::<Vec<_>>();
         let mesh_nodes = gpu_scene
-            .meshes_bufs
+            .mesh_bufs
             .values()
             .map(|mesh| {
                 (
