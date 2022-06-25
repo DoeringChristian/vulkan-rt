@@ -218,6 +218,7 @@ fn main() -> anyhow::Result<()> {
 
         presenter.present_image(frame.render_graph, tmp_image_node, frame.swapchain_image);
 
+        let mut recreate_frame = false;
         egui.run(
             frame.window,
             frame.events,
@@ -225,21 +226,22 @@ fn main() -> anyhow::Result<()> {
             &mut frame.render_graph,
             |ctx| {
                 egui::Window::new("Test").show(&ctx, |ui| {
-                    ui.add(egui::Slider::new(
-                        &mut gpu_scene.camera.pos[0],
-                        -100.0..=100.,
-                    ));
-                    ui.add(egui::Slider::new(
-                        &mut gpu_scene.camera.pos[1],
-                        -100.0..=100.,
-                    ));
-                    ui.add(egui::Slider::new(
-                        &mut gpu_scene.camera.pos[2],
-                        -100.0..=100.,
-                    ));
+                    recreate_frame |= ui
+                        .add(egui::Slider::new(&mut gpu_scene.camera.pos[0], -10.0..=10.))
+                        .changed();
+                    recreate_frame |= ui
+                        .add(egui::Slider::new(&mut gpu_scene.camera.pos[1], -10.0..=10.))
+                        .changed();
+                    recreate_frame |= ui
+                        .add(egui::Slider::new(&mut gpu_scene.camera.pos[2], -10.0..=10.))
+                        .changed();
                 });
             },
         );
+        if recreate_frame {
+            frame.render_graph.clear_color_image(tmp_image_node);
+            gpu_scene.camera.fc = 0;
+        }
 
         ////gpu_scene.update(&mut scene, tmp_image_node, &mut cache, frame.render_graph);
 
