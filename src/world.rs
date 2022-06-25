@@ -45,6 +45,9 @@ pub struct GpuScene {
 }
 
 impl GpuScene {
+    pub fn set_camera(&mut self, camera: GlslCamera) {
+        self.camera = camera;
+    }
     pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
         let blas_nodes = self
             .blases

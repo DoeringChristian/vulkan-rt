@@ -110,7 +110,7 @@ fn main() -> anyhow::Result<()> {
     let mut fc = 0;
 
     event_loop.run(|mut frame| {
-        if fc < 2 {
+        if fc < 1 {
             // The heck... why do we need to create it twice if binding bindless with two
             // instance?
             gpu_scene.build_accels(&mut cache, &mut frame.render_graph);
