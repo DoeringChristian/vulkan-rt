@@ -1,4 +1,4 @@
-use crate::accel::{Blas, BlasGeometry, BlasInfo, Tlas};
+use crate::accel::{Blas, BlasInfo, Tlas};
 use crate::buffers::TypedBuffer;
 use crate::model::{
     Camera, GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceBundle, Material,

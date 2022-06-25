@@ -13,37 +13,6 @@ use crate::{
 
 use super::buffers::*;
 
-#[derive(Component)]
-pub struct BlasGeometry {
-    //pub positions: Arc<PositionsBuffer>,
-    //pub indices: Arc<IndexBuffer>,
-    pub positions: TypedBuffer<[f32; 3]>,
-    pub indices: TypedBuffer<u32>,
-}
-
-impl BlasGeometry {
-    pub fn create(device: &Arc<Device>, indices: &[u32], positions: &[[f32; 3]]) -> Self {
-        //let positions = Arc::new(PositionsBuffer::create(device, positions));
-        //let indices = Arc::new(IndexBuffer::create(device, indices));
-        let positions = TypedBuffer::create(
-            device,
-            positions,
-            vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
-                | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
-                | vk::BufferUsageFlags::STORAGE_BUFFER,
-        );
-        let indices = TypedBuffer::create(
-            device,
-            indices,
-            vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
-                | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
-                | vk::BufferUsageFlags::STORAGE_BUFFER,
-        );
-
-        Self { positions, indices }
-    }
-}
-
 pub struct BlasInfo<'a> {
     pub indices: &'a Arc<TypedBuffer<Index>>,
     pub positions: &'a Arc<TypedBuffer<Vertex>>,
