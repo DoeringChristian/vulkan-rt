@@ -79,9 +79,14 @@ fn main() -> anyhow::Result<()> {
     // Load the .obj cube scene
     // ------------------------------------------------------------------------------------------ //
 
+    /*
     let mut scene = Scene::new();
     scene.load_gltf(&event_loop.device);
     let mut gpu_scene = GpuScene::create(&event_loop.device, &mut scene);
+    */
+    let mut gpu_scene = GpuScene::new();
+    gpu_scene.append_gltf(&event_loop.device);
+    gpu_scene.upload_data(&event_loop.device);
 
     let img = Arc::new(
         Image::create(
@@ -119,26 +124,31 @@ fn main() -> anyhow::Result<()> {
             .iter()
             .map(|b| frame.render_graph.bind_node(&b.accel))
             .collect::<Vec<_>>();
-        let material_node = frame.render_graph.bind_node(&gpu_scene.material_buf.buf);
+        let material_node = frame
+            .render_graph
+            .bind_node(&gpu_scene.material_buf.as_ref().unwrap().buf);
         let instancedata_nodes = frame
             .render_graph
-            .bind_node(&gpu_scene.instancedata_buf.buf);
-        let tlas_node = frame.render_graph.bind_node(&gpu_scene.tlas.accel);
+            .bind_node(&gpu_scene.instancedata_buf.as_ref().unwrap().buf);
+        let tlas_node = frame
+            .render_graph
+            .bind_node(&gpu_scene.tlas.as_ref().unwrap().accel);
         let sbt_node = frame.render_graph.bind_node(sbt.buffer());
-        let index_nodes = gpu_scene
-            .indices_bufs
-            .iter()
-            .map(|buf| frame.render_graph.bind_node(&buf.buf))
-            .collect::<Vec<_>>();
         let texture_nodes = gpu_scene
             .textures
-            .iter()
-            .map(|tex| frame.render_graph.bind_node(tex))
+            .values()
+            .map(|tex| (tex.index, frame.render_graph.bind_node(&tex.val)))
             .collect::<Vec<_>>();
-        let vertex_nodes = gpu_scene
-            .vertices_bufs
-            .iter()
-            .map(|buf| frame.render_graph.bind_node(&buf.buf))
+        let mesh_nodes = gpu_scene
+            .meshes_bufs
+            .values()
+            .map(|mesh| {
+                (
+                    mesh.index,
+                    frame.render_graph.bind_node(&mesh.val.0.buf),
+                    frame.render_graph.bind_node(&mesh.val.1.buf),
+                )
+            })
             .collect::<Vec<_>>();
 
         let push_constant = PushConstant {
@@ -175,14 +185,12 @@ fn main() -> anyhow::Result<()> {
             .read_descriptor((0, 3), material_node);
 
         //pass = pass.read_descriptor((0, 4, [0]), index_nodes[0]);
-        for (i, node) in index_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((0, 4, [i as _]), *node);
+        for (i, indices, vertices) in mesh_nodes.iter() {
+            pass = pass.read_descriptor((0, 4, [*i]), *indices);
+            pass = pass.read_descriptor((0, 5, [*i]), *vertices);
         }
-        for (i, node) in vertex_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((0, 5, [i as _]), *node);
-        }
-        for (i, node) in texture_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((0, 6, [i as _]), *node);
+        for (i, node) in texture_nodes.iter() {
+            pass = pass.read_descriptor((0, 6, [*i]), *node);
         }
         trace!("fc: {}", fc);
         pass.record_ray_trace(move |ray_trace| {
@@ -230,7 +238,7 @@ fn main() -> anyhow::Result<()> {
             },
         );
 
-        gpu_scene.update(&mut scene, tmp_image_node, &mut cache, frame.render_graph);
+        ////gpu_scene.update(&mut scene, tmp_image_node, &mut cache, frame.render_graph);
 
         fc += 1;
         //frame.exit();

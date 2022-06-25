@@ -141,7 +141,7 @@ pub struct Tlas {
 impl Tlas {
     pub fn build(
         &self,
-        scene: &GpuScene,
+        //scene: &GpuScene,
         cache: &mut HashPool,
         rgraph: &mut RenderGraph,
         blas_nodes: &[AnyAccelerationStructureNode],
@@ -159,7 +159,8 @@ impl Tlas {
         let instance_node = rgraph.bind_node(&self.instance_buf.buf);
         let tlas_node = rgraph.bind_node(&self.accel);
         let geometry_info = self.geometry_info.clone();
-        let primitive_count = scene.blases.len();
+        //let primitive_count = scene.blases.len();
+        let primitive_count = blas_nodes.len();
 
         // TODO: this is only necesarry to generate blases before tlas.
         /*let blas_nodes = scene
