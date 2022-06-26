@@ -47,7 +47,7 @@ void main() {
     uv = (uv * 2. - 1.) * vec2(1., -1.);
     uv *= 0.7;
     */
-    for (int x = 0; x < 16; x++) {
+    for (int x = 0; x < camera.depth; x++) {
     //for (int x = 0; x < 1; x++) {
         traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
                     payload.orig, 0.001, payload.dir, 10000.0, 0);

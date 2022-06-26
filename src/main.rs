@@ -243,6 +243,9 @@ fn main() -> anyhow::Result<()> {
                     recreate_frame |= ui
                         .add(egui::Slider::new(&mut gpu_scene.camera.pos[2], -10.0..=10.))
                         .changed();
+                    recreate_frame |= ui
+                        .add(egui::Slider::new(&mut gpu_scene.camera.depth, 0..=16))
+                        .changed();
                     if ui.button("Add instance").clicked() {
                         let mut inst = gpu_scene.instances.values().next().unwrap().deref().clone();
                         inst.transform = Transform::from_xyz(0., 0., 0.);

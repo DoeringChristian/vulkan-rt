@@ -150,13 +150,6 @@ impl GpuScene {
                 }
             })
             .collect::<Vec<_>>();
-        /*
-        for instance in self.instances.values() {
-            if instance.recreated() {
-                build_tlas = true;
-            }
-        }
-        */
         if self.tlas.as_ref().unwrap().recreated() {
             build_tlas = true;
         }
