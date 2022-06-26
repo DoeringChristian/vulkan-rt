@@ -5,6 +5,10 @@ struct Material {
     vec4 albedo;
     vec4 mr;
     vec4 emission;
+    float transmission;
+    float transmission_roughness;
+    float ior;
+    uint _pack;
     uint albedo_tex;
     uint mr_tex;
     uint emission_tex;
@@ -15,6 +19,8 @@ struct InterMaterial{
     vec4 albedo;
     vec2 mr;
     vec4 emission;
+    float transmission;
+    float ior;
 };
 
 #define INDEX_UNDEF 0xffffffff
@@ -59,6 +65,11 @@ struct Vertex{
     vec4 pos;
     vec4 normal;
     vec4 uv;
+};
+
+struct Evaluation{
+    vec3 brdf;
+    vec3 dir;
 };
 
 /*

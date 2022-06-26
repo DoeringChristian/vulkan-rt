@@ -235,6 +235,10 @@ impl GpuScene {
                 albedo: m.albedo,
                 mr: m.mr,
                 emission: [m.emission[0], m.emission[1], m.emission[2], 0.],
+                transmission: m.transmission,
+                transmission_roughness: m.transmission_roughness,
+                ior: m.ior,
+                _pack: 0,
                 diffuse_tex: m
                     .albedo_tex
                     .map(|tex| self.textures.dense_index(tex) as _)
@@ -409,14 +413,30 @@ impl GpuScene {
                 let normal_tex = material
                     .normal_texture()
                     .map(|b| texture_entities[&b.texture().index()]);
+                let transmission = material
+                    .transmission()
+                    .map(|t| t.transmission_factor())
+                    .unwrap_or(0.);
+                let transmission_tex = material
+                    .transmission()
+                    .map(|t| {
+                        t.transmission_texture()
+                            .map(|t| texture_entities[&t.texture().index()])
+                    })
+                    .flatten();
+                let ior = material.ior().unwrap_or(1.);
                 let material_entity = self.insert_material(Material {
                     albedo: mr.base_color_factor(),
                     mr: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
                     emission,
+                    transmission,
+                    transmission_roughness: 0.,
+                    ior,
                     albedo_tex,
                     mr_tex,
                     emission_tex,
                     normal_tex,
+                    transmission_tex,
                 });
                 material_entities.insert(material.index().unwrap(), material_entity);
             }

@@ -39,10 +39,14 @@ pub struct Material {
     pub albedo: [f32; 4],
     pub mr: [f32; 4],
     pub emission: [f32; 3],
+    pub transmission: f32,
+    pub ior: f32,
+    pub transmission_roughness: f32,
     pub albedo_tex: Option<TextureKey>,
     pub mr_tex: Option<TextureKey>,
     pub emission_tex: Option<TextureKey>,
     pub normal_tex: Option<TextureKey>,
+    pub transmission_tex: Option<TextureKey>,
 }
 
 #[repr(C)]
@@ -93,6 +97,10 @@ pub struct GlslMaterial {
     pub albedo: [f32; 4],
     pub mr: [f32; 4],
     pub emission: [f32; 4],
+    pub transmission: f32,
+    pub transmission_roughness: f32,
+    pub ior: f32,
+    pub _pack: u32,
     pub diffuse_tex: u32,
     pub mr_tex: u32,
     pub emission_tex: u32,

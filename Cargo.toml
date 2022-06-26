@@ -19,6 +19,6 @@ bytemuck = "*"
 tobj = "*"
 anyhow = "*"
 slotmap = { git = "https://github.com/DoeringChristian/slotmap.git", branch = "as_slice"}
-gltf = "*"
+gltf = {version = "*", features = ["KHR_materials_transmission", "KHR_materials_ior"]}
 image = "*"
 bitflags = "*"

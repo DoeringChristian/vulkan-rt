@@ -59,7 +59,10 @@ fn create_ray_trace_pipeline(device: &Arc<Device>) -> Result<Arc<RayTracePipelin
 fn main() -> anyhow::Result<()> {
     pretty_env_logger::init();
 
-    let event_loop = EventLoop::new().ray_tracing(true).build()?;
+    let event_loop = EventLoop::new()
+        .ray_tracing(true)
+        .configure(|config| config.sync_display(true))
+        .build()?;
     let mut cache = HashPool::new(&event_loop.device);
     let presenter = screen_13_fx::GraphicPresenter::new(&event_loop.device).unwrap();
     let lts = LinearToSrgb::new(&event_loop.device);

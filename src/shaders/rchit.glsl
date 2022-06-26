@@ -92,7 +92,7 @@ void main() {
     //===========================================================
     // Interpolate Material:
     //===========================================================
-    InterMaterial inter_mat = InterMaterial(mat.albedo, vec2(mat.mr.x, mat.mr.y), mat.emission);
+    InterMaterial inter_mat = InterMaterial(mat.albedo, vec2(mat.mr.x, mat.mr.y), mat.emission, mat.transmission, mat.ior);
 
     // TODO: material interpolation and tangent space.
     vec2 uv0 = vert0.uv.xy;
@@ -128,10 +128,13 @@ void main() {
     payload.orig = pos;
 
     vec3 wo = normalize(-prev_dir);
-    vec4 wip = generate_sample(norm, wo, inter_mat, pos);
-    vec3 brdf = eval(norm, wo, wip.xyz, inter_mat) / wip.w;
+    //vec4 wip = generate_sample(norm, wo, inter_mat, pos);
+    //vec3 brdf = eval(norm, wo, wip.xyz, inter_mat) / wip.w;
+    Sample s = generate_sample(norm, wo, inter_mat, pos);
+    Evaluation evaluation = eval(norm, wo, s, inter_mat);
+    
 
-    payload.dir = wip.xyz;
+    payload.dir = evaluation.dir;
 
     // thrgouhput roussian roulette propability
     //p_{RR} = max_{RGB}\leftb( \prod_{d = 1}^{D-1} \left({f_r(x_d, w_d \rightarrow v_d) cos(\theta_d)) \over p(w_d)p_{RR_d}}\right)\right)
@@ -141,7 +144,7 @@ void main() {
     }
 
     payload.color += payload.attenuation * inter_mat.emission.xyz;
-    payload.attenuation *= brdf / p_rr;
+    payload.attenuation *= evaluation.brdf / p_rr;
 
     // DEBUG:
     //payload.color = vec3(inter_mat.mr.y);

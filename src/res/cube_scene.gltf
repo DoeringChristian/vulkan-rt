@@ -3,6 +3,9 @@
         "generator" : "Khronos glTF Blender I/O v3.2.40",
         "version" : "2.0"
     },
+    "extensionsUsed" : [
+        "KHR_materials_transmission"
+    ],
     "scene" : 0,
     "scenes" : [
         {
@@ -17,7 +20,8 @@
                 6,
                 7,
                 8,
-                9
+                9,
+                10
             ]
         }
     ],
@@ -52,7 +56,12 @@
         },
         {
             "mesh" : 7,
-            "name" : "Plane.005_Plane.006"
+            "name" : "Plane.005_Plane.006",
+            "translation" : [
+                -0.6561145186424255,
+                0.5177018642425537,
+                -0.024684181436896324
+            ]
         },
         {
             "mesh" : 8,
@@ -86,6 +95,20 @@
             "translation" : [
                 2.2449803352355957,
                 0,
+                0
+            ]
+        },
+        {
+            "mesh" : 9,
+            "name" : "Sphere",
+            "scale" : [
+                0.13671112060546875,
+                0.13671112060546875,
+                0.13671112060546875
+            ],
+            "translation" : [
+                0,
+                0.08965669572353363,
                 0
             ]
         }
@@ -214,6 +237,25 @@
                     "index" : 2
                 }
             }
+        },
+        {
+            "doubleSided" : true,
+            "extensions" : {
+                "KHR_materials_transmission" : {
+                    "transmissionFactor" : 1
+                }
+            },
+            "name" : "Material",
+            "pbrMetallicRoughness" : {
+                "baseColorFactor" : [
+                    0.800000011920929,
+                    0.800000011920929,
+                    0.800000011920929,
+                    1
+                ],
+                "metallicFactor" : 0,
+                "roughnessFactor" : 0
+            }
         }
     ],
     "meshes" : [
@@ -340,6 +382,20 @@
                     },
                     "indices" : 31,
                     "material" : 7
+                }
+            ]
+        },
+        {
+            "name" : "Sphere",
+            "primitives" : [
+                {
+                    "attributes" : {
+                        "POSITION" : 32,
+                        "NORMAL" : 33,
+                        "TEXCOORD_0" : 34
+                    },
+                    "indices" : 35,
+                    "material" : 8
                 }
             ]
         }
@@ -601,14 +657,14 @@
             "componentType" : 5126,
             "count" : 4,
             "max" : [
-                -0.5349579453468323,
-                0.5177018642425537,
-                0.09647238999605179
+                0.2776098847389221,
+                -7.696448278693424e-08,
+                0.277601957321167
             ],
             "min" : [
-                -0.7772710919380188,
-                0.5177018642425537,
-                -0.14584074914455414
+                -0.2775900363922119,
+                -7.696448278693424e-08,
+                -0.27759796380996704
             ],
             "type" : "VEC3"
         },
@@ -656,6 +712,40 @@
             "bufferView" : 31,
             "componentType" : 5123,
             "count" : 2901,
+            "type" : "SCALAR"
+        },
+        {
+            "bufferView" : 32,
+            "componentType" : 5126,
+            "count" : 559,
+            "max" : [
+                0.9999997019767761,
+                1,
+                0.9999994039535522
+            ],
+            "min" : [
+                -0.9999990463256836,
+                -1,
+                -0.9999987483024597
+            ],
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 33,
+            "componentType" : 5126,
+            "count" : 559,
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 34,
+            "componentType" : 5126,
+            "count" : 559,
+            "type" : "VEC2"
+        },
+        {
+            "bufferView" : 35,
+            "componentType" : 5123,
+            "count" : 2880,
             "type" : "SCALAR"
         }
     ],
@@ -819,6 +909,26 @@
             "buffer" : 0,
             "byteLength" : 5802,
             "byteOffset" : 20684
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 6708,
+            "byteOffset" : 26488
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 6708,
+            "byteOffset" : 33196
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 4472,
+            "byteOffset" : 39904
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 5760,
+            "byteOffset" : 44376
         }
     ],
     "samplers" : [
@@ -829,7 +939,7 @@
     ],
     "buffers" : [
         {
-            "byteLength" : 26488,
+            "byteLength" : 50136,
             "uri" : "cube_scene.bin"
         }
     ]
