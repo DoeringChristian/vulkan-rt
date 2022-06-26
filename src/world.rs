@@ -47,6 +47,9 @@ impl<T> Resource<T> {
     pub fn recreated(&self) -> bool {
         self.status == ResourceStatus::Recreated
     }
+    pub fn into_inner(self) -> T {
+        self.res
+    }
     /*
     pub fn set_changed(&mut self) {
         self.status = ResourceStatus::Changed
@@ -147,10 +150,15 @@ impl GpuScene {
                 }
             })
             .collect::<Vec<_>>();
+        /*
         for instance in self.instances.values() {
             if instance.recreated() {
                 build_tlas = true;
             }
+        }
+        */
+        if self.tlas.as_ref().unwrap().recreated() {
+            build_tlas = true;
         }
         if build_tlas {
             self.tlas
@@ -205,6 +213,7 @@ impl GpuScene {
                 },
             });
         }
+        //trace!("Instances: {}\n\n\n\n\n\n", instances.len());
         self.tlas = Some(Resource::new(Tlas::create(device, &instances)));
     }
     fn recreate_instance_buf(&mut self, device: &Arc<Device>) {

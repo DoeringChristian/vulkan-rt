@@ -28,6 +28,7 @@ pub struct Mesh {
     pub vertices: Arc<TypedBuffer<Vertex>>,
 }
 
+#[derive(Clone)]
 pub struct MeshInstance {
     pub transform: Transform,
     pub mesh: MeshKey,
