@@ -54,7 +54,12 @@ void main() {
     }
     // DEBUG: boost light:
     payload.color *= 10.;
-    color = 1/float((N + 1)) * payload.color + float(N)/float(N + 1)*color; 
+    if (N == 0){
+        color = payload.color;
+    }
+    else{
+        color = 1/float((N + 1)) * payload.color + float(N)/float(N + 1)*color; 
+    }
 
     //vec4 color = vec4(payload.color, 1.0);
 

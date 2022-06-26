@@ -52,6 +52,7 @@ struct Camera{
     float diameter;
     float fov;
     uint fc;
+    uint depth;
 };
 
 struct Vertex{

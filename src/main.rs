@@ -160,7 +160,7 @@ fn main() -> anyhow::Result<()> {
             .collect::<Vec<_>>();
 
         let push_constant = PushConstant {
-            camera: gpu_scene.camera,
+            camera: *gpu_scene.camera,
         };
         gpu_scene.camera.fc += 1;
 
@@ -244,11 +244,8 @@ fn main() -> anyhow::Result<()> {
             },
         );
         if recreate_frame {
-            frame.render_graph.clear_color_image(tmp_image_node);
             gpu_scene.camera.fc = 0;
         }
-
-        ////gpu_scene.update(&mut scene, tmp_image_node, &mut cache, frame.render_graph);
 
         fc += 1;
         //frame.exit();

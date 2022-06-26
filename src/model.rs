@@ -109,4 +109,5 @@ pub struct GlslCamera {
     pub diameter: f32,
     pub fov: f32,
     pub fc: u32,
+    pub depth: u32,
 }
