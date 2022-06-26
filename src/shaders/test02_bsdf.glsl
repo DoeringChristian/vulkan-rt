@@ -104,12 +104,13 @@ Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
     }
     
     vec4 ndf_sample = sample_DistributionGGX(roughness, n, seed - vec3(M_PI));
-    vec3 n_ndf = ndf_sample.xyz;
+    // m is the microfacet normal
+    vec3 m = ndf_sample.xyz;
     
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, mat.albedo.xyz, metallic);
 
-    vec3 F = fresnelSchlick(max(0., dot(n, wo)), F0);
+    vec3 F = fresnelSchlick(max(0., dot(m, wo)), F0);
     //F = vec3(0.);
 
     vec3 kS = F;
@@ -118,25 +119,23 @@ Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
     if (rand(seed + vec3(M_PI)) < F.x){
         // Specular case
 
-        vec3 wi = reflect(-wo, n_ndf);
-        float wi_dot_n = max(dot(n_ndf, wi), 0.);
-        float G = GeometrySmith(n_ndf, wo, wi, roughness);
+        vec3 wi = reflect(-wo, m);
+        float wi_dot_n = max(dot(m, wi), 0.);
+        float G = GeometrySmith(n, wo, wi, roughness);
 
         vec3 numerator = G * vec3(1.);
-        float denominator = 4. * max(dot(n_ndf, wo), 0.) * max(dot(n_ndf, wi), 0.) + 0.001;
+        float denominator = 4. * max(dot(m, wo), 0.) * max(dot(m, wi), 0.) + 0.001;
         vec3 specular = numerator/denominator;
         vec3 fr = specular;
-        return Sample(wi, fr * wi_dot_n * (2 * M_PI));
+        return Sample(wi, fr * wi_dot_n * (2 * M_PI) * 2.);
     }
     else{
         // Diffuse case
-        // For some reason we are sampeling into the void.
-        //vec3 wi = uniform_hemisphere(n, seed);
         vec3 wi = allign_hemisphere(uniform_hemisphere(seed), n);
         float wi_dot_n = max(dot(n, wi), 0.);
 
         vec3 fr = (1. - metallic) * albedo / M_PI;
 
-        return Sample(wi, fr * wi_dot_n * (2. * M_PI));
+        return Sample(wi, fr * wi_dot_n * (2. * M_PI) * 2.);
     }
 }
