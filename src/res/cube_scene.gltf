@@ -152,6 +152,19 @@
         },
         {
             "doubleSided" : true,
+            "name" : "cuboid.001",
+            "pbrMetallicRoughness" : {
+                "baseColorFactor" : [
+                    0.8000000715255737,
+                    0.5451889634132385,
+                    0.2608102262020111,
+                    1
+                ],
+                "roughnessFactor" : 0.17272725701332092
+            }
+        },
+        {
+            "doubleSided" : true,
             "name" : "green_wall",
             "pbrMetallicRoughness" : {
                 "baseColorFactor" : [
@@ -290,7 +303,7 @@
                         "TEXCOORD_0" : 10
                     },
                     "indices" : 11,
-                    "material" : 0
+                    "material" : 2
                 }
             ]
         },
@@ -304,7 +317,7 @@
                         "TEXCOORD_0" : 14
                     },
                     "indices" : 7,
-                    "material" : 2
+                    "material" : 3
                 }
             ]
         },
@@ -318,7 +331,7 @@
                         "TEXCOORD_0" : 17
                     },
                     "indices" : 7,
-                    "material" : 3
+                    "material" : 4
                 }
             ]
         },
@@ -332,7 +345,7 @@
                         "TEXCOORD_0" : 20
                     },
                     "indices" : 7,
-                    "material" : 4
+                    "material" : 5
                 }
             ]
         },
@@ -346,7 +359,7 @@
                         "TEXCOORD_0" : 23
                     },
                     "indices" : 24,
-                    "material" : 5
+                    "material" : 6
                 }
             ]
         },
@@ -360,7 +373,7 @@
                         "TEXCOORD_0" : 27
                     },
                     "indices" : 7,
-                    "material" : 6
+                    "material" : 7
                 }
             ]
         },
@@ -374,7 +387,7 @@
                         "TEXCOORD_0" : 30
                     },
                     "indices" : 31,
-                    "material" : 7
+                    "material" : 8
                 }
             ]
         },
@@ -388,7 +401,7 @@
                         "TEXCOORD_0" : 34
                     },
                     "indices" : 35,
-                    "material" : 8
+                    "material" : 9
                 }
             ]
         }

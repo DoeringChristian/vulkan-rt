@@ -111,12 +111,13 @@ Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
     F0 = mix(F0, mat.albedo.xyz, metallic);
 
     vec3 F = fresnelSchlick(max(0., dot(m, wo)), F0);
+    float F_avg = (F.x+F.y+F.z)/3.;
     //F = vec3(0.);
 
-    vec3 kS = F;
-    vec3 kD = vec3(1.) - kS;
+    float kS = F_avg;
+    float kD = 1. - F_avg;
 
-    if (rand(seed + vec3(M_PI)) < F.x){
+    if (rand(seed + vec3(M_PI)) < kS){
         // Specular case
 
         vec3 wi = reflect(-wo, m);
@@ -126,8 +127,8 @@ Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
         vec3 numerator = G * vec3(1.);
         float denominator = 4. * max(dot(m, wo), 0.) * max(dot(m, wi), 0.) + 0.001;
         vec3 specular = numerator/denominator;
-        vec3 fr = specular;
-        return Sample(wi, fr * wi_dot_n * (2 * M_PI));
+        vec3 fr = specular * F;
+        return Sample(wi, fr * wi_dot_n * (2 * M_PI) / kS);
     }
     else{
         // Diffuse case
