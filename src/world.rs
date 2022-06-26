@@ -2,7 +2,7 @@ use crate::accel::{Blas, BlasInfo, Tlas};
 use crate::buffers::TypedBuffer;
 use crate::dense_arena::{DenseArena, KeyData};
 use crate::model::{
-    GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceKey, Material, MaterialKey,
+    GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceKey, Material, MaterialKey, Mesh,
     MeshInstance, MeshKey, ShaderKey, TextureKey, Vertex,
 };
 
@@ -16,6 +16,7 @@ use screen_13::prelude::*;
 use screen_13_fx::ImageLoader;
 //use slotmap::*;
 use crate::dense_arena::*;
+use bitflags::*;
 use std::collections::{BTreeMap, HashMap};
 use std::io::BufReader;
 use std::ops::{Deref, DerefMut, Range};
@@ -24,148 +25,235 @@ use std::sync::Arc;
 
 const INDEX_UNDEF: u32 = 0xffffffff;
 
+#[derive(PartialEq, Eq)]
+pub enum ResourceStatus {
+    Recreated,
+    //Changed,
+    Unchanged,
+}
+
+pub struct Resource<T> {
+    res: T,
+    pub status: ResourceStatus,
+}
+
+impl<T> Resource<T> {
+    pub fn new(res: T) -> Self {
+        Self {
+            res,
+            status: ResourceStatus::Recreated,
+        }
+    }
+    pub fn recreated(&self) -> bool {
+        self.status == ResourceStatus::Recreated
+    }
+    /*
+    pub fn set_changed(&mut self) {
+        self.status = ResourceStatus::Changed
+    }
+    pub fn changed(&self) -> bool {
+        self.status == ResourceStatus::Changed
+    }
+    */
+}
+
+impl<T> Deref for Resource<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.res
+    }
+}
+impl<T> DerefMut for Resource<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.res
+    }
+}
+
 pub struct GpuScene {
-    pub blases: HashMap<MeshKey, Blas>,
+    pub blases: HashMap<MeshKey, Resource<Blas>>,
     pub tlas: Option<Tlas>,
 
     pub material_buf: Option<TypedBuffer<GlslMaterial>>,
-    pub materials: DenseArena<MaterialKey, Material>,
+    pub materials: DenseArena<MaterialKey, Resource<Material>>,
 
     pub instancedata_buf: Option<TypedBuffer<GlslInstanceData>>,
-    pub instances: DenseArena<InstanceKey, MeshInstance>,
+    pub instances: DenseArena<InstanceKey, Resource<MeshInstance>>,
 
     //pub shaders: DenseArena<ShaderKey, Shader>,
 
     // Resources. They are bound to the shader as seperate bindless buffers.
     pub textures: DenseArena<TextureKey, Arc<Image>>,
 
-    pub mesh_bufs: DenseArena<MeshKey, (Arc<TypedBuffer<Index>>, Arc<TypedBuffer<Vertex>>)>,
+    pub mesh_bufs: DenseArena<MeshKey, Resource<Mesh>>,
 
     pub camera: GlslCamera,
 }
 
 impl GpuScene {
-    pub fn update_stage(&mut self, device: &Arc<Device>) {
-        self.recreate_blases(device);
-        self.recreate_instances_and_tlas(device);
+    pub fn recreate_stage(&mut self, device: &Arc<Device>) {
+        let mut recreate_tlas = false;
+        // Recreate blases:
+        for (key, mesh_buf) in self.mesh_bufs.iter() {
+            if mesh_buf.recreated() {
+                recreate_tlas = true;
+                self.blases.insert(
+                    *key,
+                    Resource::new(Blas::create(
+                        device,
+                        &BlasInfo {
+                            indices: &mesh_buf.indices,
+                            positions: &mesh_buf.vertices,
+                        },
+                    )),
+                );
+            }
+        }
+        // TODO: Cleanup unneded blases:
+        let recreate_materials = self
+            .materials
+            .values()
+            .filter(|mat| mat.recreated())
+            .next()
+            .is_some();
+        if recreate_materials {
+            let materials = self
+                .materials
+                .values()
+                .map(|m| GlslMaterial {
+                    albedo: m.albedo,
+                    mr: m.mr,
+                    emission: [m.emission[0], m.emission[1], m.emission[2], 0.],
+                    diffuse_tex: m
+                        .albedo_tex
+                        .map(|tex| self.textures.dense_index(tex) as _)
+                        .unwrap_or(INDEX_UNDEF),
+                    mr_tex: m
+                        .mr_tex
+                        .map(|tex| self.textures.dense_index(tex) as _)
+                        .unwrap_or(INDEX_UNDEF),
+                    emission_tex: m
+                        .emission_tex
+                        .map(|tex| self.textures.dense_index(tex) as _)
+                        .unwrap_or(INDEX_UNDEF),
+                    normal_tex: m
+                        .normal_tex
+                        .map(|tex| self.textures.dense_index(tex) as _)
+                        .unwrap_or(INDEX_UNDEF),
+                })
+                .collect::<Vec<_>>();
+            self.material_buf = Some(TypedBuffer::create(
+                device,
+                &materials,
+                vk::BufferUsageFlags::STORAGE_BUFFER,
+            ));
+        }
+        let recreate_instances = self
+            .instances
+            .values()
+            .filter(|inst| inst.recreated())
+            .next()
+            .is_some();
+        if recreate_instances {
+            recreate_tlas = true;
+            let mut instancedata = vec![];
+            for instance in self.instances.values_as_slice() {
+                instancedata.push(GlslInstanceData {
+                    transform: instance.transform.compute_matrix().to_cols_array_2d(),
+                    //mat_index: self.materials[instance.material].index,
+                    mat_index: self.materials.dense_index(instance.material) as _,
+                    indices: self.mesh_bufs.dense_index(instance.mesh) as _,
+                    vertices: self.mesh_bufs.dense_index(instance.mesh) as _,
+                    normal_uv_mask: 0,
+                });
+            }
+            self.instancedata_buf = Some(TypedBuffer::create(
+                device,
+                &instancedata,
+                vk::BufferUsageFlags::STORAGE_BUFFER,
+            ));
+        }
+        if recreate_tlas {
+            let mut instances = vec![];
+            for (i, instance) in self.instances.values_as_slice().iter().enumerate() {
+                let matrix = instance.transform.compute_matrix();
+                let matrix = [
+                    matrix.x_axis.x,
+                    matrix.y_axis.x,
+                    matrix.z_axis.x,
+                    matrix.w_axis.x,
+                    matrix.x_axis.y,
+                    matrix.y_axis.y,
+                    matrix.z_axis.y,
+                    matrix.w_axis.y,
+                    matrix.x_axis.z,
+                    matrix.y_axis.z,
+                    matrix.z_axis.z,
+                    matrix.w_axis.z,
+                ];
+                instances.push(vk::AccelerationStructureInstanceKHR {
+                    transform: vk::TransformMatrixKHR { matrix },
+                    instance_custom_index_and_mask: vk::Packed24_8::new(i as _, 0xff),
+                    instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
+                        0,
+                        vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
+                    ),
+                    acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
+                        device_handle: AccelerationStructure::device_address(
+                            &self.blases[&instance.mesh].accel,
+                        ),
+                    },
+                });
+            }
+            self.tlas = Some(Tlas::create(device, &instances));
+        }
     }
-    pub fn build_stage(&mut self, cache: &mut HashPool, rgraph: &mut RenderGraph) {}
-    pub fn set_camera(&mut self, camera: GlslCamera) {
-        self.camera = camera;
-    }
-    pub fn build_accels(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
+    pub fn build_stage(&mut self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
+        let mut build_tlas = false;
         let blas_nodes = self
             .blases
             .iter()
-            .map(|(_, b)| b.build(cache, rgraph))
+            .map(|(_, b)| {
+                if b.recreated() {
+                    build_tlas = true;
+                    b.build(cache, rgraph)
+                } else {
+                    AnyAccelerationStructureNode::AccelerationStructure(rgraph.bind_node(&b.accel))
+                }
+            })
             .collect::<Vec<_>>();
-        self.tlas
-            .as_ref()
-            .unwrap()
-            .build(cache, rgraph, &blas_nodes);
-    }
-    pub fn upload_data(&mut self, device: &Arc<Device>) {
-        self.recreate_material_buf(device);
-        self.recreate_blases(device);
-        self.recreate_instances_and_tlas(device);
-    }
-    pub fn recreate_blases(&mut self, device: &Arc<Device>) {
-        for (key, mesh_buf) in self.mesh_bufs.iter() {
-            self.blases.insert(
-                *key,
-                Blas::create(
-                    device,
-                    &BlasInfo {
-                        indices: &mesh_buf.0,
-                        positions: &mesh_buf.1,
-                    },
-                ),
+        for instance in self.instances.values() {
+            if instance.recreated() {
+                build_tlas = true;
+            }
+        }
+        if build_tlas {
+            self.tlas
+                .as_ref()
+                .unwrap()
+                .build(cache, rgraph, &blas_nodes);
+            trace!(
+                "TlasBUILD: \n\n\n
+                   "
             );
         }
     }
-    pub fn recreate_instances_and_tlas(&mut self, device: &Arc<Device>) {
-        //let mut blases = HashMap::new();
-        let mut instances = vec![];
-        let mut instancedata = vec![];
-        for instance in self.instances.values() {
-            let matrix = instance.transform.compute_matrix();
-            let matrix = [
-                matrix.x_axis.x,
-                matrix.y_axis.x,
-                matrix.z_axis.x,
-                matrix.w_axis.x,
-                matrix.x_axis.y,
-                matrix.y_axis.y,
-                matrix.z_axis.y,
-                matrix.w_axis.y,
-                matrix.x_axis.z,
-                matrix.y_axis.z,
-                matrix.z_axis.z,
-                matrix.w_axis.z,
-            ];
-            instances.push(vk::AccelerationStructureInstanceKHR {
-                transform: vk::TransformMatrixKHR { matrix },
-                instance_custom_index_and_mask: vk::Packed24_8::new(
-                    (instancedata.len()) as _,
-                    0xff,
-                ),
-                instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
-                    0,
-                    vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
-                ),
-                acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
-                    device_handle: AccelerationStructure::device_address(
-                        &self.blases[&instance.mesh].accel,
-                    ),
-                },
-            });
-            instancedata.push(GlslInstanceData {
-                transform: instance.transform.compute_matrix().to_cols_array_2d(),
-                //mat_index: self.materials[instance.material].index,
-                mat_index: self.materials.dense_index(instance.material) as _,
-                indices: self.mesh_bufs.dense_index(instance.mesh) as _,
-                vertices: self.mesh_bufs.dense_index(instance.mesh) as _,
-                normal_uv_mask: 0,
-            });
+    pub fn cleanup_stage(&mut self) {
+        for material in self.materials.values_mut() {
+            material.status = ResourceStatus::Unchanged;
         }
-        self.instancedata_buf = Some(TypedBuffer::create(
-            device,
-            &instancedata,
-            vk::BufferUsageFlags::STORAGE_BUFFER,
-        ));
-        self.tlas = Some(Tlas::create(device, &instances));
+        for instance in self.instances.values_mut() {
+            instance.status = ResourceStatus::Unchanged;
+        }
+        for mesh in self.mesh_bufs.values_mut() {
+            mesh.status = ResourceStatus::Unchanged;
+        }
+        for blas in self.blases.values_mut() {
+            blas.status = ResourceStatus::Unchanged;
+        }
     }
-    pub fn recreate_material_buf(&mut self, device: &Arc<Device>) {
-        let materials = self
-            .materials
-            .values()
-            .map(|m| GlslMaterial {
-                albedo: m.albedo,
-                mr: m.mr,
-                emission: [m.emission[0], m.emission[1], m.emission[2], 0.],
-                diffuse_tex: m
-                    .albedo_tex
-                    .map(|tex| self.textures.dense_index(tex) as _)
-                    .unwrap_or(INDEX_UNDEF),
-                mr_tex: m
-                    .mr_tex
-                    .map(|tex| self.textures.dense_index(tex) as _)
-                    .unwrap_or(INDEX_UNDEF),
-                emission_tex: m
-                    .emission_tex
-                    .map(|tex| self.textures.dense_index(tex) as _)
-                    .unwrap_or(INDEX_UNDEF),
-                normal_tex: m
-                    .normal_tex
-                    .map(|tex| self.textures.dense_index(tex) as _)
-                    .unwrap_or(INDEX_UNDEF),
-            })
-            .collect::<Vec<_>>();
-        self.material_buf = Some(TypedBuffer::create(
-            device,
-            &materials,
-            vk::BufferUsageFlags::STORAGE_BUFFER,
-        ));
+    pub fn set_camera(&mut self, camera: GlslCamera) {
+        self.camera = camera;
     }
     pub fn insert_texture(
         &mut self,
@@ -185,10 +273,10 @@ impl GpuScene {
         self.textures.insert(img)
     }
     pub fn insert_material(&mut self, material: Material) -> MaterialKey {
-        self.materials.insert(material)
+        self.materials.insert(Resource::new(material))
     }
     pub fn insert_instance(&mut self, instance: MeshInstance) -> InstanceKey {
-        self.instances.insert(instance)
+        self.instances.insert(Resource::new(instance))
     }
     pub fn insert_mesh(
         &mut self,
@@ -196,22 +284,22 @@ impl GpuScene {
         indices: &[Index],
         vertices: &[Vertex],
     ) -> MeshKey {
-        self.mesh_bufs.insert((
-            Arc::new(TypedBuffer::create(
+        self.mesh_bufs.insert(Resource::new(Mesh {
+            indices: Arc::new(TypedBuffer::create(
                 device,
                 indices,
                 vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
                     | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                     | vk::BufferUsageFlags::STORAGE_BUFFER,
             )),
-            Arc::new(TypedBuffer::create(
+            vertices: Arc::new(TypedBuffer::create(
                 device,
                 vertices,
                 vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
                     | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                     | vk::BufferUsageFlags::STORAGE_BUFFER,
             )),
-        ))
+        }))
     }
     pub fn new() -> Self {
         let camera = GlslCamera {

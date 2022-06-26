@@ -1629,6 +1629,7 @@ dependencies = [
  "bevy_ecs",
  "bevy_math",
  "bevy_transform",
+ "bitflags",
  "bytemuck",
  "egui",
  "gltf",

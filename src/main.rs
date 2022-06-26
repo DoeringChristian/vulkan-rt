@@ -88,7 +88,7 @@ fn main() -> anyhow::Result<()> {
     */
     let mut gpu_scene = GpuScene::new();
     gpu_scene.append_gltf(&event_loop.device);
-    gpu_scene.upload_data(&event_loop.device);
+    //gpu_scene.upload_data(&event_loop.device);
 
     let img = Arc::new(
         Image::create(
@@ -114,13 +114,15 @@ fn main() -> anyhow::Result<()> {
         if fc < 2 {
             // The heck... why do we need to create it twice if binding bindless with two
             // instance?
-            gpu_scene.build_accels(&mut cache, &mut frame.render_graph);
+            //gpu_scene.build_accels(&mut cache, &mut frame.render_graph);
         } else {
             //world.instances[0].transform.matrix[3] += 0.01;
             //world.update_tlas(frame.device, &mut cache, &mut frame.render_graph);
         }
         //gpu_scene.build_accels(&mut cache, &mut frame.render_graph);
-        //gpu_scene.build_stage(&mut cache, &mut frame.render_graph);
+        gpu_scene.recreate_stage(frame.device);
+        gpu_scene.build_stage(&mut cache, &mut frame.render_graph);
+        gpu_scene.cleanup_stage();
 
         let image_node = frame.render_graph.bind_node(&img);
 
@@ -151,8 +153,8 @@ fn main() -> anyhow::Result<()> {
             .enumerate()
             .map(|(i, mesh)| {
                 (
-                    frame.render_graph.bind_node(&mesh.0.buf),
-                    frame.render_graph.bind_node(&mesh.1.buf),
+                    frame.render_graph.bind_node(&mesh.indices.buf),
+                    frame.render_graph.bind_node(&mesh.vertices.buf),
                 )
             })
             .collect::<Vec<_>>();

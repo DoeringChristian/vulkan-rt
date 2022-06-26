@@ -23,6 +23,11 @@ pub struct Vertex {
     pub uv01: [f32; 4],
 }
 
+pub struct Mesh {
+    pub indices: Arc<TypedBuffer<Index>>,
+    pub vertices: Arc<TypedBuffer<Vertex>>,
+}
+
 pub struct MeshInstance {
     pub transform: Transform,
     pub mesh: MeshKey,

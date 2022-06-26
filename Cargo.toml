@@ -21,3 +21,4 @@ anyhow = "*"
 slotmap = { git = "https://github.com/DoeringChristian/slotmap.git", branch = "as_slice"}
 gltf = "*"
 image = "*"
+bitflags = "*"
