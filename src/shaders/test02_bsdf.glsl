@@ -103,20 +103,21 @@ Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
         n2 = 1.;
     }
     
+    vec4 ndf_sample = sample_DistributionGGX(roughness, n, seed - vec3(M_PI));
+    vec3 n_ndf = ndf_sample.xyz;
+    
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, mat.albedo.xyz, metallic);
 
-    vec3 F = fresnelSchlick(max(0., dot(n, wo)), F0);
+    vec3 F = fresnelSchlick(max(0., dot(n_ndf, wo)), F0);
     //F = vec3(1.);
-    
+
     vec3 kS = F;
     vec3 kD = vec3(1.) - kS;
 
     if (rand(seed + vec3(M_PI)) < F.x){
         // Specular case
-        vec4 ndf_sample = sample_DistributionGGX(roughness, n, seed - vec3(M_PI));
-        vec3 n_ndf = ndf_sample.xyz;
-        
+
         vec3 wi = reflect(-wo, n_ndf);
         float wi_dot_n = max(dot(n_ndf, wi), 0.);
         float G = GeometrySmith(n_ndf, wo, wi, roughness);
@@ -127,13 +128,13 @@ Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
         vec3 fr = specular;
         return Sample(wi, fr * wi_dot_n * (2 * M_PI));
     }
-    else{
+else{
         // Diffuse case
         vec3 wi = uniform_hemisphere(n, seed);
         float wi_dot_n = max(dot(n, wi), 0.);
-        
+
         vec3 fr = (1. - metallic) * albedo / M_PI;
-        
+
         return Sample(wi, fr * wi_dot_n * (2. * M_PI));
     }
 }
