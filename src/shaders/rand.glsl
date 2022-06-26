@@ -146,6 +146,17 @@ vec2 uniform_sphere_uv(vec3 seed){
     float phi = 2 * M_PI *    uv.y;
     return vec2(theta, phi);
 }
+vec3 uniform_hemisphere(vec3 seed){
+    vec2 uv = rand2(seed);
+    float theta = acos(1. - uv.x);
+    float phi = 2 * M_PI * uv.y;
+    return vec3(
+        cos(phi) * sin(theta),
+        sin(phi) * sin(theta),
+        cos(theta)
+    );
+}
+/*
 vec3 uniform_hemisphere(vec3 normal, vec3 seed){
     vec3 sphere = uniform_sphere(seed);
     if (dot(normal , sphere) <= 0.){
@@ -153,6 +164,7 @@ vec3 uniform_hemisphere(vec3 normal, vec3 seed){
     }
     return sphere;
 }
+*/
 vec2 uniform_hemisphere_uv(vec3 seed){
     vec2 uv = uniform_sphere_uv(seed);
     if (uv.x > 0){

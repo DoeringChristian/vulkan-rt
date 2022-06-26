@@ -40,7 +40,7 @@ void main() {
         return;
     }
 
-    const uint min_rr = 16;
+    const uint min_rr = 2;
 
     //===========================================================
     // Extract geometry information:

@@ -128,9 +128,10 @@ Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
         vec3 fr = specular;
         return Sample(wi, fr * wi_dot_n * (2 * M_PI));
     }
-else{
+    else{
         // Diffuse case
-        vec3 wi = uniform_hemisphere(n, seed);
+        //vec3 wi = uniform_hemisphere(n, seed);
+        vec3 wi = allign_hemisphere(uniform_hemisphere(seed), n);
         float wi_dot_n = max(dot(n, wi), 0.);
 
         vec3 fr = (1. - metallic) * albedo / M_PI;
