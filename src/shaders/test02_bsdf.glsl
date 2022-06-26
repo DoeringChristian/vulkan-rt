@@ -3,6 +3,20 @@
 
 // From LearnOpenGL
 
+float DistributionGGX(vec3 N, vec3 H, float roughness)
+{
+    float a      = roughness*roughness;
+    float a2     = a*a;
+    float NdotH  = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+	
+    float num   = a2;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = M_PI * denom * denom;
+	
+    return num / denom;
+}
+
 float GeometrySchlickGGX(float NdotV, float roughness)
 {
     float r = (roughness + 1.0);
@@ -64,16 +78,16 @@ vec4 sample_DistributionGGX(float roughness, vec3 n, vec3 seed){
     );
 
     n_ndf = allign_hemisphere(n_ndf, n);
-    return vec4(n_ndf, 1./(2. * M_PI));
+    return vec4(normalize(n_ndf), 1./(2. * M_PI));
 }
 
 Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
-    float roughness = mat.mr.y;
     float metallic = mat.mr.x;
+    float roughness = mat.mr.y;
     vec3 albedo = mat.albedo.xyz;
 
-    vec4 ndf_sample = sample_DistributionGGX(roughness, n, seed);
-    vec3 n_ndf = ndf_sample.xyz;
+    //vec4 ndf_sample = sample_DistributionGGX(roughness, n, seed);
+
     
     float n1 = 1.;
     float n2 = 1.;
@@ -90,32 +104,36 @@ Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
     }
     
     vec3 F0 = vec3(0.04);
-    F0 = mix(F0, mat.albedo.xyz, mat.mr.x);
+    F0 = mix(F0, mat.albedo.xyz, metallic);
 
-    vec3 F = fresnelSchlick(max(0., dot(n_ndf, wo)), F0);
+    vec3 F = fresnelSchlick(max(0., dot(n, wo)), F0);
+    //F = vec3(1.);
     
+    vec3 kS = F;
+    vec3 kD = vec3(1.) - kS;
 
-    if (rand(seed + vec3(M_PI)) < length(F)){
+    if (rand(seed + vec3(M_PI)) < F.x){
         // Specular case
+        vec4 ndf_sample = sample_DistributionGGX(roughness, n, seed - vec3(M_PI));
+        vec3 n_ndf = ndf_sample.xyz;
+        
         vec3 wi = reflect(-wo, n_ndf);
         float wi_dot_n = max(dot(n_ndf, wi), 0.);
-        float G = GeometrySmith(n, wo, wi, roughness);
+        float G = GeometrySmith(n_ndf, wo, wi, roughness);
 
-        vec3 numerator = G * F;
-        float denominator = 4. * max(dot(n, wo), 0.) * max(dot(n, wi), 0.) + 0.001;
+        vec3 numerator = G * vec3(1.);
+        float denominator = 4. * max(dot(n_ndf, wo), 0.) * max(dot(n_ndf, wi), 0.) + 0.001;
         vec3 specular = numerator/denominator;
         vec3 fr = specular;
-        return Sample(wi, fr * wi_dot_n / ndf_sample.w / length(F));
+        return Sample(wi, fr * wi_dot_n * (2 * M_PI));
     }
     else{
         // Diffuse case
         vec3 wi = uniform_hemisphere(n, seed);
-        float wi_dot_n = max(dot(n_ndf, wi), 0.);
+        float wi_dot_n = max(dot(n, wi), 0.);
         
-        vec3 kD = vec3(1.) - F;
-        kD *= 1. - metallic;
-        vec3 fr = kD * albedo / M_PI;
+        vec3 fr = (1. - metallic) * albedo / M_PI;
         
-        return Sample(wi, fr * wi_dot_n / ndf_sample.w / length(F));
+        return Sample(wi, fr * wi_dot_n * (2. * M_PI));
     }
 }

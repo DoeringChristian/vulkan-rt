@@ -40,7 +40,7 @@ void main() {
         return;
     }
 
-    const uint min_rr = 2;
+    const uint min_rr = 16;
 
     //===========================================================
     // Extract geometry information:
@@ -132,7 +132,7 @@ void main() {
     //vec3 brdf = eval(norm, wo, wip.xyz, inter_mat) / wip.w;
     //Sample s = generate_sample(norm, wo, inter_mat, pos);
     //Evaluation evaluation = eval(norm, wo, s, inter_mat);
-    Sample s = generate_sample(norm, wo, inter_mat, pos);
+    Sample s = generate_sample(normalize(norm), wo, inter_mat, pos);
     
 
     payload.dir = s.dir;
