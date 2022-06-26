@@ -109,8 +109,8 @@ Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, mat.albedo.xyz, metallic);
 
-    vec3 F = fresnelSchlick(max(0., dot(n_ndf, wo)), F0);
-    //F = vec3(1.);
+    vec3 F = fresnelSchlick(max(0., dot(n, wo)), F0);
+    //F = vec3(0.);
 
     vec3 kS = F;
     vec3 kD = vec3(1.) - kS;
@@ -130,6 +130,7 @@ Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
     }
     else{
         // Diffuse case
+        // For some reason we are sampeling into the void.
         //vec3 wi = uniform_hemisphere(n, seed);
         vec3 wi = allign_hemisphere(uniform_hemisphere(seed), n);
         float wi_dot_n = max(dot(n, wi), 0.);

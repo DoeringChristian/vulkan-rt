@@ -134,7 +134,6 @@ void main() {
     //Evaluation evaluation = eval(norm, wo, s, inter_mat);
     Sample s = generate_sample(normalize(norm), wo, inter_mat, pos);
     
-
     payload.dir = s.dir;
 
     // thrgouhput roussian roulette propability
@@ -148,7 +147,7 @@ void main() {
     payload.attenuation *= s.bsdf / p_rr;
 
     // DEBUG:
-    //payload.color = vec3(inter_mat.mr.y);
+    //payload.color = payload.dir;
     
     if (rand(vec3(payload.dir)) >= p_rr){
         payload.ray_active = 0;
