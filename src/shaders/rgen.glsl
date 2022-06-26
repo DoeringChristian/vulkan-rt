@@ -53,7 +53,9 @@ void main() {
                     payload.orig, 0.001, payload.dir, 10000.0, 0);
     }
     // DEBUG: boost light:
-    payload.color *= 10.;
+    //payload.color *= 10.;
+    //payload.color = payload.color/(payload.color + vec3(1.));
+    //payload.color = pow(payload.color, vec3(1.0/2.2));
     if (N == 0){
         color = payload.color;
     }

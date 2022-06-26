@@ -16,6 +16,10 @@ vec4 linear_to_srgb(vec4 linear)
 }
 
 void main(){
-    o_color = linear_to_srgb(texture(image_sampler_llr, i_uv));
+    //o_color = linear_to_srgb(texture(image_sampler_llr, i_uv));
+    vec3 color = texture(image_sampler_llr, i_uv).rgb;
+    color = color/(color + vec3(1.));
+    color = pow(color, vec3(1./2.2));
+    o_color = vec4(color, 1.);
     //o_color = vec4(1., 0., 0., 1.);
 }
