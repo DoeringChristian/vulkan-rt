@@ -115,7 +115,6 @@ Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior
 
     //float kS = F_avg;
     float kS = fresnelSchlickReflectAmount(max(0, dot(m, wo)), n1, n2, F0_avg);
-    kS = 0.;
     float kD = 1. - kS;
 
     if (rand(seed + vec3(M_PI)) < kS){
