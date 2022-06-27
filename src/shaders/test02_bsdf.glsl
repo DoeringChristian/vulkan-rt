@@ -63,7 +63,7 @@ struct Sample{
 };
 
 // from https://agraphicsguy.wordpress.com/2015/11/01/sampling-microfacet-brdf/
-vec4 sample_DistributionGGX(float roughness, vec3 n, vec3 seed){
+vec3 sample_DistributionGGX(float roughness, vec3 n, vec3 seed){
     float a = roughness * roughness;
     float a2 = a * a;
 
@@ -72,85 +72,97 @@ vec4 sample_DistributionGGX(float roughness, vec3 n, vec3 seed){
     float theta = acos(sqrt((1. - e.x)/((a2 - 1.) * e.x + 1.)));
     float phi = 2. * M_PI * e.y;
 
-    vec3 n_ndf = vec3(
+    vec3 m = vec3(
         cos(phi) * sin(theta),
         sin(phi) * sin(theta),
         cos(theta)
     );
 
-    n_ndf = allign_hemisphere(n_ndf, n);
-    return vec4(normalize(n_ndf), 1./(2. * M_PI));
+    return allign_hemisphere(m, n);
 }
 
-Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior, vec3 seed){
-    vec3 attenuation = vec3(1.);
-    float metallic = mat.mr.x;
-    //metallic = 0.;
-    float roughness = mat.mr.y;
-    vec3 albedo = mat.albedo.xyz;
+struct HitInfo{
+    vec3 pos;
+    vec3 wo;
+    vec3 n;
+    InterMaterial mat;
+};
 
-    //vec4 ndf_sample = sample_DistributionGGX(roughness, n, seed);
+//Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior, vec3 seed){
+void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
+
+    ray.orig = hit.pos;
+    ray.color += ray.attenuation * hit.mat.emission.rgb * 2.;
+    //ray.color = hit.n;
+    
+    float metallic = hit.mat.mr.x;
+    float roughness = hit.mat.mr.y;
+    vec3 albedo = hit.mat.albedo.xyz;
 
     
     // Accumulative ior should work since n3/n2 = (n3 * n2 * n1) / (n2 * n1);
-    float n1 = ior;
-    float n2 = ior * mat.ior;
-    if (dot(n, wo) < 0){
+    float n1 = ray.ior;
+    float n2 = ray.ior * hit.mat.ior;
+    if (dot(hit.n, hit.wo) < 0){
         // We assume that if we leave the material we return to air.
-        n2 = ior / mat.ior;
+        n2 = ray.ior / hit.mat.ior;
         //attenuation *= exp(- mat.albedo.rgb * dist);
     }
     
-    vec4 ndf_sample = sample_DistributionGGX(roughness, n, seed - vec3(M_PI));
     // m is the microfacet normal
-    vec3 m = ndf_sample.xyz;
+    vec3 m = sample_DistributionGGX(roughness, hit.n, seed - vec3(M_PI));
     
-    float R0_sqrt = (n1 - n2) / (n1 + n2);
-    vec3 F0 = vec3(R0_sqrt * R0_sqrt);
-    F0 = mix(F0, mat.albedo.xyz, metallic);
+    float F0_sqrt = (n1 - n2) / (n1 + n2);
+    vec3 F0 = vec3(F0_sqrt * F0_sqrt);
+    F0 = mix(F0, albedo, metallic);
     float F0_avg = (F0.x+F0.y+F0.z)/3.;
 
-    vec3 F = fresnelSchlick(max(0., dot(m, wo)), F0);
+    vec3 F = fresnelSchlick(max(0., dot(m, hit.wo)), F0);
     //float F_avg = (F.x+F.y+F.z)/3.;
     //F = vec3(0.);
 
     //float kS = F_avg;
-    float kS = fresnelSchlickReflectAmount(max(0, dot(m, wo)), n1, n2, F0_avg);
+    float kS = fresnelSchlickReflectAmount(max(0, dot(m, hit.wo)), n1, n2, F0_avg);
     float kD = 1. - kS;
 
     if (rand(seed + vec3(M_PI)) < kS){
         // Specular case
 
-        vec3 wi = reflect(-wo, m);
+        vec3 wi = reflect(-hit.wo, m);
         float wi_dot_n = max(dot(m, wi), 0.);
-        float G = GeometrySmith(n, wo, wi, roughness);
+        float G = GeometrySmith(hit.n, hit.wo, wi, roughness);
 
         vec3 numerator = G * vec3(1.);
-        float denominator = 4. * max(dot(m, wo), 0.) * max(dot(m, wi), 0.) + 0.001;
+        float denominator = 4. * max(dot(m, hit.wo), 0.) * max(dot(m, wi), 0.) + 0.001;
         vec3 specular = numerator/denominator;
         vec3 fr = specular * F;
-        return Sample(wi, attenuation * fr * wi_dot_n * (2 * M_PI) / kS, ior);
+        ray.attenuation *= fr * wi_dot_n * (2 * M_PI) / kS;
+        ray.dir = wi;
     }
     else{
 
-        if(rand(seed - vec3(M_PI)) >= mat.transmission){
+        if(rand(seed - vec3(M_PI)) >= hit.mat.transmission){
             // Diffuse Case
-            vec3 wi = allign_hemisphere(uniform_hemisphere(seed), n);
-            float wi_dot_n = max(dot(n, wi), 0.);
+            vec3 wi = allign_hemisphere(uniform_hemisphere(seed), hit.n);
+            float wi_dot_n = max(dot(hit.n, wi), 0.);
 
             vec3 fr =  (1. - metallic) * albedo / M_PI;
 
-            return Sample(wi, attenuation * fr * wi_dot_n * (2. * M_PI), ior);
+            ray.attenuation *= fr * wi_dot_n * (2. * M_PI);
+            ray.dir = wi;
         }
         else{
             // Refraction case
-            vec3 wi = refract(wo, n, n2/n1);
+            vec3 wi = refract(hit.wo, hit.n, n2/n1);
             float wi_dot_n = max(dot(-m, wi), 0.);
 
             vec3 fr = vec3(1.);
 
             //return Sample(wi, wi, n2);
-            return Sample(wi, attenuation * fr * (2 * M_PI), n2);
+            ray.attenuation *= fr * (2. * M_PI);
+            ray.ior = n2;
+            ray.dir = wi;
         }
     }
+    //ray.color = hit.mat.emission.rgb;
 }
