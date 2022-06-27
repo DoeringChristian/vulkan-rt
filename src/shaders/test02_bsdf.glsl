@@ -92,11 +92,12 @@ Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior
     //vec4 ndf_sample = sample_DistributionGGX(roughness, n, seed);
 
     
+    // Accumulative ior should work since n3/n2 = (n3 * n2 * n1) / (n2 * n1);
     float n1 = ior;
-    float n2 = mat.ior;
+    float n2 = ior * mat.ior;
     if (dot(n, wo) < 0){
         // We assume that if we leave the material we return to air.
-        n2 = 1.;
+        n2 = ior / mat.ior;
         //attenuation *= exp(- mat.albedo.rgb * dist);
     }
     
