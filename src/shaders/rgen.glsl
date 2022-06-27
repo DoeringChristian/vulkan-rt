@@ -31,8 +31,9 @@ void main() {
 
     payload.color = vec3(0.);
     payload.attenuation = vec3(1.);
+    payload.ior = 1.;
 
-    payload.prop = 1.;
+    //payload.prop = 1.;
     
     payload.depth = 0;
     payload.ray_active = 1;

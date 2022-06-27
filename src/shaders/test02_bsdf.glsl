@@ -59,6 +59,7 @@ float fresnelSchlickReflectAmount(float cosTheta, float n1, float n2, float f0){
 struct Sample{
     vec3 dir;
     vec3 bsdf;
+    float ior;
 };
 
 // from https://agraphicsguy.wordpress.com/2015/11/01/sampling-microfacet-brdf/
@@ -81,7 +82,8 @@ vec4 sample_DistributionGGX(float roughness, vec3 n, vec3 seed){
     return vec4(normalize(n_ndf), 1./(2. * M_PI));
 }
 
-Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
+Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior, vec3 seed){
+    vec3 attenuation = vec3(1.);
     float metallic = mat.mr.x;
     //metallic = 0.;
     float roughness = mat.mr.y;
@@ -90,33 +92,31 @@ Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
     //vec4 ndf_sample = sample_DistributionGGX(roughness, n, seed);
 
     
-    float n1 = 1.;
-    float n2 = 1.;
-    if (dot(n, wo) > 0){
-        // the light is reflecting/refacting from the ari.
-        n1 = 1.;
-        //n2 = mat.ior;
-        n2 = 1.04;
-    }
-    else{
-        //n1 = mat.ior;
-        n1 = 1.04;
+    float n1 = ior;
+    float n2 = mat.ior;
+    if (dot(n, wo) < 0){
+        // We assume that if we leave the material we return to air.
         n2 = 1.;
+        //attenuation *= exp(- mat.albedo.rgb * dist);
     }
     
     vec4 ndf_sample = sample_DistributionGGX(roughness, n, seed - vec3(M_PI));
     // m is the microfacet normal
     vec3 m = ndf_sample.xyz;
     
-    vec3 F0 = vec3(0.04);
+    float R0_sqrt = (n1 - n2) / (n1 + n2);
+    vec3 F0 = vec3(R0_sqrt * R0_sqrt);
     F0 = mix(F0, mat.albedo.xyz, metallic);
+    float F0_avg = (F0.x+F0.y+F0.z)/3.;
 
     vec3 F = fresnelSchlick(max(0., dot(m, wo)), F0);
-    float F_avg = (F.x+F.y+F.z)/3.;
+    //float F_avg = (F.x+F.y+F.z)/3.;
     //F = vec3(0.);
 
-    float kS = F_avg;
-    float kD = 1. - F_avg;
+    //float kS = F_avg;
+    float kS = fresnelSchlickReflectAmount(max(0, dot(m, wo)), n1, n2, F0_avg);
+    kS = 0.;
+    float kD = 1. - kS;
 
     if (rand(seed + vec3(M_PI)) < kS){
         // Specular case
@@ -129,15 +129,28 @@ Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
         float denominator = 4. * max(dot(m, wo), 0.) * max(dot(m, wi), 0.) + 0.001;
         vec3 specular = numerator/denominator;
         vec3 fr = specular * F;
-        return Sample(wi, fr * wi_dot_n * (2 * M_PI) / kS);
+        return Sample(wi, attenuation * fr * wi_dot_n * (2 * M_PI) / kS, ior);
     }
     else{
-        // Diffuse case
-        vec3 wi = allign_hemisphere(uniform_hemisphere(seed), n);
-        float wi_dot_n = max(dot(n, wi), 0.);
 
-        vec3 fr =  (1. - metallic) * albedo / M_PI;
+        if(rand(seed - vec3(M_PI)) >= mat.transmission){
+            // Diffuse Case
+            vec3 wi = allign_hemisphere(uniform_hemisphere(seed), n);
+            float wi_dot_n = max(dot(n, wi), 0.);
 
-        return Sample(wi, fr * wi_dot_n * (2. * M_PI));
+            vec3 fr =  (1. - metallic) * albedo / M_PI;
+
+            return Sample(wi, attenuation * fr * wi_dot_n * (2. * M_PI), ior);
+        }
+        else{
+            // Refraction case
+            vec3 wi = refract(wo, n, n2/n1);
+            float wi_dot_n = max(dot(-m, wi), 0.);
+
+            vec3 fr = vec3(1.);
+
+            //return Sample(wi, wi, n2);
+            return Sample(wi, attenuation * fr * (2 * M_PI), n2);
+        }
     }
 }

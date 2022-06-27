@@ -128,13 +128,15 @@ void main() {
     payload.orig = pos;
 
     vec3 wo = normalize(-prev_dir);
+    float dist = length(prev_pos - pos);
     //vec4 wip = generate_sample(norm, wo, inter_mat, pos);
     //vec3 brdf = eval(norm, wo, wip.xyz, inter_mat) / wip.w;
     //Sample s = generate_sample(norm, wo, inter_mat, pos);
     //Evaluation evaluation = eval(norm, wo, s, inter_mat);
-    Sample s = generate_sample(normalize(norm), wo, inter_mat, pos);
+    Sample s = generate_sample(normalize(norm), wo, dist, inter_mat, payload.ior, pos);
     
     payload.dir = s.dir;
+    payload.ior = s.ior;
 
     // thrgouhput roussian roulette propability
     //p_{RR} = max_{RGB}\leftb( \prod_{d = 1}^{D-1} \left({f_r(x_d, w_d \rightarrow v_d) cos(\theta_d)) \over p(w_d)p_{RR_d}}\right)\right)
@@ -143,16 +145,19 @@ void main() {
         p_rr = 1.;
     }
 
-    payload.color += payload.attenuation * inter_mat.emission.xyz;
+    payload.color += payload.attenuation * inter_mat.emission.xyz * 2.;
+    
     payload.attenuation *= s.bsdf / p_rr;
-
-    // DEBUG:
-    //payload.color = inter_mat.albedo.rgb;
     
     if (rand(vec3(payload.dir)) >= p_rr){
         payload.ray_active = 0;
         return;
     }
+    
+
+    // DEBUG:
+    //payload.color = payload.attenuation;
+    
 
     payload.depth += 1;
 }
