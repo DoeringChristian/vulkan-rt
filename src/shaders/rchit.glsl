@@ -92,7 +92,26 @@ void main() {
     //===========================================================
     // Interpolate Material:
     //===========================================================
-    InterMaterial inter_mat = InterMaterial(mat.albedo, vec2(mat.mr.x, mat.mr.y), mat.emission, mat.transmission, mat.ior);
+    vec3 prev_pos = payload.orig;
+    vec3 prev_dir = payload.dir;
+
+    //payload.orig = pos;
+
+    vec3 wo = normalize(-prev_dir);
+    float dist = length(prev_pos - pos);
+    
+    HitInfo hit = { 
+        mat.albedo,
+        mat.emission,
+        mat.mr.x,
+        mat.mr.y,
+        mat.transmission,
+        mat.ior,
+
+        pos,
+        wo,
+        norm,
+    };
 
     // TODO: material interpolation and tangent space.
     vec2 uv0 = vert0.uv.xy;
@@ -100,11 +119,13 @@ void main() {
     vec2 uv2 = vert2.uv.xy;
     vec2 uv = uv0 * barycentric.x + uv1 * barycentric.y + uv2 * barycentric.z;
     if (mat.albedo_tex != INDEX_UNDEF){
-        inter_mat.albedo = texture(textures[mat.albedo_tex], uv);
+        hit.albedo = texture(textures[mat.albedo_tex], uv);
     }
     if (mat.mr_tex != INDEX_UNDEF){
         // As specified by gltf specs the blue chanel stores metallness, the green chanel roughness.
-        inter_mat.mr = texture(textures[mat.mr_tex], uv).bg;
+        vec2 mr = texture(textures[mat.mr_tex], uv).bg;
+        hit.metallic = mr.x;
+        hit.roughness = mr.y;
     }
     if (mat.normal_tex != INDEX_UNDEF){
         mat3 TBN = compute_TBN(uv1 - uv0, uv2 - uv0, pos1 - pos0, pos2 - pos0, norm);
@@ -114,6 +135,7 @@ void main() {
         norm_tex = vec3(norm_tex.x, 1.-norm_tex.y, norm_tex.z);
         norm_tex = normalize(norm_tex * 2. - 1.);
         norm = normalize(TBN * norm_tex);
+        hit.n = norm;
     }
 
 
@@ -122,23 +144,8 @@ void main() {
     // Call BRDF functions:
     //===========================================================
     
-    vec3 prev_pos = payload.orig;
-    vec3 prev_dir = payload.dir;
-
-    //payload.orig = pos;
-
-    vec3 wo = normalize(-prev_dir);
-    float dist = length(prev_pos - pos);
-    //vec4 wip = generate_sample(norm, wo, inter_mat, pos);
-    //vec3 brdf = eval(norm, wo, wip.xyz, inter_mat) / wip.w;
-    //Sample s = generate_sample(norm, wo, inter_mat, pos);
-    //Evaluation evaluation = eval(norm, wo, s, inter_mat);
-    HitInfo hit = HitInfo(pos, wo, normalize(norm), inter_mat);
     sample_shader(hit, payload, pos);
     
-    //payload.dir = s.dir;
-    //payload.ior = s.ior;
-
     // thrgouhput roussian roulette propability
     //p_{RR} = max_{RGB}\leftb( \prod_{d = 1}^{D-1} \left({f_r(x_d, w_d \rightarrow v_d) cos(\theta_d)) \over p(w_d)p_{RR_d}}\right)\right)
     float p_rr = max(payload.attenuation.r, max(payload.attenuation.g, payload.attenuation.b));

@@ -15,12 +15,18 @@ struct Material {
     uint normal_tex;
 };
 
-struct InterMaterial{
+struct HitInfo{
     vec4 albedo;
-    vec2 mr;
     vec4 emission;
+    float metallic;
+    float roughness;
     float transmission;
     float ior;
+
+    
+    vec3 pos;
+    vec3 wo;
+    vec3 n;
 };
 
 #define INDEX_UNDEF 0xffffffff

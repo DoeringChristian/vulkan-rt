@@ -81,31 +81,24 @@ vec3 sample_DistributionGGX(float roughness, vec3 n, vec3 seed){
     return allign_hemisphere(m, n);
 }
 
-struct HitInfo{
-    vec3 pos;
-    vec3 wo;
-    vec3 n;
-    InterMaterial mat;
-};
-
 //Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior, vec3 seed){
 void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
 
     ray.orig = hit.pos;
-    ray.color += ray.attenuation * hit.mat.emission.rgb * 2.;
+    ray.color += ray.attenuation * hit.emission.rgb * 2.;
     //ray.color = hit.n;
     
-    float metallic = hit.mat.mr.x;
-    float roughness = hit.mat.mr.y;
-    vec3 albedo = hit.mat.albedo.xyz;
+    float metallic = hit.metallic;
+    float roughness = hit.roughness;
+    vec3 albedo = hit.albedo.rgb;
 
     
     // Accumulative ior should work since n3/n2 = (n3 * n2 * n1) / (n2 * n1);
     float n1 = ray.ior;
-    float n2 = ray.ior * hit.mat.ior;
+    float n2 = ray.ior * hit.ior;
     if (dot(hit.n, hit.wo) < 0){
         // We assume that if we leave the material we return to air.
-        n2 = ray.ior / hit.mat.ior;
+        n2 = ray.ior / hit.ior;
         //attenuation *= exp(- mat.albedo.rgb * dist);
     }
     
@@ -118,7 +111,6 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     float F0_avg = (F0.x+F0.y+F0.z)/3.;
 
     vec3 F = fresnelSchlick(max(0., dot(m, hit.wo)), F0);
-    //float F_avg = (F.x+F.y+F.z)/3.;
     //F = vec3(0.);
 
     //float kS = F_avg;
@@ -141,7 +133,7 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     }
     else{
 
-        if(rand(seed - vec3(M_PI)) >= hit.mat.transmission){
+        if(rand(seed - vec3(M_PI)) >= hit.transmission){
             // Diffuse Case
             vec3 wi = allign_hemisphere(uniform_hemisphere(seed), hit.n);
             float wi_dot_n = max(dot(hit.n, wi), 0.);
@@ -164,5 +156,4 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
             ray.dir = wi;
         }
     }
-    //ray.color = hit.mat.emission.rgb;
 }
