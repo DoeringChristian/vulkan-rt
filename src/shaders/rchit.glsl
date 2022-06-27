@@ -152,8 +152,6 @@ void main() {
     if (payload.depth < min_rr){
         p_rr = 1.;
     }
-
-    //payload.color += payload.attenuation * inter_mat.emission.xyz * 2.;
     
     payload.attenuation *= 1. / p_rr;
     
@@ -162,10 +160,5 @@ void main() {
         return;
     }
     
-
-    // DEBUG:
-    //payload.color = payload.attenuation;
-    
-
     payload.depth += 1;
 }
