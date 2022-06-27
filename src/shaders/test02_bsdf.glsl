@@ -83,6 +83,7 @@ vec4 sample_DistributionGGX(float roughness, vec3 n, vec3 seed){
 
 Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
     float metallic = mat.mr.x;
+    //metallic = 0.;
     float roughness = mat.mr.y;
     vec3 albedo = mat.albedo.xyz;
 
@@ -135,7 +136,7 @@ Sample generate_sample(vec3 n, vec3 wo, InterMaterial mat, vec3 seed){
         vec3 wi = allign_hemisphere(uniform_hemisphere(seed), n);
         float wi_dot_n = max(dot(n, wi), 0.);
 
-        vec3 fr = (1. - metallic) * albedo;
+        vec3 fr =  (1. - metallic) * albedo / M_PI;
 
         return Sample(wi, fr * wi_dot_n * (2. * M_PI));
     }

@@ -111,7 +111,7 @@ void main() {
         
         vec3 norm_tex = texture(textures[mat.normal_tex], uv).rgb;
         // need to invert the y component of the normal texture.
-        norm_tex = vec3(1.-norm_tex.x, 1.-norm_tex.y, norm_tex.z);
+        norm_tex = vec3(norm_tex.x, 1.-norm_tex.y, norm_tex.z);
         norm_tex = normalize(norm_tex * 2. - 1.);
         norm = normalize(TBN * norm_tex);
     }
@@ -147,7 +147,7 @@ void main() {
     payload.attenuation *= s.bsdf / p_rr;
 
     // DEBUG:
-    //payload.color = payload.dir;
+    //payload.color = inter_mat.albedo.rgb;
     
     if (rand(vec3(payload.dir)) >= p_rr){
         payload.ray_active = 0;

@@ -158,6 +158,7 @@ impl GpuScene {
                 .as_ref()
                 .unwrap()
                 .build(cache, rgraph, &blas_nodes);
+            //println!("Rebuild TLAS");
         }
     }
     pub fn cleanup_stage(&mut self) {
@@ -173,6 +174,7 @@ impl GpuScene {
         for blas in self.blases.values_mut() {
             blas.status = ResourceStatus::Unchanged;
         }
+        self.tlas.as_mut().unwrap().status = ResourceStatus::Unchanged;
     }
     fn recreate_tlas(&mut self, device: &Arc<Device>) {
         let mut instances = vec![];
