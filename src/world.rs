@@ -158,6 +158,7 @@ impl GpuScene {
                 .as_ref()
                 .unwrap()
                 .build(cache, rgraph, &blas_nodes);
+            self.camera.fc = 0;
             //println!("Rebuild TLAS");
         }
     }
