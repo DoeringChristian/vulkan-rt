@@ -125,12 +125,12 @@ void sample_diffuse(HitInfo hit, inout Payload ray, vec3 m, vec3 seed){
 
 void sample_refraction(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2, vec3 seed){
     vec3 wi = refract(-hit.wo, m, n1/n2);
-    float wi_dot_n = max(dot(m, wi), 0.);
+    float wi_dot_n = max(dot(m, -wi), 0.);
 
     vec3 fr = vec3(1.);
 
     // Sample:
-    ray.attenuation *= fr * (2. * M_PI);
+    ray.attenuation *= fr * wi_dot_n * (2. * M_PI);
     //ray.ior = n2;
     ray.dir = wi;
 }
@@ -178,7 +178,7 @@ void sample_dielectric(HitInfo hit, inout Payload ray, vec3 m, float n1, float n
 }
 
 void sample_metallic(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2, vec3 seed){
-    vec3 F0 = hit.albedo.rbg;
+    vec3 F0 = hit.albedo.rgb;
     float F0_avg = (F0.r + F0.g + F0.b) / 3.;
     vec3 F = fresnelSchlick(clamp(dot(m, hit.wo), 0., 1.), F0);
     
@@ -202,7 +202,6 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
 
     ray.orig = hit.pos;
     ray.color += ray.attenuation * hit.emission.rgb * 2.;
-    //ray.color = hit.n;
     
     float n1 = 1.;
     float n2 = 1.;
