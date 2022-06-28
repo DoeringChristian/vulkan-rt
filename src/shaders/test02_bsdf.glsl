@@ -149,7 +149,7 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
 
     
     //float kS = fresnelSchlickReflectAmount(max(0, dot(m, hit.wo)), n1, n2, F0_avg);
-    float kS = fresnelSchlickReflectAmount(n2, n1, m, -hit.wo, F0_avg);
+    float kS = fresnelSchlickReflectAmount(n1, n2, m, -hit.wo, F0_avg);
     float kD = 1. - kS;
 
     if (rand(seed + vec3(M_PI)) < kS){
