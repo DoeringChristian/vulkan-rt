@@ -27,6 +27,7 @@ struct HitInfo{
     vec3 pos;
     vec3 wo;
     vec3 n;
+    float dist;
 };
 
 #define INDEX_UNDEF 0xffffffff
