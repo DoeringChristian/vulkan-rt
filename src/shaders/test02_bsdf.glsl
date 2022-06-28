@@ -61,14 +61,15 @@ float fresnelSchlickReflectAmount(float n1, float n2, vec3 normal, vec3 incident
     float r0 = (n1-n2)/(n1+n2);
     r0 *= r0;
     float cosTheta = -dot(normal, incident);
+    /*
     if (n1 > n2)
     {
         float n = n1/n2;
-        float sinT2 = n*n*(1.0- cosTheta * cosTheta);
+        float sin2Theta = n*n*(1.0- cosTheta * cosTheta);
         // Total internal reflection
-        if (sinT2 > 1.0)
+        if (sin2Theta > 1.0)
             return 1.;
-        cosTheta = sqrt(1.0-sinT2);
+        cosTheta = sqrt(1.0 - sin2Theta);
     }
     float x = 1.0 - cosTheta;
     float ret = r0 + (1. - r0) * x * x * x * x * x;
@@ -128,11 +129,11 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     float n1 = 1.;
     float n2 = 1.;
     if (dot(hit.n, hit.wo) < 0){
-        n1 = hit.ior;
-        n2 = 1.;
-    }else{
         n1 = 1.;
         n2 = hit.ior;
+    }else{
+        n1 = hit.ior;
+        n2 = 1.;
     }
     
     // m is the microfacet normal
