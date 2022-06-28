@@ -35,9 +35,9 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 	
     return ggx1 * ggx2;
 }
-vec3 fresnelSchlick(float cosTheta, vec3 F0)
+vec3 fresnelSchlick(float cosTheta, vec3 R0)
 {
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+    return R0 + (1.0 - R0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 float fresnelSchlick(float cosTheta, float R0){
     float x = 1. - cosTheta;
@@ -45,6 +45,7 @@ float fresnelSchlick(float cosTheta, float R0){
 }
 float fresnelSchlick(float cosTheta, float n1, float n2){
     float r0 = (n1-n2)/(n1+n2);
+    r0 *= r0;
     if (n1 > n2){
         float n = n1/n2;
         float sin2Theta = n*n*(1. - cosTheta * cosTheta);
@@ -54,6 +55,22 @@ float fresnelSchlick(float cosTheta, float n1, float n2){
         cosTheta = sqrt(1. - sin2Theta);
     }
     return fresnelSchlick(cosTheta, r0);
+}
+float fresnelSchlick(float cosTheta, float n1, float n2, float f0, float f90){
+    float r0 = (n1-n2)/(n1+n2);
+    r0 *= r0;
+    if (n1 > n2){
+        float n = n1/n2;
+        float sin2Theta = n*n*(1. - cosTheta * cosTheta);
+        if (sin2Theta > 1.){
+            return f90;
+        }
+        cosTheta = sqrt(1. - sin2Theta);
+    }
+    
+    float x = 1.0 - cosTheta;
+    float ret = r0 + (1. - r0) * x * x * x * x * x;
+    return mix(f0, f90, ret);
 }
 //https://blog.demofox.org/2020/06/14/casual-shadertoy-path-tracing-3-fresnel-rough-refraction-absorption-orbit-camera/
 float fresnelSchlickReflectAmount(float n1, float n2, vec3 normal, vec3 incident, float f0){
@@ -157,7 +174,8 @@ void sample_dielectric(HitInfo hit, inout Payload ray, vec3 m, float n1, float n
     //F = vec3(0.);
 
     
-    float kS = fresnelSchlickReflectAmount(n1, n2, m, -hit.wo, F0);
+    //float kS = fresnelSchlickReflectAmount(n1, n2, m, -hit.wo, F0);
+    float kS = fresnelSchlick(dot(m, hit.wo), n1, n2, F0, 1.);
     float kD = 1. - kS;
 
     if (rand(seed + vec3(M_PI)) < kS){
@@ -210,7 +228,8 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
         hit.n = -hit.n;
         n1 = hit.ior;
         n2 = 1.;
-        ray.attenuation *= vec3(exp(-hit.dist * hit.albedo.r), exp(-hit.dist * hit.albedo.g) , exp(-hit.dist * hit.albedo.b));
+        // Don't quite know where the 2PI term comes from.
+        ray.attenuation *= exp(-2 * M_PI / hit.albedo.rgb * hit.dist);
     }else{
         // From outside of material
         n1 = 1.;
