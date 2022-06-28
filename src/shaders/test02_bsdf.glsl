@@ -172,11 +172,9 @@ void sample_specular(HitInfo hit, inout Payload ray, vec3 m, vec3 seed){
 void sample_dielectric(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2, vec3 seed){
     float F0_sqrt = (n1 - n2) / (n1 + n2);
     float F0 = F0_sqrt * F0_sqrt;
-    //F = vec3(0.);
-
     
     //float kS = fresnelSchlickReflectAmount(n1, n2, m, -hit.wo, F0);
-    float kS = mix(0., 1., fresnelSchlick(dot(m, hit.wo), n1, n2, F0, 1.));
+    float kS = fresnelSchlick(dot(m, hit.wo), n1, n2, F0, 1.);
     float kD = 1. - kS;
 
     if (rand(seed + vec3(M_PI)) < kS){
@@ -199,11 +197,13 @@ void sample_dielectric(HitInfo hit, inout Payload ray, vec3 m, float n1, float n
 void sample_metallic(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2, vec3 seed){
     vec3 F0 = hit.albedo.rgb;
     float F0_avg = (F0.r + F0.g + F0.b) / 3.;
-    vec3 F = fresnelSchlick(clamp(dot(m, hit.wo), 0., 1.), F0);
+    //vec3 F = fresnelSchlick(clamp(dot(m, hit.wo), 0., 1.), F0);
     
     //float kS = fresnelSchlickReflectAmount(n1, n2, m, -hit.wo, 0.);
     float kS = fresnelSchlick(clamp(dot(m, hit.wo), 0., 1.), F0_avg);
     float kD = 1. - kS;
+
+    vec3 F = mix(F0, vec3(1.), kS);
     
     if (rand(seed + vec3(M_PI)) < kS){
         // Specular case
@@ -222,9 +222,14 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     ray.orig = hit.pos;
     ray.color += ray.attenuation * hit.emission.rgb;
     
+    // DEBUG:
+    //ray.color = hit.n;
+    //ray.color = vec3(max(0., -dot(hit.gnorm, hit.wo) * 200.));
+    //return;
+    
     float n1 = 1.;
     float n2 = 1.;
-    if (dot(hit.n, hit.wo) < 0){
+    if (dot(hit.gnorm, hit.wo) < 0.){
         // From inside of material
         hit.n = -hit.n;
         n1 = hit.ior;
@@ -251,4 +256,5 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     // Debug:
     //ray.color = ray.dir;
     //ray.color = vec3(kS);
+    //ray.color = hit.n;
 }

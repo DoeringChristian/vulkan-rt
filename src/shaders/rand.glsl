@@ -156,15 +156,13 @@ vec3 uniform_hemisphere(vec3 seed){
         cos(theta)
     );
 }
-/*
-vec3 uniform_hemisphere(vec3 normal, vec3 seed){
+vec3 uniform_hemisphere_alligned(vec3 normal, vec3 seed){
     vec3 sphere = uniform_sphere(seed);
     if (dot(normal , sphere) <= 0.){
         return reflect(sphere, normal);
     }
     return sphere;
 }
-*/
 vec2 uniform_hemisphere_uv(vec3 seed){
     vec2 uv = uniform_sphere_uv(seed);
     if (uv.x > 0){

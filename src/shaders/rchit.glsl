@@ -77,6 +77,7 @@ void main() {
     vec3 norm0 = vert0.normal.xyz;
     vec3 norm1 = vert1.normal.xyz;
     vec3 norm2 = vert2.normal.xyz;
+    vec3 gnorm = normalize(cross(pos1 - pos0, pos2 - pos0));
     if (length(norm0) > 0.1 && length(norm1) > 0.1 && length(norm2) > 0.1){
         norm0 = normalize(norm0);
         norm1 = normalize(norm1);
@@ -86,7 +87,7 @@ void main() {
         norm = normalize(inverse(transpose(mat3(transform))) * norm);
     }
     else{
-        norm = normalize(cross(pos1 - pos0, pos2 - pos0));
+        norm = gnorm;
     }
 
     //===========================================================
@@ -110,6 +111,7 @@ void main() {
 
         pos,
         wo,
+        gnorm,
         norm,
         dist,
     };
