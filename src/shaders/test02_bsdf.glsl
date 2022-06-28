@@ -61,7 +61,6 @@ float fresnelSchlickReflectAmount(float n1, float n2, vec3 normal, vec3 incident
     float r0 = (n1-n2)/(n1+n2);
     r0 *= r0;
     float cosTheta = -dot(normal, incident);
-    /*
     if (n1 > n2)
     {
         float n = n1/n2;
@@ -129,11 +128,14 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     float n1 = 1.;
     float n2 = 1.;
     if (dot(hit.n, hit.wo) < 0){
-        n1 = 1.;
-        n2 = hit.ior;
-    }else{
+        // From inside of material
+        hit.n = -hit.n;
         n1 = hit.ior;
         n2 = 1.;
+    }else{
+        // From outside of material
+        n1 = 1.;
+        n2 = hit.ior;
     }
     
     // m is the microfacet normal
@@ -145,7 +147,7 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     F0 = mix(F0, albedo, metallic);
     float F0_avg = (F0.x+F0.y+F0.z)/3.;
 
-    vec3 F = fresnelSchlick(max(0., dot(m, hit.wo)), F0);
+    vec3 F = fresnelSchlick(dot(m, hit.wo), F0);
     //F = vec3(0.);
 
     
