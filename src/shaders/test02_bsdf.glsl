@@ -94,6 +94,24 @@ vec3 sample_DistributionGGX(float roughness, vec3 n, vec3 seed){
     return allign_hemisphere(m, n);
 }
 
+vec3 sample_DistributionBeckmann(float roughness, vec3 n, vec3 seed){
+    float a = roughness * roughness;
+    float a2 = a * a;
+
+    vec2 e = rand2(seed);
+
+    float theta = acos(sqrt(1./(1. - a2 * log(1. - e.x))));
+    float phi = 2. * M_PI * e.y;
+
+    vec3 m = vec3(
+        cos(phi) * sin(theta),
+        sin(phi) * sin(theta),
+        cos(theta)
+    );
+
+    return allign_hemisphere(m, n);
+}
+
 //Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior, vec3 seed){
 void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
 
@@ -118,7 +136,8 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     }
     
     // m is the microfacet normal
-    vec3 m = sample_DistributionGGX(roughness, hit.n, seed - vec3(M_PI));
+    //vec3 m = sample_DistributionGGX(roughness, hit.n, seed - vec3(M_PI));
+    vec3 m = sample_DistributionBeckmann(roughness, hit.n, seed - vec3(M_PI));
     
     float F0_sqrt = (n1 - n2) / (n1 + n2);
     vec3 F0 = vec3(F0_sqrt * F0_sqrt);
@@ -130,7 +149,7 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
 
     
     //float kS = fresnelSchlickReflectAmount(max(0, dot(m, hit.wo)), n1, n2, F0_avg);
-    float kS = fresnelSchlickReflectAmount(n1, n2, m, -hit.wo, F0_avg);
+    float kS = fresnelSchlickReflectAmount(n2, n1, m, -hit.wo, F0_avg);
     float kD = 1. - kS;
 
     if (rand(seed + vec3(M_PI)) < kS){
@@ -151,7 +170,7 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     }
     else{
 
-        if(rand(seed - vec3(M_PI)) >= hit.transmission){
+        if(rand(seed - vec3(M_PI * M_PI)) >= hit.transmission){
             // Diffuse Case
             vec3 wi = allign_hemisphere(uniform_hemisphere(seed), hit.n);
             float wi_dot_n = max(dot(hit.n, wi), 0.);
@@ -170,7 +189,7 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
             vec3 fr = vec3(1.);
 
             // Sample:
-            ray.attenuation *= fr * (2. * M_PI);
+            ray.attenuation *= fr * (2. * M_PI) * (1. - F) / kD;
             ray.ior = n2;
             ray.dir = wi;
         }
