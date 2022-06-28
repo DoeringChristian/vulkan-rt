@@ -204,12 +204,6 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     ray.color += ray.attenuation * hit.emission.rgb * 2.;
     //ray.color = hit.n;
     
-    float metallic = hit.metallic;
-    float roughness = hit.roughness;
-    vec3 albedo = hit.albedo.rgb;
-
-    
-    // Accumulative ior should work since n3/n2 = (n3 * n2 * n1) / (n2 * n1);
     float n1 = 1.;
     float n2 = 1.;
     if (dot(hit.n, hit.wo) < 0){
@@ -217,7 +211,7 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
         hit.n = -hit.n;
         n1 = hit.ior;
         n2 = 1.;
-        ray.attenuation *= exp(-hit.dist * albedo);
+        ray.attenuation *= vec3(exp(-hit.dist * hit.albedo.r), exp(-hit.dist * hit.albedo.g) , exp(-hit.dist * hit.albedo.b));
     }else{
         // From outside of material
         n1 = 1.;
@@ -226,7 +220,7 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     
     // m is the microfacet normal
     //vec3 m = sample_DistributionGGX(roughness, hit.n, seed - vec3(M_PI));
-    vec3 m = sample_DistributionBeckmann(roughness, hit.n, seed - vec3(M_PI));
+    vec3 m = sample_DistributionBeckmann(hit.roughness, hit.n, seed - vec3(M_PI));
 
     if (rand(seed + 2 * M_PI) < hit.metallic){
         sample_metallic(hit, ray, m, n1, n2, seed);
