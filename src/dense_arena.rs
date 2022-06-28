@@ -136,6 +136,12 @@ impl<K: Key, V> DenseArena<K, V> {
             None
         }
     }
+    pub fn key(&self, dense_key: usize) -> K {
+        self.get_key(dense_key).unwrap()
+    }
+    pub fn get_key(&self, dense_key: usize) -> Option<K> {
+        self.keys.get(dense_key).map(|k| *k)
+    }
     pub fn values(&self) -> impl Iterator<Item = &V> {
         self.values.iter()
     }

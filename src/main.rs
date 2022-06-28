@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use bevy_ecs::prelude::*;
+use bevy_math::*;
 use {
     bytemuck::cast_slice,
     screen_13::prelude::*,
@@ -114,6 +115,7 @@ fn main() -> anyhow::Result<()> {
     );
 
     let mut fc = 0;
+    let mut angle: f32 = 0.;
 
     event_loop.run(|mut frame| {
         //gpu_scene.update_stage(frame.device);
@@ -247,6 +249,9 @@ fn main() -> anyhow::Result<()> {
                         .add(egui::Slider::new(&mut gpu_scene.camera.pos[2], -10.0..=10.))
                         .changed();
                     recreate_frame |= ui
+                        .add(egui::Slider::new(&mut angle, -10.0..=10.0))
+                        .changed();
+                    recreate_frame |= ui
                         .add(egui::Slider::new(&mut gpu_scene.camera.depth, 0..=16))
                         .changed();
                     if ui.button("Add instance").clicked() {
@@ -258,6 +263,9 @@ fn main() -> anyhow::Result<()> {
             },
         );
         if recreate_frame {
+            let v = Vec3::new(angle.sin(), 0., angle.cos());
+            gpu_scene.camera.up = [v.x, v.y, v.z, 1.];
+            //println!("{:#?}", gpu_scene.camera.right);
             gpu_scene.camera.fc = 0;
         }
 
