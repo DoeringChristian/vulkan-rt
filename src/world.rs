@@ -426,7 +426,7 @@ impl GpuScene {
                             .map(|t| texture_entities[&t.texture().index()])
                     })
                     .flatten();
-                let ior = material.ior().unwrap_or(1.);
+                let ior = material.ior().unwrap_or(1.4);
                 let material_entity = self.insert_material(Material {
                     albedo: mr.base_color_factor(),
                     mr: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],

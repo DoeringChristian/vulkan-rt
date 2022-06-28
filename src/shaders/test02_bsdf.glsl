@@ -130,12 +130,12 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     if (dot(hit.n, hit.wo) < 0){
         // From inside of material
         hit.n = -hit.n;
-        n2 = hit.ior;
-        n1 = 1.;
+        n1 = hit.ior;
+        n2 = 1.;
     }else{
         // From outside of material
-        n2 = 1.;
-        n1 = hit.ior;
+        n1 = 1.;
+        n2 = hit.ior;
     }
     
     // m is the microfacet normal
@@ -186,7 +186,7 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
         }
         else{
             // Refraction case
-            vec3 wi = refract(-hit.wo, hit.n, n2/n1);
+            vec3 wi = refract(-hit.wo, m, n1/n2);
             float wi_dot_n = max(dot(m, wi), 0.);
 
             vec3 fr = vec3(1.);
