@@ -159,7 +159,7 @@ impl Tlas {
         let tlas_node = rgraph.bind_node(&self.accel);
         let geometry_info = self.geometry_info.clone();
         //let primitive_count = scene.blases.len();
-        let primitive_count = blas_nodes.len();
+        let primitive_count = self.instance_buf.count();
 
         // TODO: this is only necesarry to generate blases before tlas.
         /*let blas_nodes = scene

@@ -208,6 +208,7 @@ impl GpuScene {
                 },
             });
         }
+        //println!("Instances: {}", instances.len());
         //trace!("Instances: {}\n\n\n\n\n\n", instances.len());
         self.tlas = Some(Resource::new(Tlas::create(device, &instances)));
     }
