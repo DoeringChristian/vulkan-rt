@@ -1,7 +1,10 @@
-use std::ops::Deref;
+use std::path::Path;
+use std::{fs::read_to_string, ops::Deref};
 
 use bevy_ecs::prelude::*;
 use bevy_math::*;
+use spirv_builder::*;
+use std::fs::File;
 use {
     bytemuck::cast_slice,
     screen_13::prelude::*,
@@ -33,6 +36,15 @@ pub struct PushConstant {
 }
 
 fn create_ray_trace_pipeline(device: &Arc<Device>) -> Result<Arc<RayTracePipeline>, DriverError> {
+    let result = SpirvBuilder::new("./shaders/test01", "spirv-unknown-vulkan1.2")
+        .extension("SPV_KHR_ray_tracing")
+        .capability(Capability::RayTracingKHR)
+        .print_metadata(spirv_builder::MetadataPrintout::Full)
+        .build()
+        .unwrap();
+    let dir = result.module.unwrap_single();
+    let rgen_source = std::fs::read(dir).unwrap();
+    //let rgen_source = read_to_bytes(result.module.unwrap_single());
     Ok(Arc::new(RayTracePipeline::create(
         device,
         RayTracePipelineInfo::new()
@@ -40,8 +52,10 @@ fn create_ray_trace_pipeline(device: &Arc<Device>) -> Result<Arc<RayTracePipelin
             .build(),
         [
             Shader::new_ray_gen(
-                inline_spirv::include_spirv!("src/shaders/rgen.glsl", rgen, vulkan1_2).as_slice(),
-            ),
+                //inline_spirv::include_spirv!("src/shaders/rgen.glsl", rgen, vulkan1_2).as_slice(),
+                rgen_source,
+            )
+            .entry_name(String::from("main_rgen")),
             Shader::new_closest_hit(
                 inline_spirv::include_spirv!("src/shaders/rchit.glsl", rchit, vulkan1_2).as_slice(),
             ),

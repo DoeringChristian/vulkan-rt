@@ -1,0 +1,1 @@
+/home/doeringc/workspace/rust/pt02/shaders/test01/target/spirv-unknown-vulkan1.2/release/libtest01.rlib: /home/doeringc/workspace/rust/pt02/shaders/test01/src/common.rs /home/doeringc/workspace/rust/pt02/shaders/test01/src/lib.rs /home/doeringc/workspace/rust/pt02/target/debug/librustc_codegen_spirv.so

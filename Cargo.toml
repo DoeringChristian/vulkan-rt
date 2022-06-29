@@ -22,3 +22,4 @@ slotmap = { git = "https://github.com/DoeringChristian/slotmap.git", branch = "a
 gltf = {version = "*", features = ["KHR_materials_transmission", "KHR_materials_ior"]}
 image = "*"
 bitflags = "*"
+spirv-builder = { git = "https://github.com/EmbarkStudios/rust-gpu" }
