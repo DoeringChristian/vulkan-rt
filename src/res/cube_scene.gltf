@@ -22,7 +22,8 @@
                 8,
                 9,
                 10,
-                11
+                11,
+                12
             ]
         }
     ],
@@ -125,6 +126,20 @@
                 -0.3158552646636963,
                 -0.1090644896030426,
                 0.2759930193424225
+            ]
+        },
+        {
+            "mesh" : 11,
+            "name" : "Sphere.002",
+            "scale" : [
+                0.11427704244852066,
+                0.11427704244852066,
+                0.11427704244852066
+            ],
+            "translation" : [
+                -0.7663620114326477,
+                0.21133384108543396,
+                -0.33896949887275696
             ]
         }
     ],
@@ -299,6 +314,19 @@
                 "metallicFactor" : 0,
                 "roughnessFactor" : 0
             }
+        },
+        {
+            "doubleSided" : true,
+            "name" : "Material.002",
+            "pbrMetallicRoughness" : {
+                "baseColorFactor" : [
+                    0.1895018070936203,
+                    0.8000000715255737,
+                    0.3169230818748474,
+                    1
+                ],
+                "roughnessFactor" : 0
+            }
         }
     ],
     "meshes" : [
@@ -453,6 +481,20 @@
                     },
                     "indices" : 35,
                     "material" : 10
+                }
+            ]
+        },
+        {
+            "name" : "Sphere.002",
+            "primitives" : [
+                {
+                    "attributes" : {
+                        "POSITION" : 39,
+                        "NORMAL" : 40,
+                        "TEXCOORD_0" : 41
+                    },
+                    "indices" : 42,
+                    "material" : 11
                 }
             ]
         }
@@ -832,6 +874,40 @@
             "componentType" : 5126,
             "count" : 559,
             "type" : "VEC2"
+        },
+        {
+            "bufferView" : 39,
+            "componentType" : 5126,
+            "count" : 559,
+            "max" : [
+                0.9999997019767761,
+                1,
+                0.9999994039535522
+            ],
+            "min" : [
+                -0.9999990463256836,
+                -1,
+                -0.9999987483024597
+            ],
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 40,
+            "componentType" : 5126,
+            "count" : 559,
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 41,
+            "componentType" : 5126,
+            "count" : 559,
+            "type" : "VEC2"
+        },
+        {
+            "bufferView" : 42,
+            "componentType" : 5123,
+            "count" : 2880,
+            "type" : "SCALAR"
         }
     ],
     "bufferViews" : [
@@ -1029,6 +1105,26 @@
             "buffer" : 0,
             "byteLength" : 4472,
             "byteOffset" : 63552
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 6708,
+            "byteOffset" : 68024
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 6708,
+            "byteOffset" : 74732
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 4472,
+            "byteOffset" : 81440
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 5760,
+            "byteOffset" : 85912
         }
     ],
     "samplers" : [
@@ -1039,7 +1135,7 @@
     ],
     "buffers" : [
         {
-            "byteLength" : 68024,
+            "byteLength" : 91672,
             "uri" : "cube_scene.bin"
         }
     ]

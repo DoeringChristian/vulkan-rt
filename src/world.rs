@@ -91,6 +91,9 @@ pub struct GpuScene {
     pub mesh_bufs: DenseArena<MeshKey, Resource<Mesh>>,
 
     pub camera: Resource<GlslCamera>,
+
+    pub rgen_shader: Option<Resource<Shader>>,
+    pub shaders: DenseArena<ShaderKey, Resource<Shader>>,
 }
 
 impl GpuScene {
@@ -337,6 +340,8 @@ impl GpuScene {
             materials: DenseArena::default(),
             textures: DenseArena::default(),
             camera,
+            rgen_shader: None,
+            shaders: DenseArena::default(),
         }
     }
     pub fn append_gltf(&mut self, device: &Arc<Device>) {
