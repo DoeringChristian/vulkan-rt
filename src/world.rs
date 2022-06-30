@@ -340,7 +340,7 @@ impl GpuScene {
         }
     }
     pub fn append_gltf(&mut self, device: &Arc<Device>) {
-        let path = "./src/res/cube_scene.gltf";
+        let path = "./src/res/room.gltf";
         let (gltf, buffers, _) = gltf::import(path).unwrap();
         {
             // Texture loading

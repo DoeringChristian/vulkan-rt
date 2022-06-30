@@ -1,6 +1,13 @@
 use spirv_std::{glam::*, macros::spirv};
 
 #[repr(C, align(16))]
+pub struct Vertex {
+    pub pos: Vec4,
+    pub normal: Vec4,
+    pub uv: Vec4,
+}
+
+#[repr(C, align(16))]
 pub struct Payload {
     pub orig: Vec3,
     pub dir: Vec3,

@@ -43,7 +43,7 @@ fn create_ray_trace_pipeline(device: &Arc<Device>) -> Result<Arc<RayTracePipelin
         .build()
         .unwrap();
     let dir = result.module.unwrap_single();
-    let rgen_source = std::fs::read(dir).unwrap();
+    let shader_src = std::fs::read(dir).unwrap();
     //let rgen_source = read_to_bytes(result.module.unwrap_single());
     Ok(Arc::new(RayTracePipeline::create(
         device,
@@ -53,15 +53,19 @@ fn create_ray_trace_pipeline(device: &Arc<Device>) -> Result<Arc<RayTracePipelin
         [
             Shader::new_ray_gen(
                 //inline_spirv::include_spirv!("src/shaders/rgen.glsl", rgen, vulkan1_2).as_slice(),
-                rgen_source,
+                shader_src.clone(),
             )
             .entry_name(String::from("main_rgen")),
             Shader::new_closest_hit(
-                inline_spirv::include_spirv!("src/shaders/rchit.glsl", rchit, vulkan1_2).as_slice(),
-            ),
+                //inline_spirv::include_spirv!("src/shaders/rchit.glsl", rchit, vulkan1_2).as_slice(),
+                shader_src.clone(),
+            )
+            .entry_name(String::from("main_rchit")),
             Shader::new_miss(
-                inline_spirv::include_spirv!("src/shaders/rmiss.glsl", rmiss, vulkan1_2).as_slice(),
-            ),
+                //inline_spirv::include_spirv!("src/shaders/rmiss.glsl", rmiss, vulkan1_2).as_slice(),
+                shader_src.clone(),
+            )
+            .entry_name(String::from("main_miss")),
         ],
         [
             RayTraceShaderGroup::new_general(0),

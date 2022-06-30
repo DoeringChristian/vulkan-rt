@@ -15,24 +15,27 @@ use common::*;
 #[cfg(not(target_arch = "spirv"))]
 use spirv_std::macros::spirv;
 
+use spirv_std::byte_addressable_buffer::ByteAddressableBuffer;
 #[allow(unused_imports)]
 use spirv_std::glam::*;
 use spirv_std::{
     image::{Image2d, ImageFormat, StorageImage2d},
     ray_tracing::{AccelerationStructure, RayFlags, RayQuery},
     vector::Vector,
-    Image, Sampler,
+    Image, RuntimeArray, Sampler,
 };
+
+pub struct Vertices {
+    vertices: RuntimeArray<Vertex>,
+}
 
 #[spirv(ray_generation)]
 #[allow(unused_variables)]
 pub fn main_rgen(
     #[spirv(ray_payload)] payload: &mut Payload,
     #[spirv(descriptor_set = 0, binding = 0, uniform_constant)] tlas: &AccelerationStructure,
-    //#[spirv(descriptor_set = 0, binding = 1, uniform)] image: &Image!(2D, type = f32, sampled),
-    //#[spirv(descriptor_set = 0, binding = 1, uniform_constant)] image: &mut StorageImage2d,
     #[spirv(descriptor_set = 0, binding = 1, uniform_constant)] image: &mut Image!(2D, format = rgba32f, sampled = false),
-    //#[spirv(descriptor_set = 0, binding = 32)] sampler: &Sampler,
+    //#[spirv(descriptor_set = 0, binding = 4, storage_buffer)] vertices: &[Vertices],
     #[spirv(push_constant)] camera: &Camera,
     #[spirv(launch_size)] launch_size: IVec3,
     #[spirv(launch_id)] launch_id: IVec3,
@@ -59,7 +62,8 @@ pub fn main_rgen(
     let color: Vec4 = image.read(launch_id.xy());
     let mut color = color.xyz();
 
-    for i in 0..camera.depth {
+    //for i in 0..camera.depth {
+    for i in 0..1 {
         unsafe {
             tlas.trace_ray(
                 RayFlags::OPAQUE,
@@ -84,4 +88,18 @@ pub fn main_rgen(
     unsafe {
         image.write(launch_id.xy(), Vec4::from((color, 1.)));
     }
+}
+
+#[spirv(closest_hit)]
+#[allow(unused_variables)]
+pub fn main_rchit(
+    #[spirv(incoming_ray_payload)] ray: &mut Payload,
+    #[spirv(hit_attribute)] hit_co: &mut Vec2,
+) {
+    ray.color = vec3(1., 0., 0.);
+}
+
+#[spirv(miss)]
+pub fn main_miss(#[spirv(incoming_ray_payload)] ray: &mut Payload) {
+    ray.color = vec3(0., 0., 0.);
 }
