@@ -1,6 +1,6 @@
 use spirv_std::{glam::*, macros::spirv};
 
-#[repr(C)]
+#[repr(C, align(16))]
 pub struct Payload {
     pub orig: Vec3,
     pub dir: Vec3,
