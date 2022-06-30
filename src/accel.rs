@@ -161,16 +161,10 @@ impl Tlas {
         //let primitive_count = scene.blases.len();
         let primitive_count = self.instance_buf.count();
 
-        // TODO: this is only necesarry to generate blases before tlas.
-        /*let blas_nodes = scene
-        .blases
-        .iter()
-        .map(|b| rgraph.bind_node(&b.accel))
-        .collect::<Vec<_>>();*/
-
-        let mut pass = rgraph.begin_pass("build TLAS");
+        let mut pass = rgraph.begin_pass("Build TLAS");
         for blas_node in blas_nodes {
-            pass = pass.read_node(*blas_node);
+            //pass = pass.read_node(*blas_node);
+            pass = pass.access_node(*blas_node, AccessType::AccelerationStructureBuildRead);
         }
         //pass.read_node(instance_node)
         pass.access_node(instance_node, AccessType::AccelerationStructureBuildRead)
@@ -189,6 +183,7 @@ impl Tlas {
                     }],
                 );
             });
+        //println!("pass: {:#?}", rgraph);
     }
     pub fn create(
         device: &Arc<Device>,

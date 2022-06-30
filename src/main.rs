@@ -119,13 +119,12 @@ fn main() -> anyhow::Result<()> {
 
     event_loop.run(|mut frame| {
         //gpu_scene.update_stage(frame.device);
-        if fc < 2 {
-            // The heck... why do we need to create it twice if binding bindless with two
-            // instance?
-            //gpu_scene.build_accels(&mut cache, &mut frame.render_graph);
-        } else {
-            //world.instances[0].transform.matrix[3] += 0.01;
-            //world.update_tlas(frame.device, &mut cache, &mut frame.render_graph);
+        if fc == 3 {
+            gpu_scene.instances.values_mut().next().unwrap().status = ResourceStatus::Recreated;
+            for blas in gpu_scene.blases.values_mut() {
+                blas.status = ResourceStatus::Recreated
+            }
+            //gpu_scene.insert_instance(inst);
         }
         //gpu_scene.build_accels(&mut cache, &mut frame.render_graph);
         gpu_scene.recreate_stage(frame.device);
