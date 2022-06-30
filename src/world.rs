@@ -346,6 +346,8 @@ impl GpuScene {
             camera,
             rgen_shader: None,
             shaders: DenseArena::default(),
+            pipeline: None,
+            sbt: None,
         }
     }
     pub fn append_gltf(&mut self, device: &Arc<Device>) {

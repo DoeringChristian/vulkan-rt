@@ -196,14 +196,12 @@ void sample_dielectric(HitInfo hit, inout Payload ray, vec3 m, float n1, float n
 
 void sample_metallic(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2, vec3 seed){
     vec3 F0 = hit.albedo.rgb;
-    float F0_avg = (F0.r + F0.g + F0.b) / 3.;
-    //vec3 F = fresnelSchlick(clamp(dot(m, hit.wo), 0., 1.), F0);
+    vec3 F = fresnelSchlick(dot(m, hit.wo), F0);
     
-    //float kS = fresnelSchlickReflectAmount(n1, n2, m, -hit.wo, 0.);
-    float kS = fresnelSchlick(clamp(dot(m, hit.wo), 1., 0.), F0_avg);
+    float kS = (F.r + F.g + F.b) / 3.;
     float kD = 1. - kS;
 
-    vec3 F = mix(vec3(1.), F0, kS);
+    //vec3 F = mix(F0, vec3(1.), kS);
     
     if (rand(seed + vec3(M_PI)) < kS){
         // Specular case
