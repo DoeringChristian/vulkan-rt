@@ -5,6 +5,7 @@ use crate::model::{
     GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceKey, Material, MaterialKey, Mesh,
     MeshInstance, MeshKey, ShaderKey, TextureKey, Vertex,
 };
+use crate::sbt::SbtBuffer;
 
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::CommandQueue;
@@ -12,6 +13,7 @@ use bevy_math::{Mat3, Mat4, Vec3, Vec4, Vec4Swizzles};
 use bevy_transform::prelude::*;
 use bytemuck::cast_slice;
 use image::GenericImageView;
+use screen_13::prelude::RayTracePipeline;
 use screen_13::prelude::*;
 use screen_13_fx::ImageLoader;
 //use slotmap::*;
@@ -94,6 +96,8 @@ pub struct GpuScene {
 
     pub rgen_shader: Option<Resource<Shader>>,
     pub shaders: DenseArena<ShaderKey, Resource<Shader>>,
+    pub pipeline: Option<Arc<RayTracePipeline>>,
+    pub sbt: Option<SbtBuffer>,
 }
 
 impl GpuScene {
