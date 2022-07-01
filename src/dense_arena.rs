@@ -31,6 +31,58 @@ pub struct Slot {
     version: usize,
 }
 
+pub struct DenseStatusArena<K: Key, V, S = ()> {
+    values: Vec<V>,
+    keys: Vec<K>,
+    slots: Vec<(Slot, S)>,
+    free: usize,
+}
+impl<K: Key, V, S> Default for DenseStatusArena<K, V, S> {
+    fn default() -> Self {
+        Self {
+            values: Vec::new(),
+            keys: Vec::new(),
+            slots: Vec::new(),
+            free: 0,
+        }
+    }
+}
+
+impl<K: Key, V, S: Default> DenseStatusArena<K, V, S> {
+    #[must_use]
+    pub fn insert(&mut self, value: V) -> K {
+        let key = match self.slots.get_mut(self.free) {
+            Some((slot, status)) if slot.version % 2 == 0 => {
+                slot.version += 1;
+                let key = KeyData {
+                    idx: self.free,
+                    version: slot.version,
+                };
+                self.free = slot.idx_or_free;
+                slot.idx_or_free = self.values.len();
+                key
+            }
+            _ => {
+                self.slots.push((
+                    Slot {
+                        version: 1,
+                        idx_or_free: self.values.len(),
+                    },
+                    S::default(),
+                ));
+                KeyData {
+                    version: 1,
+                    idx: self.slots.len() - 1,
+                }
+            }
+        };
+        self.values.push(value);
+        let key = K::from(key);
+        self.keys.push(key);
+        key
+    }
+}
+
 ///
 /// Own implementation of DenseSlotMap with acces to values as slice.
 ///
@@ -61,7 +113,7 @@ impl<K: Key, V> DenseArena<K, V> {
                 slot.version += 1;
                 let key = KeyData {
                     idx: self.free,
-                    version: slot.version + 1,
+                    version: slot.version,
                 };
                 self.free = slot.idx_or_free;
                 slot.idx_or_free = self.values.len();
@@ -94,7 +146,10 @@ impl<K: Key, V> DenseArena<K, V> {
         self.free = key.idx;
         let _ = self.keys.swap_remove(idx);
         let value = self.values.swap_remove(idx);
-        self.slots[self.keys[idx].key_data().idx].idx_or_free = idx;
+        if idx < self.values.len() {
+            // update slot if swap_remove swaped
+            self.slots[self.keys[idx].key_data().idx].idx_or_free = idx;
+        }
         Some(value)
     }
 
@@ -203,4 +258,23 @@ macro_rules! new_key_type {
 }
 new_key_type! {
     pub struct DefaultKey;
+}
+
+#[cfg(test)]
+mod test {
+    use crate::dense_arena::DefaultKey;
+
+    use super::DenseArena;
+
+    #[test]
+    fn test() {
+        let mut dense_arena = DenseArena::<DefaultKey, i32>::default();
+        let i0 = dense_arena.insert(0);
+        let i1 = dense_arena.insert(1);
+        //assert_eq!(dense_arena.get(i0), Some(&0));
+        println!("{:#?}", dense_arena);
+        dense_arena.remove(&i1);
+        println!("{:#?}", dense_arena);
+        assert_eq!(dense_arena.get(i1), None);
+    }
 }

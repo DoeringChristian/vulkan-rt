@@ -21,6 +21,9 @@ impl<T> Clone for RenderWorldKey<T> {
     }
 }
 
+type RenderWorldArena<T> = DenseArena<DefaultKey, T>;
+
+#[derive(Default)]
 pub struct RenderWorld {
     map: HashMap<TypeId, Box<dyn Any>>,
 }
@@ -32,8 +35,8 @@ impl RenderWorld {
             key: self
                 .map
                 .entry(ty_id)
-                .or_insert(Box::new(DenseArena::<DefaultKey, T>::default()))
-                .downcast_mut::<DenseArena<DefaultKey, T>>()
+                .or_insert(Box::new(RenderWorldArena::<T>::default()))
+                .downcast_mut::<RenderWorldArena<T>>()
                 .unwrap()
                 .insert(val),
             _ty: PhantomData,
@@ -42,26 +45,26 @@ impl RenderWorld {
     pub fn remove<T: 'static>(&mut self, key: RenderWorldKey<T>) -> Option<T> {
         self.map
             .get_mut(&TypeId::of::<T>())?
-            .downcast_mut::<DenseArena<DefaultKey, T>>()?
+            .downcast_mut::<RenderWorldArena<T>>()?
             .remove(&key.key)
     }
     pub fn get<T: 'static>(&self, key: RenderWorldKey<T>) -> Option<&T> {
         self.map
             .get(&TypeId::of::<T>())?
-            .downcast_ref::<DenseArena<DefaultKey, T>>()?
+            .downcast_ref::<RenderWorldArena<T>>()?
             .get(key.key)
     }
     pub fn get_mut<T: 'static>(&mut self, key: RenderWorldKey<T>) -> Option<&mut T> {
         self.map
             .get_mut(&TypeId::of::<T>())?
-            .downcast_mut::<DenseArena<DefaultKey, T>>()?
+            .downcast_mut::<RenderWorldArena<T>>()?
             .get_mut(key.key)
     }
     pub fn iter<T: 'static>(&mut self) -> Option<impl Iterator<Item = (RenderWorldKey<T>, &T)>> {
         Some(
             self.map
                 .get(&TypeId::of::<T>())?
-                .downcast_ref::<DenseArena<DefaultKey, T>>()?
+                .downcast_ref::<RenderWorldArena<T>>()?
                 .iter()
                 .map(|(k, v)| {
                     (
@@ -80,7 +83,7 @@ impl RenderWorld {
         Some(
             self.map
                 .get_mut(&TypeId::of::<T>())?
-                .downcast_mut::<DenseArena<DefaultKey, T>>()?
+                .downcast_mut::<RenderWorldArena<T>>()?
                 .iter_mut()
                 .map(|(k, v)| {
                     (
@@ -97,7 +100,7 @@ impl RenderWorld {
         Some(
             self.map
                 .get(&TypeId::of::<T>())?
-                .downcast_ref::<DenseArena<DefaultKey, T>>()?
+                .downcast_ref::<RenderWorldArena<T>>()?
                 .values(),
         )
     }
@@ -105,14 +108,14 @@ impl RenderWorld {
         Some(
             self.map
                 .get_mut(&TypeId::of::<T>())?
-                .downcast_mut::<DenseArena<DefaultKey, T>>()?
+                .downcast_mut::<RenderWorldArena<T>>()?
                 .values_mut(),
         )
     }
     pub fn get_dense_index<T: 'static>(&self, key: RenderWorldKey<T>) -> Option<usize> {
         self.map
             .get(&TypeId::of::<T>())?
-            .downcast_ref::<DenseArena<DefaultKey, T>>()?
+            .downcast_ref::<RenderWorldArena<T>>()?
             .get_dense_index(key.key)
     }
     pub fn dense_index<T: 'static>(&self, key: RenderWorldKey<T>) -> usize {
@@ -123,7 +126,7 @@ impl RenderWorld {
             key: self
                 .map
                 .get(&TypeId::of::<T>())?
-                .downcast_ref::<DenseArena<DefaultKey, T>>()?
+                .downcast_ref::<RenderWorldArena<T>>()?
                 .get_key(index)?,
             _ty: PhantomData,
         })
@@ -142,5 +145,20 @@ impl<T: 'static> std::ops::Index<RenderWorldKey<T>> for RenderWorld {
 impl<T: 'static> std::ops::IndexMut<RenderWorldKey<T>> for RenderWorld {
     fn index_mut(&mut self, index: RenderWorldKey<T>) -> &mut Self::Output {
         self.get_mut(index).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::RenderWorld;
+
+    #[test]
+    fn test0() {
+        let mut world = RenderWorld::default();
+        let i0 = world.insert(0);
+        let i1 = world.insert(1);
+        let i2 = world.insert(2);
+
+        assert_eq!(world.get(i0), Some(&0));
     }
 }
