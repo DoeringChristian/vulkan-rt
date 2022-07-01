@@ -1,5 +1,6 @@
 use std::{
     hash::Hash,
+    marker::PhantomData,
     ops::{Index, IndexMut},
 };
 

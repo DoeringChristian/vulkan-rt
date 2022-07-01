@@ -9,21 +9,18 @@ use crate::model::{
 };
 use crate::sbt::{SbtBuffer, SbtBufferInfo};
 
-use bevy_ecs::prelude::*;
-use bevy_ecs::system::CommandQueue;
 use bevy_math::{Mat3, Mat4, Vec3, Vec4, Vec4Swizzles};
 use bevy_transform::prelude::*;
 use bytemuck::cast_slice;
-use image::GenericImageView;
 use screen_13::prelude::RayTracePipeline;
 use screen_13::prelude::*;
 use screen_13_fx::ImageLoader;
+use std::any::{Any, TypeId};
+use std::marker::PhantomData;
 //use slotmap::*;
 use crate::dense_arena::*;
-use bitflags::*;
-use std::collections::{BTreeMap, HashMap};
-use std::io::BufReader;
-use std::ops::{Deref, DerefMut, Range};
+use std::collections::HashMap;
+use std::ops::{Deref, DerefMut, Index, IndexMut};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -74,6 +71,145 @@ impl<T> Deref for Resource<T> {
 impl<T> DerefMut for Resource<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.res
+    }
+}
+
+pub struct RenderWorldKey<T> {
+    key: DefaultKey,
+    _ty: PhantomData<T>,
+}
+
+impl<T> Copy for RenderWorldKey<T> {}
+impl<T> Clone for RenderWorldKey<T> {
+    fn clone(&self) -> Self {
+        Self {
+            key: self.key,
+            _ty: PhantomData,
+        }
+    }
+}
+
+pub struct RenderWorld {
+    map: HashMap<TypeId, Box<dyn Any>>,
+}
+impl RenderWorld {
+    //type Arena<T> = DenseArena<DefaultKey, T>;
+    pub fn insert<T: 'static>(&mut self, val: T) -> RenderWorldKey<T> {
+        let ty_id = TypeId::of::<T>();
+        RenderWorldKey {
+            key: self
+                .map
+                .entry(ty_id)
+                .or_insert(Box::new(DenseArena::<DefaultKey, T>::default()))
+                .downcast_mut::<DenseArena<DefaultKey, T>>()
+                .unwrap()
+                .insert(val),
+            _ty: PhantomData,
+        }
+    }
+    pub fn remove<T: 'static>(&mut self, key: RenderWorldKey<T>) -> Option<T> {
+        self.map
+            .get_mut(&TypeId::of::<T>())?
+            .downcast_mut::<DenseArena<DefaultKey, T>>()?
+            .remove(&key.key)
+    }
+    pub fn get<T: 'static>(&self, key: RenderWorldKey<T>) -> Option<&T> {
+        self.map
+            .get(&TypeId::of::<T>())?
+            .downcast_ref::<DenseArena<DefaultKey, T>>()?
+            .get(key.key)
+    }
+    pub fn get_mut<T: 'static>(&mut self, key: RenderWorldKey<T>) -> Option<&mut T> {
+        self.map
+            .get_mut(&TypeId::of::<T>())?
+            .downcast_mut::<DenseArena<DefaultKey, T>>()?
+            .get_mut(key.key)
+    }
+    pub fn iter<T: 'static>(&mut self) -> Option<impl Iterator<Item = (RenderWorldKey<T>, &T)>> {
+        Some(
+            self.map
+                .get(&TypeId::of::<T>())?
+                .downcast_ref::<DenseArena<DefaultKey, T>>()?
+                .iter()
+                .map(|(k, v)| {
+                    (
+                        RenderWorldKey {
+                            key: *k,
+                            _ty: PhantomData,
+                        },
+                        v,
+                    )
+                }),
+        )
+    }
+    pub fn iter_mut<T: 'static>(
+        &mut self,
+    ) -> Option<impl Iterator<Item = (RenderWorldKey<T>, &mut T)>> {
+        Some(
+            self.map
+                .get_mut(&TypeId::of::<T>())?
+                .downcast_mut::<DenseArena<DefaultKey, T>>()?
+                .iter_mut()
+                .map(|(k, v)| {
+                    (
+                        RenderWorldKey {
+                            key: *k,
+                            _ty: PhantomData,
+                        },
+                        v,
+                    )
+                }),
+        )
+    }
+    pub fn values<T: 'static>(&self) -> Option<impl Iterator<Item = &T>> {
+        Some(
+            self.map
+                .get(&TypeId::of::<T>())?
+                .downcast_ref::<DenseArena<DefaultKey, T>>()?
+                .values(),
+        )
+    }
+    pub fn values_mut<T: 'static>(&mut self) -> Option<impl Iterator<Item = &mut T>> {
+        Some(
+            self.map
+                .get_mut(&TypeId::of::<T>())?
+                .downcast_mut::<DenseArena<DefaultKey, T>>()?
+                .values_mut(),
+        )
+    }
+    pub fn get_dense_index<T: 'static>(&self, key: RenderWorldKey<T>) -> Option<usize> {
+        self.map
+            .get(&TypeId::of::<T>())?
+            .downcast_ref::<DenseArena<DefaultKey, T>>()?
+            .get_dense_index(key.key)
+    }
+    pub fn dense_index<T: 'static>(&self, key: RenderWorldKey<T>) -> usize {
+        self.get_dense_index(key).unwrap()
+    }
+    pub fn get_key<T: 'static>(&self, index: usize) -> Option<RenderWorldKey<T>> {
+        Some(RenderWorldKey {
+            key: self
+                .map
+                .get(&TypeId::of::<T>())?
+                .downcast_ref::<DenseArena<DefaultKey, T>>()?
+                .get_key(index)?,
+            _ty: PhantomData,
+        })
+    }
+    pub fn key<T: 'static>(&self, index: usize) -> RenderWorldKey<T> {
+        self.get_key(index).unwrap()
+    }
+}
+impl<T> Index<RenderWorldKey<T>> for RenderWorld {
+    type Output = T;
+
+    fn index(&self, index: RenderWorldKey<T>) -> &Self::Output {
+        self.get(index).unwrap()
+    }
+}
+impl<T> IndexMut<RenderWorldKey<T>> for RenderWorld {
+    fn index_mut(&mut self, index: RenderWorldKey<T>) -> &mut Self::Output {
+        self.get_mut(index).unwrap()
     }
 }
 
