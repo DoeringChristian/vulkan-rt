@@ -3,7 +3,7 @@ use crate::buffers::TypedBuffer;
 use crate::dense_arena::{DenseArena, KeyData};
 use crate::model::{
     GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceKey, Material, MaterialKey, Mesh,
-    MeshInstance, MeshKey, ShaderKey, TextureKey, Vertex,
+    MeshInstance, MeshKey, ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey, Vertex,
 };
 use crate::sbt::SbtBuffer;
 
@@ -96,17 +96,38 @@ pub struct GpuScene {
 
     pub rgen_shader: Option<Resource<Shader>>,
     pub shaders: DenseArena<ShaderKey, Resource<Shader>>,
+    pub shader_groups: DenseArena<ShaderGroupKey, Resource<ShaderGroup>>,
+    //pub shader_group_offsets: HashMap<ShaderGroupKey, u32>,
     pub pipeline: Option<Arc<RayTracePipeline>>,
     pub sbt: Option<SbtBuffer>,
 }
 
 impl GpuScene {
     pub fn recreate_stage(&mut self, device: &Arc<Device>) {
-        let mut recreate_tlas = false;
+        let mut recreate_blases = false;
+        let mut recreate_pipeline = false;
+        let mut recreate_instance_buf = false;
+        let mut recreate_material_buf = false;
+        //let shaders = self.shaders.values().map(|s| s.clone()).collect::<Vec<_>>();
+        recreate_pipeline |= self
+            .shaders
+            .values()
+            .filter(|s| s.recreated())
+            .next()
+            .is_some();
+        recreate_pipeline |= self
+            .shader_groups
+            .values()
+            .filter(|s| s.recreated())
+            .next()
+            .is_some();
+        if recreate_pipeline {
+            self.recreate_pipeline(device);
+        }
         // Recreate blases:
         for (key, mesh_buf) in self.mesh_bufs.iter() {
             if mesh_buf.recreated() {
-                recreate_tlas = true;
+                recreate_blases = true;
                 self.blases.insert(
                     *key,
                     Resource::new(Blas::create(
@@ -120,26 +141,25 @@ impl GpuScene {
             }
         }
         // TODO: Cleanup unneded blases:
-        let recreate_materials = self
+        recreate_material_buf |= self
             .materials
             .values()
             .filter(|mat| mat.recreated())
             .next()
             .is_some();
-        if recreate_materials {
+        if recreate_material_buf {
             self.recreate_material_buf(device);
         }
-        let recreate_instances = self
+        recreate_instance_buf |= self
             .instances
             .values()
             .filter(|inst| inst.recreated())
             .next()
             .is_some();
-        if recreate_instances {
-            recreate_tlas = true;
+        if recreate_instance_buf {
             self.recreate_instance_buf(device);
         }
-        if recreate_tlas {
+        if recreate_blases | recreate_instance_buf | recreate_pipeline {
             self.recreate_tlas(device);
         }
     }
@@ -170,6 +190,12 @@ impl GpuScene {
         }
     }
     pub fn cleanup_stage(&mut self) {
+        for shader in self.shaders.values_mut() {
+            shader.status = ResourceStatus::Unchanged;
+        }
+        for group in self.shader_groups.values_mut() {
+            group.status = ResourceStatus::Unchanged;
+        }
         for material in self.materials.values_mut() {
             material.status = ResourceStatus::Unchanged;
         }
@@ -183,6 +209,45 @@ impl GpuScene {
             blas.status = ResourceStatus::Unchanged;
         }
         self.tlas.as_mut().unwrap().status = ResourceStatus::Unchanged;
+    }
+    fn recreate_pipeline(&mut self, device: &Arc<Device>) {
+        self.pipeline = Some(Arc::new(
+            RayTracePipeline::create(
+                device,
+                RayTracePipelineInfo::new()
+                    .max_ray_recursion_depth(3)
+                    .build(),
+                self.shaders
+                    .values()
+                    .map(|s| s.res.clone())
+                    .collect::<Vec<_>>(),
+                self.shader_groups
+                    .values()
+                    .map(|group| match group.res {
+                        ShaderGroup::General { general } => RayTraceShaderGroup::new_general(
+                            self.shaders.dense_index(general) as u32,
+                        ),
+                        ShaderGroup::Procedural {
+                            intersection,
+                            closest_hit,
+                            any_hit,
+                        } => RayTraceShaderGroup::new_procedural(
+                            self.shaders.dense_index(intersection) as u32,
+                            closest_hit.map(|ch| self.shaders.dense_index(ch) as u32),
+                            any_hit.map(|ah| self.shaders.dense_index(ah) as u32),
+                        ),
+                        ShaderGroup::Triangle {
+                            closest_hit,
+                            any_hit,
+                        } => RayTraceShaderGroup::new_triangles(
+                            self.shaders.dense_index(closest_hit) as u32,
+                            any_hit.map(|ah| self.shaders.dense_index(ah) as u32),
+                        ),
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap(),
+        ))
     }
     fn recreate_tlas(&mut self, device: &Arc<Device>) {
         let mut instances = vec![];
@@ -346,6 +411,8 @@ impl GpuScene {
             camera,
             rgen_shader: None,
             shaders: DenseArena::default(),
+            shader_groups: DenseArena::default(),
+            //shader_group_offsets: HashMap::default(),
             pipeline: None,
             sbt: None,
         }
@@ -494,6 +561,7 @@ impl GpuScene {
                             .index()
                             .unwrap()],
                         mesh: mesh_entities[&mesh.index()],
+                        shader_groups: Vec::new(),
                     });
                 }
             }

@@ -54,7 +54,6 @@ vec3 rand3f(inout uint seed){
 }
 
 
-
 vec3 uniform_sphere(inout uint seed){
     vec2 uv = rand2f(seed);
     float theta = acos(1. - 2. * uv.x);

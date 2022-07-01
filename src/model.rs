@@ -13,6 +13,8 @@ new_key_type! {
     pub struct InstanceKey;
     pub struct MaterialKey;
     pub struct ShaderKey;
+    pub struct ShaderGroupKey;
+    pub struct ShaderBindingKeys;
 }
 
 #[repr(C)]
@@ -33,6 +35,7 @@ pub struct MeshInstance {
     pub transform: Transform,
     pub mesh: MeshKey,
     pub material: MaterialKey,
+    pub shader_groups: Vec<ShaderGroupKey>,
 }
 
 pub struct Material {
@@ -68,6 +71,21 @@ impl GlslRef {
     pub fn none() -> Self {
         Self(Self::REF_UNDEF)
     }
+}
+
+pub enum ShaderGroup {
+    General {
+        general: ShaderKey,
+    },
+    Procedural {
+        intersection: ShaderKey,
+        closest_hit: Option<ShaderKey>,
+        any_hit: Option<ShaderKey>,
+    },
+    Triangle {
+        closest_hit: ShaderKey,
+        any_hit: Option<ShaderKey>,
+    },
 }
 
 //===================================
