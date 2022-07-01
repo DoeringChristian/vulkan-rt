@@ -17,6 +17,7 @@ mod dense_arena;
 mod gbuffer;
 mod model;
 mod post;
+mod render_world;
 mod renderer;
 mod sbt;
 use accel::*;
