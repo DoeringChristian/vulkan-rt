@@ -26,37 +26,6 @@ use post::*;
 use sbt::*;
 use world::*;
 
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct PushConstant {
-    camera: GlslCamera,
-}
-
-fn create_ray_trace_pipeline(device: &Arc<Device>) -> Result<Arc<RayTracePipeline>, DriverError> {
-    Ok(Arc::new(RayTracePipeline::create(
-        device,
-        RayTracePipelineInfo::new()
-            .max_ray_recursion_depth(3)
-            .build(),
-        [
-            Shader::new_ray_gen(
-                inline_spirv::include_spirv!("src/shaders/rgen.glsl", rgen, vulkan1_2).as_slice(),
-            ),
-            Shader::new_closest_hit(
-                inline_spirv::include_spirv!("src/shaders/rchit.glsl", rchit, vulkan1_2).as_slice(),
-            ),
-            Shader::new_miss(
-                inline_spirv::include_spirv!("src/shaders/rmiss.glsl", rmiss, vulkan1_2).as_slice(),
-            ),
-        ],
-        [
-            RayTraceShaderGroup::new_general(0),
-            RayTraceShaderGroup::new_triangles(1, None),
-            RayTraceShaderGroup::new_general(2),
-        ],
-    )?))
-}
-
 fn main() -> anyhow::Result<()> {
     pretty_env_logger::init();
 
@@ -69,62 +38,38 @@ fn main() -> anyhow::Result<()> {
     let lts = LinearToSrgb::new(&event_loop.device);
     let mut egui = Egui::new(&event_loop.device, event_loop.window());
 
-    // ------------------------------------------------------------------------------------------ //
-    // Setup the ray tracing pipeline
-    // ------------------------------------------------------------------------------------------ //
-    let ray_trace_pipeline = create_ray_trace_pipeline(&event_loop.device)?;
-
-    // Setup the Shader Binding Table
-    let sbt_info = SbtBufferInfo {
-        rgen_index: 0,
-        hit_indices: &[1],
-        miss_indices: &[2],
-        callable_indices: &[],
-    };
-
-    let sbt = SbtBuffer::create(&event_loop.device, sbt_info, &ray_trace_pipeline)?;
-
-    // ------------------------------------------------------------------------------------------ //
-    // Load the .obj cube scene
-    // ------------------------------------------------------------------------------------------ //
-
-    /*
-    let mut scene = Scene::new();
-    scene.load_gltf(&event_loop.device);
-    let mut gpu_scene = GpuScene::create(&event_loop.device, &mut scene);
-    */
-    let mut gpu_scene = GpuScene::new();
-    let rgen_shader = gpu_scene.insert_shader(
+    let mut rt_renderer = RTRenderer::new();
+    let rgen_shader = rt_renderer.insert_shader(
         Shader::new_ray_gen(
             inline_spirv::include_spirv!("src/shaders/rgen.glsl", rgen, vulkan1_2).as_slice(),
         )
         .build(),
     );
-    let rchit_shader = gpu_scene.insert_shader(
+    let rchit_shader = rt_renderer.insert_shader(
         Shader::new_closest_hit(
             inline_spirv::include_spirv!("src/shaders/rchit.glsl", rchit, vulkan1_2).as_slice(),
         )
         .build(),
     );
-    let miss_shader = gpu_scene.insert_shader(
+    let miss_shader = rt_renderer.insert_shader(
         Shader::new_miss(
             inline_spirv::include_spirv!("src/shaders/rmiss.glsl", rmiss, vulkan1_2).as_slice(),
         )
         .build(),
     );
-    let rgen_group = gpu_scene.insert_shader_group(ShaderGroup::General {
+    let rgen_group = rt_renderer.insert_shader_group(ShaderGroup::General {
         general: rgen_shader,
     });
-    let hit_group = gpu_scene.insert_shader_group(ShaderGroup::Triangle {
+    let hit_group = rt_renderer.insert_shader_group(ShaderGroup::Triangle {
         closest_hit: rchit_shader,
         any_hit: None,
     });
-    let miss_group = gpu_scene.insert_shader_group(ShaderGroup::General {
+    let miss_group = rt_renderer.insert_shader_group(ShaderGroup::General {
         general: miss_shader,
     });
-    gpu_scene.set_miss_groups(vec![miss_group]);
-    gpu_scene.set_rgen_group(rgen_group);
-    gpu_scene.append_gltf(&event_loop.device, vec![hit_group]);
+    rt_renderer.set_miss_groups(vec![miss_group]);
+    rt_renderer.set_rgen_group(rgen_group);
+    rt_renderer.append_gltf(&event_loop.device, vec![hit_group]);
     //gpu_scene.upload_data(&event_loop.device);
 
     let img = Arc::new(
@@ -150,98 +95,20 @@ fn main() -> anyhow::Result<()> {
     event_loop.run(|mut frame| {
         //gpu_scene.update_stage(frame.device);
         if fc == 3 {
-            gpu_scene.instances.values_mut().next().unwrap().status = ResourceStatus::Recreated;
-            for blas in gpu_scene.blases.values_mut() {
+            rt_renderer.instances.values_mut().next().unwrap().status = ResourceStatus::Recreated;
+            for blas in rt_renderer.blases.values_mut() {
                 blas.status = ResourceStatus::Recreated
             }
             //gpu_scene.insert_instance(inst);
         }
         //gpu_scene.build_accels(&mut cache, &mut frame.render_graph);
-        gpu_scene.recreate_stage(frame.device);
-        gpu_scene.build_stage(&mut cache, &mut frame.render_graph);
-        gpu_scene.cleanup_stage();
+        rt_renderer.recreate_stage(frame.device);
+        rt_renderer.build_stage(&mut cache, &mut frame.render_graph);
+        rt_renderer.cleanup_stage();
 
         let image_node = frame.render_graph.bind_node(&img);
 
-        let blas_nodes = gpu_scene
-            .blases
-            .iter()
-            .map(|(_, b)| frame.render_graph.bind_node(&b.accel))
-            .collect::<Vec<_>>();
-        let material_node = frame
-            .render_graph
-            .bind_node(&gpu_scene.material_buf.as_ref().unwrap().buf);
-        let instancedata_nodes = frame
-            .render_graph
-            .bind_node(&gpu_scene.instancedata_buf.as_ref().unwrap().buf);
-        let tlas_node = frame
-            .render_graph
-            .bind_node(&gpu_scene.tlas.as_ref().unwrap().accel);
-        let sbt_node = frame.render_graph.bind_node(sbt.buffer());
-        let texture_nodes = gpu_scene
-            .textures
-            .values()
-            .enumerate()
-            .map(|(i, tex)| frame.render_graph.bind_node(tex))
-            .collect::<Vec<_>>();
-        let mesh_nodes = gpu_scene
-            .mesh_bufs
-            .values()
-            .enumerate()
-            .map(|(i, mesh)| {
-                (
-                    frame.render_graph.bind_node(&mesh.indices.buf),
-                    frame.render_graph.bind_node(&mesh.vertices.buf),
-                )
-            })
-            .collect::<Vec<_>>();
-
-        let push_constant = PushConstant {
-            camera: *gpu_scene.camera,
-        };
-        gpu_scene.camera.fc += 1;
-
-        let sbt_rgen = gpu_scene.sbt.as_ref().unwrap().rgen();
-        let sbt_miss = gpu_scene.sbt.as_ref().unwrap().miss();
-        let sbt_hit = gpu_scene.sbt.as_ref().unwrap().hit();
-        let sbt_callable = gpu_scene.sbt.as_ref().unwrap().callable();
-
-        trace!("blas_count: {}", blas_nodes.len());
-
-        let mut pass: PipelinePassRef<RayTracePipeline> = frame
-            .render_graph
-            .begin_pass("basic ray tracer")
-            .bind_pipeline(gpu_scene.pipeline.as_ref().unwrap());
-        for blas_node in blas_nodes {
-            pass = pass.access_node(
-                blas_node,
-                AccessType::RayTracingShaderReadAccelerationStructure,
-            );
-        }
-        pass = pass
-            .access_node(sbt_node, AccessType::RayTracingShaderReadOther)
-            .access_descriptor(
-                (0, 0),
-                tlas_node,
-                AccessType::RayTracingShaderReadAccelerationStructure,
-            )
-            .write_descriptor((0, 1), image_node)
-            .read_descriptor((0, 2), instancedata_nodes)
-            .read_descriptor((0, 3), material_node);
-
-        //pass = pass.read_descriptor((0, 4, [0]), index_nodes[0]);
-        for (i, (indices, vertices)) in mesh_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((0, 4, [i as _]), *indices);
-            pass = pass.read_descriptor((0, 5, [i as _]), *vertices);
-        }
-        for (i, node) in texture_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((0, 6, [i as _]), *node);
-        }
-        trace!("fc: {}", fc);
-        pass.record_ray_trace(move |ray_trace| {
-            ray_trace.push_constants(cast_slice(&[push_constant]));
-            ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 1000, 1000, 2);
-        });
+        rt_renderer.render(image_node, &mut cache, &mut frame.render_graph);
 
         let tmp_image_node = frame.render_graph.bind_node(
             cache
@@ -269,33 +136,48 @@ fn main() -> anyhow::Result<()> {
             |ctx| {
                 egui::Window::new("Test").show(&ctx, |ui| {
                     recreate_frame |= ui
-                        .add(egui::Slider::new(&mut gpu_scene.camera.pos[0], -10.0..=10.))
+                        .add(egui::Slider::new(
+                            &mut rt_renderer.camera.pos[0],
+                            -10.0..=10.,
+                        ))
                         .changed();
                     recreate_frame |= ui
-                        .add(egui::Slider::new(&mut gpu_scene.camera.pos[1], -10.0..=10.))
+                        .add(egui::Slider::new(
+                            &mut rt_renderer.camera.pos[1],
+                            -10.0..=10.,
+                        ))
                         .changed();
                     recreate_frame |= ui
-                        .add(egui::Slider::new(&mut gpu_scene.camera.pos[2], -10.0..=10.))
+                        .add(egui::Slider::new(
+                            &mut rt_renderer.camera.pos[2],
+                            -10.0..=10.,
+                        ))
                         .changed();
                     recreate_frame |= ui
                         .add(egui::Slider::new(&mut angle, -10.0..=10.0))
                         .changed();
                     recreate_frame |= ui
-                        .add(egui::Slider::new(&mut gpu_scene.camera.depth, 0..=16))
+                        .add(egui::Slider::new(&mut rt_renderer.camera.depth, 0..=16))
                         .changed();
                     if ui.button("Add instance").clicked() {
-                        let mut inst = gpu_scene.instances.values().next().unwrap().deref().clone();
+                        let mut inst = rt_renderer
+                            .instances
+                            .values()
+                            .next()
+                            .unwrap()
+                            .deref()
+                            .clone();
                         inst.transform = Transform::from_xyz(0., 0., 0.);
-                        gpu_scene.insert_instance(inst);
+                        rt_renderer.insert_instance(inst);
                     }
                 });
             },
         );
         if recreate_frame {
             let v = Vec3::new(angle.sin(), 0., angle.cos());
-            gpu_scene.camera.up = [v.x, v.y, v.z, 1.];
+            rt_renderer.camera.up = [v.x, v.y, v.z, 1.];
             //println!("{:#?}", gpu_scene.camera.right);
-            gpu_scene.camera.fc = 0;
+            rt_renderer.camera.fc = 0;
         }
 
         fc += 1;

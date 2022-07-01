@@ -138,3 +138,9 @@ pub struct GlslCamera {
     pub fc: u32,
     pub depth: u32,
 }
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct PushConstant {
+    pub camera: GlslCamera,
+}

@@ -3,7 +3,8 @@ use crate::buffers::TypedBuffer;
 use crate::dense_arena::{DenseArena, KeyData};
 use crate::model::{
     GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceKey, Material, MaterialKey, Mesh,
-    MeshInstance, MeshKey, ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey, Vertex,
+    MeshInstance, MeshKey, PushConstant, ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey,
+    Vertex,
 };
 use crate::sbt::{SbtBuffer, SbtBufferInfo};
 
@@ -75,7 +76,7 @@ impl<T> DerefMut for Resource<T> {
     }
 }
 
-pub struct GpuScene {
+pub struct RTRenderer {
     pub blases: HashMap<MeshKey, Resource<Blas>>,
     pub tlas: Option<Resource<Tlas>>,
 
@@ -104,7 +105,7 @@ pub struct GpuScene {
     pub sbt: Option<SbtBuffer>,
 }
 
-impl GpuScene {
+impl RTRenderer {
     pub fn recreate_stage(&mut self, device: &Arc<Device>) {
         let mut recreate_blases = false;
         let mut recreate_pipeline = false;
@@ -227,6 +228,9 @@ impl GpuScene {
         }
         self.tlas.as_mut().unwrap().status = ResourceStatus::Unchanged;
     }
+}
+
+impl RTRenderer {
     fn recreate_sbt_buf(&mut self, device: &Arc<Device>) {
         let mut hit_keys = vec![];
         let mut hit_offsets = HashMap::new();
@@ -408,6 +412,8 @@ impl GpuScene {
             vk::BufferUsageFlags::STORAGE_BUFFER,
         ));
     }
+}
+impl RTRenderer {
     pub fn set_camera(&mut self, camera: GlslCamera) {
         self.camera = Resource::new(camera);
     }
@@ -649,5 +655,93 @@ impl GpuScene {
                 }
             }
         }
+    }
+}
+impl RTRenderer {
+    pub fn render(
+        &mut self,
+        dst_img: impl Into<AnyImageNode>,
+        cache: &mut HashPool,
+        rgraph: &mut RenderGraph,
+    ) {
+        let image_node = dst_img.into();
+        let image_info = rgraph.node_info(image_node);
+        let width = image_info.width;
+        let height = image_info.height;
+        let blas_nodes = self
+            .blases
+            .iter()
+            .map(|(_, b)| rgraph.bind_node(&b.accel))
+            .collect::<Vec<_>>();
+        let material_node = rgraph.bind_node(&self.material_buf.as_ref().unwrap().buf);
+        let instancedata_node = rgraph.bind_node(&self.instancedata_buf.as_ref().unwrap().buf);
+        let tlas_node = rgraph.bind_node(&self.tlas.as_ref().unwrap().accel);
+        let sbt_node = rgraph.bind_node(self.sbt.as_ref().unwrap().buffer());
+        let texture_nodes = self
+            .textures
+            .values()
+            .enumerate()
+            .map(|(i, tex)| rgraph.bind_node(tex))
+            .collect::<Vec<_>>();
+        let mesh_nodes = self
+            .mesh_bufs
+            .values()
+            .enumerate()
+            .map(|(i, mesh)| {
+                (
+                    rgraph.bind_node(&mesh.indices.buf),
+                    rgraph.bind_node(&mesh.vertices.buf),
+                )
+            })
+            .collect::<Vec<_>>();
+        let push_constant = PushConstant {
+            camera: *self.camera,
+        };
+        self.camera.res.fc += 1;
+
+        let sbt_rgen = self.sbt.as_ref().unwrap().rgen();
+        let sbt_miss = self.sbt.as_ref().unwrap().miss();
+        let sbt_hit = self.sbt.as_ref().unwrap().hit();
+        let sbt_callable = self.sbt.as_ref().unwrap().callable();
+
+        let mut pass: PipelinePassRef<RayTracePipeline> = rgraph
+            .begin_pass("RT pass")
+            .bind_pipeline(self.pipeline.as_ref().unwrap());
+        for blas_node in blas_nodes {
+            pass = pass.access_node(
+                blas_node,
+                AccessType::RayTracingShaderReadAccelerationStructure,
+            );
+        }
+        pass = pass
+            .access_node(sbt_node, AccessType::RayTracingShaderReadOther)
+            .access_descriptor(
+                (0, 0),
+                tlas_node,
+                AccessType::RayTracingShaderReadAccelerationStructure,
+            )
+            .write_descriptor((0, 1), image_node)
+            .read_descriptor((0, 2), instancedata_node)
+            .read_descriptor((0, 3), material_node);
+
+        for (i, (indices, vertices)) in mesh_nodes.into_iter().enumerate() {
+            pass = pass.read_descriptor((0, 4, [i as _]), indices);
+            pass = pass.read_descriptor((0, 5, [i as _]), vertices);
+        }
+        for (i, node) in texture_nodes.into_iter().enumerate() {
+            pass = pass.read_descriptor((0, 6, [i as _]), node);
+        }
+        pass.record_ray_trace(move |ray_trace| {
+            ray_trace.push_constants(cast_slice(&[push_constant]));
+            ray_trace.trace_rays(
+                &sbt_rgen,
+                &sbt_miss,
+                &sbt_hit,
+                &sbt_callable,
+                width,
+                height,
+                1,
+            );
+        });
     }
 }
