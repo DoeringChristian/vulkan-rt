@@ -17,16 +17,16 @@ mod dense_arena;
 mod gbuffer;
 mod model;
 mod post;
+mod renderer;
 mod sbt;
-mod world;
 use accel::*;
 use bevy_transform::prelude::Transform;
 use buffers::*;
 use gbuffer::GBuffer;
 use model::*;
 use post::*;
+use renderer::*;
 use sbt::*;
-use world::*;
 
 fn main() -> anyhow::Result<()> {
     pretty_env_logger::init();

@@ -6,10 +6,7 @@ use std::{
     sync::{Arc, Weak},
 };
 
-use crate::{
-    model::{Index, Vertex},
-    world::RTRenderer,
-};
+use crate::model::{Index, Vertex};
 
 use super::buffers::*;
 
