@@ -158,7 +158,7 @@ void main() {
     
     payload.attenuation *= 1. / p_rr;
     
-    if (rand(vec3(payload.dir)) >= p_rr){
+    if (randf(payload.seed) >= p_rr){
         payload.ray_active = 0;
         return;
     }

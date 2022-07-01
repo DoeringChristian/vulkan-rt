@@ -54,7 +54,8 @@ struct Payload{
     vec3 color;
     vec3 attenuation;
     float ior;
-   
+
+    uint seed;
     int depth;
     int ray_active;
 };

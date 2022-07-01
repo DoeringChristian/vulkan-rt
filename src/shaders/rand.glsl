@@ -3,6 +3,15 @@
 
 #define M_PI 3.1415926535897932384626433832795
 
+float uint_to_unit_float(uint u){
+    const uint mantissaMask = 0x007FFFFFu;
+    const uint one          = 0x3F800000u;
+    u &= mantissaMask;
+    u |= one;
+    float  r2 = uintBitsToFloat(u);
+    return r2 - 1.0;
+}
+
 /*
 	PCG random number generators ported to an NPM package, so that you can require it from glslify.
 	The code is based (mostly copied) from https://www.shadertoy.com/view/XlGcRh by Mark Jarzynski.
@@ -69,16 +78,13 @@ vec4 prng (vec4 p) {
 	return vec4(pcg(uvec4(p))) / float(uint(0xffffffff));
 }
 
-float rand(float seed){
-    return fract(sin(seed * 012.9898) * 43758.5453);
+float randf(inout uint seed){
+    seed = pcg(seed);
+    return uint_to_unit_float(seed);
 }
-
-float rand(vec2 seed) {
-    return rand(dot(seed, vec2(0.129898, 0.78233)));
-}
-
-float rand(vec3 seed){
-    return rand(dot(seed, vec3(0.8556145372, 0.6562710953, 0.4043027253)));
+uint randu(inout uint seed){
+    seed = pcg(seed);
+    return seed;
 }
 /*
 float rand(vec4 seed){
@@ -86,14 +92,12 @@ float rand(vec4 seed){
 }
 */
 
-vec2 rand2(float seed){
-    return vec2(rand(seed * 0.8556145372), rand(seed * 0.6562710953));
-}
-vec2 rand2(vec2 seed){
-    return vec2(rand(dot(seed, vec2(0.8556145372, 0.6562710953))), rand(dot(seed, vec2(0.637758729, 0.842307473))));
-}
-vec2 rand2(vec3 seed){
-    return vec2(rand(dot(seed, vec3(0.8556145372, 0.6562710953, 0.4043027253))), rand(dot(seed, vec3(0.637758729, 0.842307473, 0.546435341))));
+vec2 rand2f(inout uint seed){
+    seed = pcg(seed);
+    float u = uint_to_unit_float(seed);
+    seed = pcg(seed);
+    float v = uint_to_unit_float(seed);
+    return vec2(u, v);
 }
 /*
 vec2 rand2(vec4 seed){
@@ -130,8 +134,8 @@ vec4 rand4(vec4 seed){
 */
 
 
-vec3 uniform_sphere(vec3 seed){
-    vec2 uv = rand2(seed);
+vec3 uniform_sphere(inout uint seed){
+    vec2 uv = rand2f(seed);
     float theta = acos(1. - 2. * uv.x);
     float phi = 2 * M_PI *    uv.y;
     return vec3(
@@ -140,14 +144,14 @@ vec3 uniform_sphere(vec3 seed){
         cos(theta)
     );
 }
-vec2 uniform_sphere_uv(vec3 seed){
-    vec2 uv = rand2(seed);
+vec2 uniform_sphere_uv(inout uint seed){
+    vec2 uv = rand2f(seed);
     float theta = acos(1. - 2. * uv.x);
     float phi = 2 * M_PI *    uv.y;
     return vec2(theta, phi);
 }
-vec3 uniform_hemisphere(vec3 seed){
-    vec2 uv = rand2(seed);
+vec3 uniform_hemisphere(inout uint seed){
+    vec2 uv = rand2f(seed);
     float theta = acos(1. - uv.x);
     float phi = 2 * M_PI * uv.y;
     return vec3(
@@ -156,14 +160,14 @@ vec3 uniform_hemisphere(vec3 seed){
         cos(theta)
     );
 }
-vec3 uniform_hemisphere_alligned(vec3 normal, vec3 seed){
+vec3 uniform_hemisphere_alligned(vec3 normal, inout uint seed){
     vec3 sphere = uniform_sphere(seed);
     if (dot(normal , sphere) <= 0.){
         return reflect(sphere, normal);
     }
     return sphere;
 }
-vec2 uniform_hemisphere_uv(vec3 seed){
+vec2 uniform_hemisphere_uv(inout uint seed){
     vec2 uv = uniform_sphere_uv(seed);
     if (uv.x > 0){
         return uv;

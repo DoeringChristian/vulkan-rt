@@ -16,7 +16,14 @@ layout(push_constant) uniform PushConstants{
 void main() {
     uint N = camera.fc;
     vec2 uv = gl_LaunchIDEXT.xy;
-    vec2 roff = rand2(vec3(float(N), uv.x, uv.y));
+
+    uint seed = N;
+    seed = randu(seed) + gl_LaunchIDEXT.x;
+    seed = randu(seed) + gl_LaunchIDEXT.y;
+    seed = randu(seed);
+    
+    //vec2 roff = rand2(vec3(float(N), uv.x, uv.y));
+    vec2 roff = rand2f(seed);
     uv += roff;
     uv /= vec2(gl_LaunchSizeEXT.xy);
     uv = (uv * 2. - 1.) * vec2(1., 1.);
@@ -35,6 +42,7 @@ void main() {
 
     //payload.prop = 1.;
     
+    payload.seed = seed;
     payload.depth = 0;
     payload.ray_active = 1;
 
