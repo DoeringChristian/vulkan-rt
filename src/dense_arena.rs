@@ -52,7 +52,7 @@ impl<K: Key, V, S: Default> DenseStatusArena<K, V, S> {
     #[must_use]
     pub fn insert(&mut self, value: V) -> K {
         let key = match self.slots.get_mut(self.free) {
-            Some((slot, status)) if slot.version % 2 == 0 => {
+            Some((slot, _)) if slot.version % 2 == 0 => {
                 slot.version += 1;
                 let key = KeyData {
                     idx: self.free,
@@ -133,6 +133,30 @@ impl<K: Key, V, S: Default> DenseStatusArena<K, V, S> {
         let slot = self.slots.get(key.idx)?;
         if slot.0.version == key.version && key.version % 2 != 0 {
             Some(slot.0.idx_or_free)
+        } else {
+            None
+        }
+    }
+    pub fn status(&self, key: K) -> &S {
+        self.get_status(key).unwrap()
+    }
+    pub fn status_mut(&mut self, key: K) -> &mut S {
+        self.get_status_mut(key).unwrap()
+    }
+    pub fn get_status(&self, key: K) -> Option<&S> {
+        let key = key.key_data();
+        let slot = self.slots.get(key.idx)?;
+        if slot.0.version == key.version && key.version % 2 != 0 {
+            Some(&self.slots.get(key.idx)?.1)
+        } else {
+            None
+        }
+    }
+    pub fn get_status_mut(&mut self, key: K) -> Option<&mut S> {
+        let key = key.key_data();
+        let slot = self.slots.get(key.idx)?;
+        if slot.0.version == key.version && key.version % 2 != 0 {
+            Some(&mut self.slots.get_mut(key.idx)?.1)
         } else {
             None
         }
