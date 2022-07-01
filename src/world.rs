@@ -506,8 +506,13 @@ impl RTRenderer {
             sbt: None,
         }
     }
-    pub fn append_gltf(&mut self, device: &Arc<Device>, default_hit_groups: Vec<ShaderGroupKey>) {
+    pub fn append_gltf(
+        &mut self,
+        device: &Arc<Device>,
+        default_hit_groups: Vec<ShaderGroupKey>,
+    ) -> Vec<InstanceKey> {
         let path = "./src/res/cube_scene.gltf";
+        let mut instances = vec![];
         let (gltf, buffers, _) = gltf::import(path).unwrap();
         {
             // Texture loading
@@ -640,21 +645,24 @@ impl RTRenderer {
                 }
                 if let Some(mesh) = node.mesh() {
                     let matrix = node.transform().matrix();
-                    self.insert_instance(MeshInstance {
-                        transform: Transform::from_matrix(Mat4::from_cols_array_2d(&matrix)),
-                        material: material_entities[&mesh
-                            .primitives()
-                            .next()
-                            .unwrap()
-                            .material()
-                            .index()
-                            .unwrap()],
-                        mesh: mesh_entities[&mesh.index()],
-                        shader_groups: default_hit_groups.clone(),
-                    });
+                    instances.push(
+                        self.insert_instance(MeshInstance {
+                            transform: Transform::from_matrix(Mat4::from_cols_array_2d(&matrix)),
+                            material: material_entities[&mesh
+                                .primitives()
+                                .next()
+                                .unwrap()
+                                .material()
+                                .index()
+                                .unwrap()],
+                            mesh: mesh_entities[&mesh.index()],
+                            shader_groups: default_hit_groups.clone(),
+                        }),
+                    );
                 }
             }
         }
+        instances
     }
 }
 impl RTRenderer {
