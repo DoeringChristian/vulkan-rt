@@ -180,7 +180,7 @@ impl RTRenderer {
             .is_some();
         if recreate_instance_buf {
             self.recreate_sbt_buf(device);
-            self.recreate_instance_buf(device);
+            self.recreate_instancedata_buf(device);
         }
         if recreate_blases | recreate_instance_buf | recreate_pipeline {
             self.recreate_tlas(device);
@@ -363,7 +363,7 @@ impl RTRenderer {
         //trace!("Instances: {}\n\n\n\n\n\n", instances.len());
         self.tlas = Some(Resource::new(Tlas::create(device, &instances)));
     }
-    fn recreate_instance_buf(&mut self, device: &Arc<Device>) {
+    fn recreate_instancedata_buf(&mut self, device: &Arc<Device>) {
         let mut instancedata = vec![];
         for instance in self.instances.values_as_slice() {
             instancedata.push(GlslInstanceData {
