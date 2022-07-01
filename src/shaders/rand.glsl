@@ -38,10 +38,19 @@ uint randu(inout uint seed){
 
 vec2 rand2f(inout uint seed){
     seed = pcg(seed);
-    float u = uint_to_unit_float(seed);
+    float x = uint_to_unit_float(seed);
     seed = pcg(seed);
-    float v = uint_to_unit_float(seed);
-    return vec2(u, v);
+    float y = uint_to_unit_float(seed);
+    return vec2(x, y);
+}
+vec3 rand3f(inout uint seed){
+    seed = pcg(seed);
+    float x = uint_to_unit_float(seed);
+    seed = pcg(seed);
+    float y = uint_to_unit_float(seed);
+    seed = pcg(seed);
+    float z = uint_to_unit_float(seed);
+    return vec3(x, y, z);
 }
 
 
