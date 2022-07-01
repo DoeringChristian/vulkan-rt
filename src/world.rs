@@ -258,7 +258,6 @@ impl GpuScene {
                 hit_keys.extend_from_slice(&instance.shader_groups);
             }
         }
-        println!("{:#?}", hit_keys);
         let hit_indices = hit_keys
             .into_iter()
             .map(|k| self.shader_groups.dense_index(k))
@@ -275,6 +274,7 @@ impl GpuScene {
             miss_indices: &miss_indices,
             callable_indices: &[],
         };
+        println!("SbtBufferInfo: {:#?}", sbt_info);
         self.sbt =
             Some(SbtBuffer::create(device, sbt_info, &self.pipeline.as_ref().unwrap()).unwrap());
         self.hit_offsets = hit_offsets;

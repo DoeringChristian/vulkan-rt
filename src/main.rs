@@ -201,17 +201,17 @@ fn main() -> anyhow::Result<()> {
         };
         gpu_scene.camera.fc += 1;
 
-        let sbt_rgen = sbt.rgen();
-        let sbt_miss = sbt.miss();
-        let sbt_hit = sbt.hit();
-        let sbt_callable = sbt.callable();
+        let sbt_rgen = gpu_scene.sbt.as_ref().unwrap().rgen();
+        let sbt_miss = gpu_scene.sbt.as_ref().unwrap().miss();
+        let sbt_hit = gpu_scene.sbt.as_ref().unwrap().hit();
+        let sbt_callable = gpu_scene.sbt.as_ref().unwrap().callable();
 
         trace!("blas_count: {}", blas_nodes.len());
 
         let mut pass: PipelinePassRef<RayTracePipeline> = frame
             .render_graph
             .begin_pass("basic ray tracer")
-            .bind_pipeline(&ray_trace_pipeline);
+            .bind_pipeline(gpu_scene.pipeline.as_ref().unwrap());
         for blas_node in blas_nodes {
             pass = pass.access_node(
                 blas_node,
