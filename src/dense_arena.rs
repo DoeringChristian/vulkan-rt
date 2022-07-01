@@ -157,6 +157,9 @@ impl<K: Key, V> DenseArena<K, V> {
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&K, &mut V)> {
         self.keys.iter().zip(self.values.iter_mut())
     }
+    pub fn len(&self) -> usize {
+        self.values.len()
+    }
 }
 
 impl<K: Key, V> Index<K> for DenseArena<K, V> {

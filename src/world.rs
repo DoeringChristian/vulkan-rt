@@ -5,7 +5,7 @@ use crate::model::{
     GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceKey, Material, MaterialKey, Mesh,
     MeshInstance, MeshKey, ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey, Vertex,
 };
-use crate::sbt::SbtBuffer;
+use crate::sbt::{SbtBuffer, SbtBufferInfo};
 
 use bevy_ecs::prelude::*;
 use bevy_ecs::system::CommandQueue;
@@ -94,11 +94,13 @@ pub struct GpuScene {
 
     pub camera: Resource<GlslCamera>,
 
-    pub rgen_shader: Option<Resource<Shader>>,
     pub shaders: DenseArena<ShaderKey, Resource<Shader>>,
     pub shader_groups: DenseArena<ShaderGroupKey, Resource<ShaderGroup>>,
     //pub shader_group_offsets: HashMap<ShaderGroupKey, u32>,
     pub pipeline: Option<Arc<RayTracePipeline>>,
+    pub miss_groups: Vec<ShaderGroupKey>,
+    pub rgen_group: Option<ShaderGroupKey>,
+    pub hit_offsets: HashMap<InstanceKey, usize>,
     pub sbt: Option<SbtBuffer>,
 }
 
@@ -140,7 +142,21 @@ impl GpuScene {
                 );
             }
         }
-        // TODO: Cleanup unneded blases:
+        // cleanup unused blases
+        let remove_blases = self
+            .blases
+            .iter()
+            .filter_map(|(mkey, _)| {
+                if self.mesh_bufs.get(*mkey).is_none() {
+                    Some(*mkey)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        for mkey in remove_blases.iter() {
+            self.blases.remove(&mkey);
+        }
         recreate_material_buf |= self
             .materials
             .values()
@@ -157,6 +173,7 @@ impl GpuScene {
             .next()
             .is_some();
         if recreate_instance_buf {
+            self.recreate_sbt_buf(device);
             self.recreate_instance_buf(device);
         }
         if recreate_blases | recreate_instance_buf | recreate_pipeline {
@@ -210,6 +227,52 @@ impl GpuScene {
         }
         self.tlas.as_mut().unwrap().status = ResourceStatus::Unchanged;
     }
+    fn recreate_sbt_buf(&mut self, device: &Arc<Device>) {
+        let mut hit_keys = vec![];
+        let mut hit_offsets = HashMap::new();
+        fn subset_idx<T: Eq>(superset: &[T], subset: &[T]) -> Option<usize> {
+            for i in 0..(superset.len() - subset.len()) {
+                let mut is_subset = true;
+                for j in 0..subset.len() {
+                    if superset[i + j] != subset[j] {
+                        is_subset = false;
+                        break;
+                    }
+                }
+                if is_subset {
+                    return Some(i);
+                }
+            }
+            None
+        }
+        for (ikey, instance) in self.instances.iter() {
+            if let Some(subset_idx) = subset_idx(&hit_keys, &instance.shader_groups) {
+                hit_offsets.insert(*ikey, subset_idx);
+            } else {
+                hit_offsets.insert(*ikey, hit_keys.len());
+                hit_keys.extend_from_slice(&instance.shader_groups);
+            }
+        }
+        let hit_indices = hit_keys
+            .into_iter()
+            .map(|k| self.shader_groups.dense_index(k))
+            .collect::<Vec<_>>();
+        let miss_indices = self
+            .miss_groups
+            .iter()
+            .map(|k| self.shader_groups.dense_index(*k))
+            .collect::<Vec<_>>();
+        let rgen_index = self.shader_groups.dense_index(self.rgen_group.unwrap());
+        let sbt_info = SbtBufferInfo {
+            rgen_index,
+            hit_indices: &hit_indices,
+            miss_indices: &miss_indices,
+            callable_indices: &[],
+        };
+        self.sbt =
+            Some(SbtBuffer::create(device, sbt_info, &self.pipeline.as_ref().unwrap()).unwrap());
+        self.hit_offsets = hit_offsets;
+    }
     fn recreate_pipeline(&mut self, device: &Arc<Device>) {
         self.pipeline = Some(Arc::new(
             RayTracePipeline::create(
@@ -251,7 +314,7 @@ impl GpuScene {
     }
     fn recreate_tlas(&mut self, device: &Arc<Device>) {
         let mut instances = vec![];
-        for (i, instance) in self.instances.values_as_slice().iter().enumerate() {
+        for (i, (key, instance)) in self.instances.iter().enumerate() {
             let matrix = instance.transform.compute_matrix();
             let matrix = [
                 matrix.x_axis.x,
@@ -271,7 +334,7 @@ impl GpuScene {
                 transform: vk::TransformMatrixKHR { matrix },
                 instance_custom_index_and_mask: vk::Packed24_8::new(i as _, 0xff),
                 instance_shader_binding_table_record_offset_and_flags: vk::Packed24_8::new(
-                    0,
+                    *self.hit_offsets.get(key).unwrap_or(&0) as u32,
                     vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() as _,
                 ),
                 acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
@@ -409,9 +472,11 @@ impl GpuScene {
             materials: DenseArena::default(),
             textures: DenseArena::default(),
             camera,
-            rgen_shader: None,
             shaders: DenseArena::default(),
             shader_groups: DenseArena::default(),
+            miss_groups: Vec::new(),
+            rgen_group: None,
+            hit_offsets: HashMap::default(),
             //shader_group_offsets: HashMap::default(),
             pipeline: None,
             sbt: None,
