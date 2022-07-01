@@ -20,7 +20,7 @@ use std::marker::PhantomData;
 //use slotmap::*;
 use crate::dense_arena::*;
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut, Index, IndexMut};
+use std::ops::{Deref, DerefMut, IndexMut};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -200,14 +200,14 @@ impl RenderWorld {
         self.get_key(index).unwrap()
     }
 }
-impl<T> Index<RenderWorldKey<T>> for RenderWorld {
+impl<T: 'static> std::ops::Index<RenderWorldKey<T>> for RenderWorld {
     type Output = T;
 
     fn index(&self, index: RenderWorldKey<T>) -> &Self::Output {
         self.get(index).unwrap()
     }
 }
-impl<T> IndexMut<RenderWorldKey<T>> for RenderWorld {
+impl<T: 'static> IndexMut<RenderWorldKey<T>> for RenderWorld {
     fn index_mut(&mut self, index: RenderWorldKey<T>) -> &mut Self::Output {
         self.get_mut(index).unwrap()
     }
