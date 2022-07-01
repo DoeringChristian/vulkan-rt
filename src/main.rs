@@ -93,15 +93,12 @@ fn main() -> anyhow::Result<()> {
     let mut angle: f32 = 0.;
 
     event_loop.run(|mut frame| {
-        //gpu_scene.update_stage(frame.device);
         if fc == 3 {
             rt_renderer.instances.values_mut().next().unwrap().status = ResourceStatus::Recreated;
             for blas in rt_renderer.blases.values_mut() {
                 blas.status = ResourceStatus::Recreated
             }
-            //gpu_scene.insert_instance(inst);
         }
-        //gpu_scene.build_accels(&mut cache, &mut frame.render_graph);
         rt_renderer.recreate_stage(frame.device);
         rt_renderer.build_stage(&mut cache, &mut frame.render_graph);
         rt_renderer.cleanup_stage();
