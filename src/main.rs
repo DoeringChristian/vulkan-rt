@@ -14,6 +14,7 @@ mod accel;
 mod buffers;
 #[macro_use]
 mod dense_arena;
+mod gbuffer;
 mod model;
 mod post;
 mod sbt;
@@ -21,6 +22,7 @@ mod world;
 use accel::*;
 use bevy_transform::prelude::Transform;
 use buffers::*;
+use gbuffer::GBuffer;
 use model::*;
 use post::*;
 use sbt::*;
@@ -72,22 +74,7 @@ fn main() -> anyhow::Result<()> {
     rt_renderer.append_gltf(&event_loop.device, vec![hit_group]);
     //gpu_scene.upload_data(&event_loop.device);
 
-    let img = Arc::new(
-        Image::create(
-            &event_loop.device,
-            ImageInfo::new_2d(
-                //vk::Format::R8G8B8A8_UNORM,
-                vk::Format::R32G32B32A32_SFLOAT,
-                1000,
-                1000,
-                vk::ImageUsageFlags::STORAGE
-                    | vk::ImageUsageFlags::TRANSFER_SRC
-                    | vk::ImageUsageFlags::TRANSFER_DST
-                    | vk::ImageUsageFlags::SAMPLED,
-            ),
-        )
-        .unwrap(),
-    );
+    let gbuffer = GBuffer::new(&event_loop.device, [1000, 1000]);
 
     let mut fc = 0;
     let mut angle: f32 = 0.;
@@ -103,9 +90,9 @@ fn main() -> anyhow::Result<()> {
         rt_renderer.build_stage(&mut cache, &mut frame.render_graph);
         rt_renderer.cleanup_stage();
 
-        let image_node = frame.render_graph.bind_node(&img);
+        rt_renderer.render(&gbuffer, &mut cache, &mut frame.render_graph);
 
-        rt_renderer.render(image_node, &mut cache, &mut frame.render_graph);
+        let color_image_node = frame.render_graph.bind_node(&gbuffer.color);
 
         let tmp_image_node = frame.render_graph.bind_node(
             cache
@@ -120,7 +107,7 @@ fn main() -> anyhow::Result<()> {
                 ))
                 .unwrap(),
         );
-        lts.exec(frame.render_graph, image_node, tmp_image_node);
+        lts.exec(frame.render_graph, color_image_node, tmp_image_node);
 
         presenter.present_image(frame.render_graph, tmp_image_node, frame.swapchain_image);
 

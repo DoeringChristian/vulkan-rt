@@ -1,6 +1,7 @@
 use crate::accel::{Blas, BlasInfo, Tlas};
 use crate::buffers::TypedBuffer;
 use crate::dense_arena::{DenseArena, KeyData};
+use crate::gbuffer::GBuffer;
 use crate::model::{
     GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceKey, Material, MaterialKey, Mesh,
     MeshInstance, MeshKey, PushConstant, ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey,
@@ -84,9 +85,8 @@ pub struct RTRenderer {
     pub materials: DenseArena<MaterialKey, Resource<Material>>,
 
     pub instancedata_buf: Option<TypedBuffer<GlslInstanceData>>,
+    //TODO: maybe make the arena a resource as well.
     pub instances: DenseArena<InstanceKey, Resource<MeshInstance>>,
-
-    //pub shaders: DenseArena<ShaderKey, Shader>,
 
     // Resources. They are bound to the shader as seperate bindless buffers.
     pub textures: DenseArena<TextureKey, Arc<Image>>,
@@ -97,7 +97,6 @@ pub struct RTRenderer {
 
     pub shaders: DenseArena<ShaderKey, Resource<Shader>>,
     pub shader_groups: DenseArena<ShaderGroupKey, Resource<ShaderGroup>>,
-    //pub shader_group_offsets: HashMap<ShaderGroupKey, u32>,
     pub pipeline: Option<Arc<RayTracePipeline>>,
     pub miss_groups: Vec<ShaderGroupKey>,
     pub rgen_group: Option<ShaderGroupKey>,
@@ -668,14 +667,16 @@ impl RTRenderer {
 impl RTRenderer {
     pub fn render(
         &mut self,
-        dst_img: impl Into<AnyImageNode>,
+        //dst_img: impl Into<AnyImageNode>,
+        gbuffer: &GBuffer,
         _cache: &mut HashPool,
         rgraph: &mut RenderGraph,
     ) {
-        let image_node = dst_img.into();
-        let image_info = rgraph.node_info(image_node);
-        let width = image_info.width;
-        let height = image_info.height;
+        //let image_node = dst_img.into();
+        //let image_info = rgraph.node_info(image_node);
+        let color_image_node = rgraph.bind_node(&gbuffer.color);
+        let width = gbuffer.size[0] as u32;
+        let height = gbuffer.size[1] as u32;
         let blas_nodes = self
             .blases
             .iter()
@@ -728,7 +729,7 @@ impl RTRenderer {
                 tlas_node,
                 AccessType::RayTracingShaderReadAccelerationStructure,
             )
-            .write_descriptor((0, 1), image_node)
+            .write_descriptor((0, 1), color_image_node)
             .read_descriptor((0, 2), instancedata_node)
             .read_descriptor((0, 3), material_node);
 
