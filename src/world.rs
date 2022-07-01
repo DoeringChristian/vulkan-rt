@@ -103,6 +103,15 @@ pub struct RTRenderer {
     pub hit_offsets: HashMap<InstanceKey, usize>,
     pub sbt: Option<SbtBuffer>,
 }
+mod bindings {
+    pub const TLAS: (u32, u32) = (0, 0);
+    pub const INSTANCES: (u32, u32) = (0, 1);
+    pub const MATERIALS: (u32, u32) = (0, 2);
+    pub const INDICES: (u32, u32) = (0, 3);
+    pub const VERTICES: (u32, u32) = (0, 4);
+    pub const TEXTURES: (u32, u32) = (0, 5);
+    pub const COLOR: (u32, u32) = (1, 0);
+}
 
 impl RTRenderer {
     pub fn recreate_stage(&mut self, device: &Arc<Device>) {
@@ -725,20 +734,27 @@ impl RTRenderer {
         pass = pass
             .access_node(sbt_node, AccessType::RayTracingShaderReadOther)
             .access_descriptor(
-                (0, 0),
+                bindings::TLAS,
                 tlas_node,
                 AccessType::RayTracingShaderReadAccelerationStructure,
             )
-            .write_descriptor((0, 1), color_image_node)
-            .read_descriptor((0, 2), instancedata_node)
-            .read_descriptor((0, 3), material_node);
+            .write_descriptor(bindings::COLOR, color_image_node)
+            .read_descriptor(bindings::INSTANCES, instancedata_node)
+            .read_descriptor(bindings::MATERIALS, material_node);
 
         for (i, (indices, vertices)) in mesh_nodes.into_iter().enumerate() {
-            pass = pass.read_descriptor((0, 4, [i as _]), indices);
-            pass = pass.read_descriptor((0, 5, [i as _]), vertices);
+            pass = pass.read_descriptor(
+                (bindings::INDICES.0, bindings::INDICES.1, [i as _]),
+                indices,
+            );
+            pass = pass.read_descriptor(
+                (bindings::VERTICES.0, bindings::VERTICES.1, [i as _]),
+                vertices,
+            );
         }
         for (i, node) in texture_nodes.into_iter().enumerate() {
-            pass = pass.read_descriptor((0, 6, [i as _]), node);
+            pass =
+                pass.read_descriptor((bindings::TEXTURES.0, bindings::TEXTURES.1, [i as _]), node);
         }
         pass.record_ray_trace(move |ray_trace| {
             ray_trace.push_constants(cast_slice(&[push_constant]));

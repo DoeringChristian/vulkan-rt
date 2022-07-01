@@ -13,20 +13,20 @@ hitAttributeEXT vec2 hit_co;
 layout(location = 0) rayPayloadInEXT Payload payload;
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT tlas;
-layout(set = 0, binding = 1, rgba32f) uniform image2D image;
-layout(std140, set = 0, binding = 2) buffer Instances{
+//layout(set = 0, binding = 1, rgba32f) uniform image2D image;
+layout(std140, set = 0, binding = 1) buffer Instances{
     Instance instances[];
 };
-layout(set = 0, binding = 3) buffer Materials{
+layout(set = 0, binding = 2) buffer Materials{
     Material materials[];
 };
-layout(set = 0, binding = 4) buffer Indices{
+layout(set = 0, binding = 3) buffer Indices{
     uint indices[];
 }model_indices[];
-layout(set = 0, binding = 5) buffer Vertices{
+layout(set = 0, binding = 4) buffer Vertices{
     Vertex vertices[];
 }model_vertices[];
-layout(set = 0, binding = 6) uniform sampler2D textures[];
+layout(set = 0, binding = 5) uniform sampler2D textures[];
 
 mat3 compute_TBN(vec2 duv0, vec2 duv1, vec3 dpos0, vec3 dpos1, vec3 n){
     float r = 1./(duv0.x * duv1.y - duv0.y * duv1.x);

@@ -7,7 +7,7 @@
 layout(location = 0) rayPayloadEXT Payload payload;
 layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
 
-layout(set = 0, binding = 1, rgba32f) uniform image2D image;
+layout(set = 1, binding = 0, rgba32f) uniform image2D image;
 
 layout(push_constant) uniform PushConstants{
     Camera camera;
