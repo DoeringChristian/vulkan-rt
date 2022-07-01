@@ -5,6 +5,7 @@ use std::marker::PhantomData;
 
 use crate::dense_arena::DefaultKey;
 use crate::dense_arena::DenseArena;
+use crate::dense_arena::DenseStatusArena;
 
 pub struct RenderWorldKey<T> {
     key: DefaultKey,
@@ -21,7 +22,21 @@ impl<T> Clone for RenderWorldKey<T> {
     }
 }
 
-type RenderWorldArena<T> = DenseArena<DefaultKey, T>;
+pub enum RenderWorldStatus {
+    Recreated,
+    Changed,
+    Unchaged,
+}
+impl Default for RenderWorldStatus {
+    fn default() -> Self {
+        Self::Recreated
+    }
+}
+
+type RenderWorldArena<T> = (
+    DenseStatusArena<DefaultKey, T, RenderWorldStatus>,
+    RenderWorldStatus,
+);
 
 #[derive(Default)]
 pub struct RenderWorld {
@@ -35,9 +50,13 @@ impl RenderWorld {
             key: self
                 .map
                 .entry(ty_id)
-                .or_insert(Box::new(RenderWorldArena::<T>::default()))
+                .or_insert(Box::new((
+                    DenseStatusArena::<DefaultKey, T, RenderWorldStatus>::default(),
+                    RenderWorldStatus::Recreated,
+                )))
                 .downcast_mut::<RenderWorldArena<T>>()
                 .unwrap()
+                .0
                 .insert(val),
             _ty: PhantomData,
         }
@@ -46,18 +65,21 @@ impl RenderWorld {
         self.map
             .get_mut(&TypeId::of::<T>())?
             .downcast_mut::<RenderWorldArena<T>>()?
+            .0
             .remove(&key.key)
     }
     pub fn get<T: 'static>(&self, key: RenderWorldKey<T>) -> Option<&T> {
         self.map
             .get(&TypeId::of::<T>())?
             .downcast_ref::<RenderWorldArena<T>>()?
+            .0
             .get(key.key)
     }
     pub fn get_mut<T: 'static>(&mut self, key: RenderWorldKey<T>) -> Option<&mut T> {
         self.map
             .get_mut(&TypeId::of::<T>())?
             .downcast_mut::<RenderWorldArena<T>>()?
+            .0
             .get_mut(key.key)
     }
     pub fn iter<T: 'static>(&mut self) -> Option<impl Iterator<Item = (RenderWorldKey<T>, &T)>> {
@@ -65,6 +87,7 @@ impl RenderWorld {
             self.map
                 .get(&TypeId::of::<T>())?
                 .downcast_ref::<RenderWorldArena<T>>()?
+                .0
                 .iter()
                 .map(|(k, v)| {
                     (
@@ -84,6 +107,7 @@ impl RenderWorld {
             self.map
                 .get_mut(&TypeId::of::<T>())?
                 .downcast_mut::<RenderWorldArena<T>>()?
+                .0
                 .iter_mut()
                 .map(|(k, v)| {
                     (
@@ -101,6 +125,7 @@ impl RenderWorld {
             self.map
                 .get(&TypeId::of::<T>())?
                 .downcast_ref::<RenderWorldArena<T>>()?
+                .0
                 .values(),
         )
     }
@@ -109,6 +134,7 @@ impl RenderWorld {
             self.map
                 .get_mut(&TypeId::of::<T>())?
                 .downcast_mut::<RenderWorldArena<T>>()?
+                .0
                 .values_mut(),
         )
     }
@@ -116,6 +142,7 @@ impl RenderWorld {
         self.map
             .get(&TypeId::of::<T>())?
             .downcast_ref::<RenderWorldArena<T>>()?
+            .0
             .get_dense_index(key.key)
     }
     pub fn dense_index<T: 'static>(&self, key: RenderWorldKey<T>) -> usize {
@@ -127,6 +154,7 @@ impl RenderWorld {
                 .map
                 .get(&TypeId::of::<T>())?
                 .downcast_ref::<RenderWorldArena<T>>()?
+                .0
                 .get_key(index)?,
             _ty: PhantomData,
         })
