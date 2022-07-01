@@ -230,12 +230,17 @@ impl GpuScene {
     fn recreate_sbt_buf(&mut self, device: &Arc<Device>) {
         let mut hit_keys = vec![];
         let mut hit_offsets = HashMap::new();
+        // Helper function to calculate the index of the first subset of a slice.
         fn subset_idx<T: Eq>(superset: &[T], subset: &[T]) -> Option<usize> {
-            for i in 0..(superset.len() - subset.len()) {
+            if superset.len() < subset.len() {
+                return None;
+            }
+            for i in 0..(superset.len() - subset.len() + 1) {
                 let mut is_subset = true;
                 for j in 0..subset.len() {
                     if superset[i + j] != subset[j] {
                         is_subset = false;
+                        println!("never");
                         break;
                     }
                 }
@@ -253,6 +258,7 @@ impl GpuScene {
                 hit_keys.extend_from_slice(&instance.shader_groups);
             }
         }
+        println!("{:#?}", hit_keys);
         let hit_indices = hit_keys
             .into_iter()
             .map(|k| self.shader_groups.dense_index(k))
@@ -405,6 +411,18 @@ impl GpuScene {
     pub fn set_camera(&mut self, camera: GlslCamera) {
         self.camera = Resource::new(camera);
     }
+    pub fn insert_shader(&mut self, shader: Shader) -> ShaderKey {
+        self.shaders.insert(Resource::new(shader))
+    }
+    pub fn insert_shader_group(&mut self, group: ShaderGroup) -> ShaderGroupKey {
+        self.shader_groups.insert(Resource::new(group))
+    }
+    pub fn set_miss_groups(&mut self, groups: Vec<ShaderGroupKey>) {
+        self.miss_groups = groups;
+    }
+    pub fn set_rgen_group(&mut self, rgen: ShaderGroupKey) {
+        self.rgen_group = Some(rgen);
+    }
     pub fn insert_texture(
         &mut self,
         device: &Arc<Device>,
@@ -482,7 +500,7 @@ impl GpuScene {
             sbt: None,
         }
     }
-    pub fn append_gltf(&mut self, device: &Arc<Device>) {
+    pub fn append_gltf(&mut self, device: &Arc<Device>, default_hit_groups: Vec<ShaderGroupKey>) {
         let path = "./src/res/cube_scene.gltf";
         let (gltf, buffers, _) = gltf::import(path).unwrap();
         {
@@ -626,7 +644,7 @@ impl GpuScene {
                             .index()
                             .unwrap()],
                         mesh: mesh_entities[&mesh.index()],
-                        shader_groups: Vec::new(),
+                        shader_groups: default_hit_groups.clone(),
                     });
                 }
             }

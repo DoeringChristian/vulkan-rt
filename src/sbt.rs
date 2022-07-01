@@ -5,6 +5,7 @@ fn align_up(val: u32, atom: u32) -> u32 {
     (val + atom - 1) & !(atom - 1)
 }
 
+#[derive(Debug)]
 pub struct SbtBufferInfo<'a> {
     pub rgen_index: usize,
     pub hit_indices: &'a [usize],

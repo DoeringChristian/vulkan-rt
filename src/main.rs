@@ -94,7 +94,37 @@ fn main() -> anyhow::Result<()> {
     let mut gpu_scene = GpuScene::create(&event_loop.device, &mut scene);
     */
     let mut gpu_scene = GpuScene::new();
-    gpu_scene.append_gltf(&event_loop.device);
+    let rgen_shader = gpu_scene.insert_shader(
+        Shader::new_ray_gen(
+            inline_spirv::include_spirv!("src/shaders/rgen.glsl", rgen, vulkan1_2).as_slice(),
+        )
+        .build(),
+    );
+    let rchit_shader = gpu_scene.insert_shader(
+        Shader::new_closest_hit(
+            inline_spirv::include_spirv!("src/shaders/rchit.glsl", rchit, vulkan1_2).as_slice(),
+        )
+        .build(),
+    );
+    let miss_shader = gpu_scene.insert_shader(
+        Shader::new_miss(
+            inline_spirv::include_spirv!("src/shaders/rmiss.glsl", rmiss, vulkan1_2).as_slice(),
+        )
+        .build(),
+    );
+    let rgen_group = gpu_scene.insert_shader_group(ShaderGroup::General {
+        general: rgen_shader,
+    });
+    let hit_group = gpu_scene.insert_shader_group(ShaderGroup::Triangle {
+        closest_hit: rchit_shader,
+        any_hit: None,
+    });
+    let miss_group = gpu_scene.insert_shader_group(ShaderGroup::General {
+        general: miss_shader,
+    });
+    gpu_scene.set_miss_groups(vec![miss_group]);
+    gpu_scene.set_rgen_group(rgen_group);
+    gpu_scene.append_gltf(&event_loop.device, vec![hit_group]);
     //gpu_scene.upload_data(&event_loop.device);
 
     let img = Arc::new(
