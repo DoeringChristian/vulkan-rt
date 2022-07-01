@@ -661,7 +661,7 @@ impl RTRenderer {
     pub fn render(
         &mut self,
         dst_img: impl Into<AnyImageNode>,
-        cache: &mut HashPool,
+        _cache: &mut HashPool,
         rgraph: &mut RenderGraph,
     ) {
         let image_node = dst_img.into();
