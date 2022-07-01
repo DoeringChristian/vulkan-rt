@@ -81,83 +81,28 @@ impl<K: Key, V, S: Default> DenseStatusArena<K, V, S> {
         self.keys.push(key);
         key
     }
-}
-
-///
-/// Own implementation of DenseSlotMap with acces to values as slice.
-///
-#[derive(Debug, Clone)]
-pub struct DenseArena<K: Key, V> {
-    values: Vec<V>,
-    keys: Vec<K>,
-    slots: Vec<Slot>,
-    free: usize,
-}
-
-impl<K: Key, V> Default for DenseArena<K, V> {
-    fn default() -> Self {
-        Self {
-            values: Vec::new(),
-            keys: Vec::new(),
-            slots: Vec::new(),
-            free: 0,
-        }
-    }
-}
-
-impl<K: Key, V> DenseArena<K, V> {
-    #[must_use]
-    pub fn insert(&mut self, value: V) -> K {
-        let key = match self.slots.get_mut(self.free) {
-            Some(slot) if slot.version % 2 == 0 => {
-                slot.version += 1;
-                let key = KeyData {
-                    idx: self.free,
-                    version: slot.version,
-                };
-                self.free = slot.idx_or_free;
-                slot.idx_or_free = self.values.len();
-                key
-            }
-            _ => {
-                self.slots.push(Slot {
-                    version: 1,
-                    idx_or_free: self.values.len(),
-                });
-                KeyData {
-                    version: 1,
-                    idx: self.slots.len() - 1,
-                }
-            }
-        };
-        self.values.push(value);
-        let key = K::from(key);
-        self.keys.push(key);
-        key
-    }
     pub fn remove(&mut self, key: &K) -> Option<V> {
         let key = key.key_data();
-        if self.slots[key.idx].version != key.version {
+        if self.slots[key.idx].0.version != key.version {
             return None;
         }
-        let idx = self.slots[key.idx].idx_or_free;
-        self.slots[key.idx].version += 1;
-        self.slots[key.idx].idx_or_free = self.free;
+        let idx = self.slots[key.idx].0.idx_or_free;
+        self.slots[key.idx].0.version += 1;
+        self.slots[key.idx].0.idx_or_free = self.free;
         self.free = key.idx;
         let _ = self.keys.swap_remove(idx);
         let value = self.values.swap_remove(idx);
         if idx < self.values.len() {
             // update slot if swap_remove swaped
-            self.slots[self.keys[idx].key_data().idx].idx_or_free = idx;
+            self.slots[self.keys[idx].key_data().idx].0.idx_or_free = idx;
         }
         Some(value)
     }
-
     pub fn get(&self, key: K) -> Option<&V> {
         let key = key.key_data();
         let slot = self.slots.get(key.idx)?;
-        if slot.version == key.version && key.version % 2 != 0 {
-            Some(self.values.get(slot.idx_or_free)?)
+        if slot.0.version == key.version && key.version % 2 != 0 {
+            Some(self.values.get(slot.0.idx_or_free)?)
         } else {
             None
         }
@@ -165,8 +110,8 @@ impl<K: Key, V> DenseArena<K, V> {
     pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
         let key = key.key_data();
         let slot = self.slots.get(key.idx)?;
-        if slot.version == key.version && key.version % 2 != 0 {
-            Some(self.values.get_mut(slot.idx_or_free)?)
+        if slot.0.version == key.version && key.version % 2 != 0 {
+            Some(self.values.get_mut(slot.0.idx_or_free)?)
         } else {
             None
         }
@@ -186,8 +131,8 @@ impl<K: Key, V> DenseArena<K, V> {
     pub fn get_dense_index(&self, key: K) -> Option<usize> {
         let key = key.key_data();
         let slot = self.slots.get(key.idx)?;
-        if slot.version == key.version && key.version % 2 != 0 {
-            Some(slot.idx_or_free)
+        if slot.0.version == key.version && key.version % 2 != 0 {
+            Some(slot.0.idx_or_free)
         } else {
             None
         }
@@ -217,19 +162,20 @@ impl<K: Key, V> DenseArena<K, V> {
         self.values.len()
     }
 }
-
-impl<K: Key, V> Index<K> for DenseArena<K, V> {
+impl<K: Key, V, S: Default> Index<K> for DenseStatusArena<K, V, S> {
     type Output = V;
 
     fn index(&self, index: K) -> &Self::Output {
         self.get(index).unwrap()
     }
 }
-impl<K: Key, V> IndexMut<K> for DenseArena<K, V> {
+impl<K: Key, V, S: Default> IndexMut<K> for DenseStatusArena<K, V, S> {
     fn index_mut(&mut self, index: K) -> &mut Self::Output {
         self.get_mut(index).unwrap()
     }
 }
+
+pub type DenseArena<K, V> = DenseStatusArena<K, V, ()>;
 
 macro_rules! new_key_type {
     ( $(#[$outer:meta])* $vis:vis struct $name:ident; $($rest:tt)* ) => {
