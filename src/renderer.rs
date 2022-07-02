@@ -133,10 +133,11 @@ impl RTRenderer {
             self.recreate_pipeline(device);
         }
         // Recreate blases:
+        let mut blases = HashMap::new();
         for (key, mesh_buf) in self.mesh_bufs.iter() {
-            if mesh_buf.recreated() {
+            if mesh_buf.recreated() || !self.blases.contains_key(key) {
                 recreate_blases = true;
-                self.blases.insert(
+                blases.insert(
                     *key,
                     Resource::new(Blas::create(
                         device,
@@ -146,8 +147,12 @@ impl RTRenderer {
                         },
                     )),
                 );
+            } else {
+                blases.insert(*key, self.blases.remove(key).unwrap());
             }
         }
+        self.blases = blases;
+        /*
         // cleanup unused blases
         let remove_blases = self
             .blases
@@ -163,6 +168,7 @@ impl RTRenderer {
         for mkey in remove_blases.iter() {
             self.blases.remove(&mkey);
         }
+        */
         recreate_material_buf |= self
             .materials
             .values()
