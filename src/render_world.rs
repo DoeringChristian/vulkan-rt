@@ -5,7 +5,6 @@ use std::marker::PhantomData;
 
 use crate::dense_arena::DefaultKey;
 use crate::dense_arena::DenseArena;
-use crate::dense_arena::DenseStatusArena;
 
 pub struct RenderWorldKey<T> {
     key: DefaultKey,
@@ -34,7 +33,7 @@ impl Default for RenderWorldStatus {
 }
 
 type RenderWorldArena<T> = (
-    DenseStatusArena<DefaultKey, T, RenderWorldStatus>,
+    DenseArena<DefaultKey, T, RenderWorldStatus>,
     RenderWorldStatus,
 );
 
@@ -51,7 +50,7 @@ impl RenderWorld {
                 .map
                 .entry(ty_id)
                 .or_insert(Box::new((
-                    DenseStatusArena::<DefaultKey, T, RenderWorldStatus>::default(),
+                    DenseArena::<DefaultKey, T, RenderWorldStatus>::default(),
                     RenderWorldStatus::Recreated,
                 )))
                 .downcast_mut::<RenderWorldArena<T>>()

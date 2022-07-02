@@ -74,6 +74,15 @@ impl<T> DerefMut for Resource<T> {
     }
 }
 
+pub struct RenderScene {
+    pub meshes: DenseArena<MeshKey, Mesh>,
+    pub textures: DenseArena<TextureKey, Arc<Image>>,
+    pub materials: DenseArena<MaterialKey, Material>,
+    pub instances: DenseArena<InstanceKey, MeshInstance>,
+    pub shaders: DenseArena<ShaderKey, Shader>,
+    pub shader_groups: DenseArena<ShaderGroupKey, ShaderGroup>,
+}
+
 pub struct RTRenderer {
     pub blases: HashMap<MeshKey, Resource<Blas>>,
     pub tlas: Option<Resource<Tlas>>,
@@ -152,23 +161,6 @@ impl RTRenderer {
             }
         }
         self.blases = blases;
-        /*
-        // cleanup unused blases
-        let remove_blases = self
-            .blases
-            .iter()
-            .filter_map(|(mkey, _)| {
-                if self.mesh_bufs.get(*mkey).is_none() {
-                    Some(*mkey)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-        for mkey in remove_blases.iter() {
-            self.blases.remove(&mkey);
-        }
-        */
         recreate_material_buf |= self
             .materials
             .values()

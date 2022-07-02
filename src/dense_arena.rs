@@ -31,13 +31,14 @@ pub struct Slot {
     version: usize,
 }
 
-pub struct DenseStatusArena<K: Key, V, S = ()> {
+#[derive(Debug)]
+pub struct DenseArena<K: Key, V, S = ()> {
     values: Vec<V>,
     keys: Vec<K>,
     slots: Vec<(Slot, S)>,
     free: usize,
 }
-impl<K: Key, V, S> Default for DenseStatusArena<K, V, S> {
+impl<K: Key, V, S> Default for DenseArena<K, V, S> {
     fn default() -> Self {
         Self {
             values: Vec::new(),
@@ -48,7 +49,7 @@ impl<K: Key, V, S> Default for DenseStatusArena<K, V, S> {
     }
 }
 
-impl<K: Key, V, S: Default> DenseStatusArena<K, V, S> {
+impl<K: Key, V, S: Default> DenseArena<K, V, S> {
     #[must_use]
     pub fn insert(&mut self, value: V) -> K {
         let key = match self.slots.get_mut(self.free) {
@@ -186,20 +187,20 @@ impl<K: Key, V, S: Default> DenseStatusArena<K, V, S> {
         self.values.len()
     }
 }
-impl<K: Key, V, S: Default> Index<K> for DenseStatusArena<K, V, S> {
+impl<K: Key, V, S: Default> Index<K> for DenseArena<K, V, S> {
     type Output = V;
 
     fn index(&self, index: K) -> &Self::Output {
         self.get(index).unwrap()
     }
 }
-impl<K: Key, V, S: Default> IndexMut<K> for DenseStatusArena<K, V, S> {
+impl<K: Key, V, S: Default> IndexMut<K> for DenseArena<K, V, S> {
     fn index_mut(&mut self, index: K) -> &mut Self::Output {
         self.get_mut(index).unwrap()
     }
 }
 
-pub type DenseArena<K, V> = DenseStatusArena<K, V, ()>;
+//pub type DenseArena<K, V> = DenseStatusArena<K, V, ()>;
 
 macro_rules! new_key_type {
     ( $(#[$outer:meta])* $vis:vis struct $name:ident; $($rest:tt)* ) => {
