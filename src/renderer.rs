@@ -27,6 +27,65 @@ use std::sync::Arc;
 
 const INDEX_UNDEF: u32 = 0xffffffff;
 
+pub enum SignalExpr {
+    And(Vec<SignalExpr>),
+    Or(Vec<SignalExpr>),
+    Not(Box<SignalExpr>),
+    Term(Signal),
+    True,
+    Flase,
+}
+
+impl std::ops::BitOr for SignalExpr {
+    type Output = Self;
+
+    fn bitor(mut self, mut rhs: Self) -> Self::Output {
+        if let SignalExpr::Or(expr) = &mut self {
+            if let SignalExpr::Or(expr1) = &mut rhs {
+                expr.append(expr1);
+                return self;
+            }
+            expr.push(rhs);
+            return self;
+        }
+        if let SignalExpr::Or(expr) = &mut rhs {
+            expr.push(self);
+            return rhs;
+        }
+        return SignalExpr::Or(vec![self, rhs]);
+    }
+}
+impl std::ops::BitAnd for SignalExpr {
+    type Output = Self;
+
+    fn bitand(mut self, mut rhs: Self) -> Self::Output {
+        if let SignalExpr::And(expr) = &mut self {
+            if let SignalExpr::And(expr1) = &mut rhs {
+                expr.append(expr1);
+                return self;
+            }
+            expr.push(rhs);
+            return self;
+        }
+        if let SignalExpr::And(expr) = &mut rhs {
+            expr.push(self);
+            return rhs;
+        }
+        return SignalExpr::And(vec![self, rhs]);
+    }
+}
+
+impl std::ops::Not for SignalExpr {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        if let Self::Not(expr) = self {
+            return *expr;
+        }
+        SignalExpr::Not(Box::new(self))
+    }
+}
+
 #[derive(Hash, Clone, Copy, PartialEq, Eq)]
 pub enum Signal {
     MeshChanged(MeshKey),
@@ -44,6 +103,28 @@ pub enum Signal {
     ShaderGroupsChanged,
     ShaderGroupsResized,
     CameraChanged,
+}
+
+impl std::ops::BitOr for Signal {
+    type Output = SignalExpr;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        SignalExpr::Or(vec![SignalExpr::Term(self), SignalExpr::Term(rhs)])
+    }
+}
+impl std::ops::BitAnd for Signal {
+    type Output = SignalExpr;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        SignalExpr::And(vec![SignalExpr::Term(self), SignalExpr::Term(rhs)])
+    }
+}
+impl std::ops::Not for Signal {
+    type Output = SignalExpr;
+
+    fn not(self) -> Self::Output {
+        SignalExpr::Not(Box::new(SignalExpr::Term(self)))
+    }
 }
 
 pub struct RTRenderer {
@@ -73,22 +154,18 @@ mod bindings {
 }
 
 impl RTRenderer {
-    pub fn emit(&mut self, event: Signal) {
-        self.signals.insert(event);
+    pub fn emit(&mut self, signal: Signal) {
+        self.signals.insert(signal);
     }
-    fn any_signal<'a>(&self, events: impl Iterator<Item = &'a Signal>) -> bool {
-        for event in events {
-            if self.signals.contains(event) {
-                return true;
-            }
-        }
-        return false;
+    #[inline]
+    fn signaled(&self, signal: &Signal) -> bool {
+        self.signals.contains(signal)
     }
     fn clear_signals(&mut self) {
         self.signals.clear();
     }
     pub fn recreate_stage(&mut self, device: &Arc<Device>) {
-        if self.any_signal([Signal::ShadersResized, Signal::ShaderGroupsResized].iter()) {
+        if self.signaled(&Signal::ShadersResized) || self.signaled(&Signal::ShaderGroupsResized) {
             self.recreate_pipeline(device);
         }
         let mut recreate_blases = false;
@@ -96,8 +173,8 @@ impl RTRenderer {
         let mut blases = HashMap::new();
         let mut blas_signals = Vec::new();
         for (key, mesh) in self.world.meshes.iter() {
-            if self.any_signal([Signal::MeshResized(*key)].iter()) || !self.blases.contains_key(key)
-            {
+            //if self.any_signal([Signal::MeshResized(*key)].iter()) || !self.blases.contains_key(key)
+            if self.signaled(&Signal::MeshResized(*key)) || !self.blases.contains_key(key) {
                 recreate_blases = true;
                 blas_signals.push(Signal::BlasRecreated(*key));
                 blases.insert(
@@ -116,15 +193,16 @@ impl RTRenderer {
         }
         blas_signals.into_iter().for_each(|sig| self.emit(sig));
         self.blases = blases;
-        if self.any_signal([Signal::MaterialsResized, Signal::MaterialsChanged].iter()) {
+        if self.signaled(&Signal::MaterialsResized) || self.signaled(&Signal::MaterialsChanged) {
             self.recreate_material_buf(device);
         }
-        if self.any_signal([Signal::InstancesResized].iter()) {
+        if self.signaled(&Signal::InstancesResized) {
             self.recreate_sbt_buf(device);
             self.recreate_instancedata_buf(device);
         }
         if recreate_blases
-            | self.any_signal([Signal::InstancesChanged, Signal::InstancesResized].iter())
+            || self.signaled(&Signal::InstancesChanged)
+            || self.signaled(&Signal::InstancesResized)
         {
             self.emit(Signal::TlasRecreated);
             self.recreate_tlas(device);
@@ -136,14 +214,10 @@ impl RTRenderer {
             .blases
             .iter()
             .map(|(key, b)| {
-                if self.any_signal(
-                    [
-                        Signal::MeshChanged(*key),
-                        Signal::MeshResized(*key),
-                        Signal::BlasRecreated(*key),
-                    ]
-                    .iter(),
-                ) {
+                if self.signaled(&Signal::MeshChanged(*key))
+                    || self.signaled(&Signal::MeshResized(*key))
+                    || self.signaled(&Signal::BlasRecreated(*key))
+                {
                     build_tlas = true;
                     b.build(cache, rgraph)
                 } else {
@@ -151,7 +225,7 @@ impl RTRenderer {
                 }
             })
             .collect::<Vec<_>>();
-        if build_tlas | self.any_signal([Signal::TlasRecreated].iter()) {
+        if build_tlas || self.signaled(&Signal::TlasRecreated) {
             self.tlas
                 .as_ref()
                 .unwrap()
