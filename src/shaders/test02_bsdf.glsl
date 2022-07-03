@@ -156,7 +156,24 @@ void sample_refraction(HitInfo hit, inout Payload ray, vec3 m, float n1, float n
     ray.dir = wi;
 }
 
-void sample_specular(HitInfo hit, inout Payload ray, vec3 m){
+void sample_specular_cosine(HitInfo hit, inout Payload ray){
+    vec3 wi = allign_hemisphere(cosine_hemisphere(ray.seed), hit.n);
+
+    //float wi_dot_n = max(dot(hit.n, wi), 0.);
+    vec3 h = normalize(ray.dir + wi);
+    float D = DistributionGGX(hit.n, h, hit.roughness);
+    float G = GeometrySmith(hit.n, hit.wo, wi, hit.roughness);
+
+    vec3 numerator = G * vec3(1.) * D;
+    float denominator = 4. * max(dot(hit.n, hit.wo), 0.) * max(dot(hit.n, wi), 0.) + 0.001;
+    vec3 specular = numerator/denominator;
+    vec3 fr = specular;
+
+    ray.attenuation *= fr * (2. * M_PI);
+    ray.dir = wi;
+}
+
+void sample_specular_refl(HitInfo hit, inout Payload ray, vec3 m){
     vec3 wi = reflect(-hit.wo, m);
     float wi_dot_n = max(dot(m, wi), 0.);
     float G = GeometrySmith(hit.n, hit.wo, wi, hit.roughness);
@@ -169,6 +186,19 @@ void sample_specular(HitInfo hit, inout Payload ray, vec3 m){
     // Sample:
     ray.attenuation *= fr * wi_dot_n * (2 * M_PI);
     ray.dir = wi;
+}
+
+void sample_specular(HitInfo hit, inout Payload ray, vec3 m){
+    
+    float p_cosine = 0.;
+
+    if (randf(ray.seed) < p_cosine){
+        sample_specular_cosine(hit, ray);
+        ray.attenuation /= p_cosine;
+    }else{
+        sample_specular_refl(hit, ray, m);
+        ray.attenuation /= (1. - p_cosine);
+    }
 }
 
 void sample_dielectric(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2){
@@ -233,7 +263,7 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     
     // m is the microfacet normal
     //vec3 m = sample_DistributionGGX(roughness, hit.n, seed - vec3(M_PI));
-    vec3 m = sample_DistributionBeckmann(hit.roughness, hit.n, ray.seed);
+    vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
 
     if (randf(ray.seed) < hit.metallic){
         sample_metallic(hit, ray, m, n1, n2);
