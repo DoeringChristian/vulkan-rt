@@ -515,10 +515,12 @@ impl RTRenderer {
     }
     pub fn append_gltf(
         &mut self,
+        path: impl AsRef<Path>,
         device: &Arc<Device>,
         default_hit_groups: Vec<ShaderGroupKey>,
     ) -> Vec<InstanceKey> {
-        let path = "./src/res/cube_scene.gltf";
+        //let path = "./src/res/cube_scene.gltf";
+        let path = path.as_ref();
         let mut instances = vec![];
         let (gltf, buffers, _) = gltf::import(path).unwrap();
         {

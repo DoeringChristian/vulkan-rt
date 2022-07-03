@@ -72,7 +72,11 @@ fn main() -> anyhow::Result<()> {
     });
     rt_renderer.set_miss_groups(vec![miss_group]);
     rt_renderer.set_rgen_group(rgen_group);
-    rt_renderer.append_gltf(&event_loop.device, vec![hit_group]);
+    rt_renderer.append_gltf(
+        "./src/res/cube_scene.gltf",
+        &event_loop.device,
+        vec![hit_group],
+    );
     //gpu_scene.upload_data(&event_loop.device);
 
     let gbuffer = GBuffer::new(&event_loop.device, [1000, 1000]);
