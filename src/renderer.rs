@@ -31,6 +31,8 @@ const INDEX_UNDEF: u32 = 0xffffffff;
 pub enum Signal {
     MeshChanged(MeshKey),
     MeshResized(MeshKey),
+    BlasRecreated(MeshKey),
+    TlasRecreated,
     InstancesChanged,
     InstancesResized,
     MaterialsChanged,
@@ -71,7 +73,7 @@ mod bindings {
 }
 
 impl RTRenderer {
-    fn emit(&mut self, event: Signal) {
+    pub fn emit(&mut self, event: Signal) {
         self.signals.insert(event);
     }
     fn any_signal<'a>(&self, events: impl Iterator<Item = &'a Signal>) -> bool {
@@ -92,10 +94,12 @@ impl RTRenderer {
         let mut recreate_blases = false;
         // Recreate blases:
         let mut blases = HashMap::new();
+        let mut blas_signals = Vec::new();
         for (key, mesh) in self.world.meshes.iter() {
             if self.any_signal([Signal::MeshResized(*key)].iter()) || !self.blases.contains_key(key)
             {
                 recreate_blases = true;
+                blas_signals.push(Signal::BlasRecreated(*key));
                 blases.insert(
                     *key,
                     Blas::create(
@@ -110,6 +114,7 @@ impl RTRenderer {
                 blases.insert(*key, self.blases.remove(key).unwrap());
             }
         }
+        blas_signals.into_iter().for_each(|sig| self.emit(sig));
         self.blases = blases;
         if self.any_signal([Signal::MaterialsResized, Signal::MaterialsChanged].iter()) {
             self.recreate_material_buf(device);
@@ -121,6 +126,7 @@ impl RTRenderer {
         if recreate_blases
             | self.any_signal([Signal::InstancesChanged, Signal::InstancesResized].iter())
         {
+            self.emit(Signal::TlasRecreated);
             self.recreate_tlas(device);
         }
     }
@@ -130,7 +136,14 @@ impl RTRenderer {
             .blases
             .iter()
             .map(|(key, b)| {
-                if self.any_signal([Signal::MeshChanged(*key), Signal::MeshResized(*key)].iter()) {
+                if self.any_signal(
+                    [
+                        Signal::MeshChanged(*key),
+                        Signal::MeshResized(*key),
+                        Signal::BlasRecreated(*key),
+                    ]
+                    .iter(),
+                ) {
                     build_tlas = true;
                     b.build(cache, rgraph)
                 } else {
@@ -138,7 +151,7 @@ impl RTRenderer {
                 }
             })
             .collect::<Vec<_>>();
-        if build_tlas {
+        if build_tlas | self.any_signal([Signal::TlasRecreated].iter()) {
             self.tlas
                 .as_ref()
                 .unwrap()

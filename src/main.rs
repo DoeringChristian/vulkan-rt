@@ -81,14 +81,9 @@ fn main() -> anyhow::Result<()> {
     let mut angle: f32 = 0.;
 
     event_loop.run(|mut frame| {
-        /*
         if fc == 3 {
-            rt_renderer
-                .world
-                .events
-                .insert(RenderWorldEvent::InstancesResized);
+            rt_renderer.emit(Signal::TlasRecreated);
         }
-        */
         rt_renderer.recreate_stage(frame.device);
         rt_renderer.build_stage(&mut cache, &mut frame.render_graph);
         rt_renderer.cleanup_stage();
