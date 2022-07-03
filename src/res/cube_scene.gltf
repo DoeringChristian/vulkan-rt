@@ -9,6 +9,17 @@
     "scene" : 0,
     "scenes" : [
         {
+            "extras" : {
+                "sketcher" : {
+                    "entities" : {},
+                    "constraints" : {},
+                    "version" : [
+                        0,
+                        24,
+                        0
+                    ]
+                }
+            },
             "name" : "Scene",
             "nodes" : [
                 0,

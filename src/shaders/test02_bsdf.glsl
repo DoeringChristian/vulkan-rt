@@ -131,6 +131,7 @@ vec3 sample_DistributionBeckmann(float roughness, vec3 n, inout uint seed){
 
 void sample_diffuse(HitInfo hit, inout Payload ray, vec3 m){
     vec3 wi = allign_hemisphere(cosine_hemisphere(ray.seed), hit.n);
+    //vec3 wi = allign_hemisphere(uniform_hemisphere(ray.seed), hit.n);
     //vec3 wi = sample_coshemisphere(hit.n, ray.seed);
     //float wi_dot_n = max(dot(hit.n, wi), 0.);
 
@@ -197,7 +198,7 @@ void sample_dielectric(HitInfo hit, inout Payload ray, vec3 m, float n1, float n
 
 void sample_metallic(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2){
     vec3 F0 = hit.albedo.rgb;
-    vec3 F = fresnelSchlick(dot(m, hit.wo), F0);
+    vec3 F = fresnelSchlick(clamp(dot(m, hit.wo), 0., 1.), F0);
     
     float kS = (F.r + F.g + F.b) / 3.;
     float kD = 1. - kS;
@@ -210,8 +211,8 @@ void sample_metallic(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2)
         ray.attenuation *= F / kS;
     }
     else{
-        sample_diffuse(hit, ray, m);
-        ray.attenuation *= (1. - F) / kD;
+        //sample_diffuse(hit, ray, m);
+        ray.attenuation *= (1. - F) / kS;
     }
 }
 
