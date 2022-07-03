@@ -130,13 +130,14 @@ vec3 sample_DistributionBeckmann(float roughness, vec3 n, inout uint seed){
 }
 
 void sample_diffuse(HitInfo hit, inout Payload ray, vec3 m){
-    vec3 wi = allign_hemisphere(uniform_hemisphere(ray.seed), hit.n);
-    float wi_dot_n = max(dot(hit.n, wi), 0.);
+    vec3 wi = allign_hemisphere(cosine_hemisphere(ray.seed), hit.n);
+    //vec3 wi = sample_coshemisphere(hit.n, ray.seed);
+    //float wi_dot_n = max(dot(hit.n, wi), 0.);
 
     vec3 fr = hit.albedo.rgb / M_PI;
 
     // Sample:
-    ray.attenuation *= fr * wi_dot_n * (2. * M_PI);
+    ray.attenuation *= fr * (2. * M_PI);
     ray.dir = wi;
 }
 

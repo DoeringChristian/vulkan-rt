@@ -83,6 +83,16 @@ vec3 uniform_hemisphere_alligned(vec3 normal, inout uint seed){
     }
     return sphere;
 }
+vec3 cosine_hemisphere(inout uint seed){
+    float r = sqrt(randf(seed));
+    float phi = randf(seed) * 2. * M_PI;
+
+    float x = r * cos(phi);
+    float y = r * sin(phi);
+
+    return vec3(x, y, sqrt(1. - x*x - y*y));
+}
+
 vec2 uniform_hemisphere_uv(inout uint seed){
     vec2 uv = uniform_sphere_uv(seed);
     if (uv.x > 0){
