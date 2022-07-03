@@ -175,7 +175,7 @@ void sample_specular_cosine(HitInfo hit, inout Payload ray){
 
 void sample_specular_refl(HitInfo hit, inout Payload ray, vec3 m){
     vec3 wi = reflect(-hit.wo, m);
-    float wi_dot_n = max(dot(m, wi), 0.);
+    float wi_dot_m = max(dot(m, wi), 0.);
     float G = GeometrySmith(hit.n, hit.wo, wi, hit.roughness);
 
     vec3 numerator = G * vec3(1.);
@@ -184,7 +184,7 @@ void sample_specular_refl(HitInfo hit, inout Payload ray, vec3 m){
     vec3 fr = specular;
 
     // Sample:
-    ray.attenuation *= fr * wi_dot_n * (2 * M_PI);
+    ray.attenuation *= fr * wi_dot_m * (2 * M_PI);
     ray.dir = wi;
 }
 
