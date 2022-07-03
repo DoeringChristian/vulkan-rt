@@ -27,65 +27,6 @@ use std::sync::Arc;
 
 const INDEX_UNDEF: u32 = 0xffffffff;
 
-pub enum SignalExpr {
-    And(Vec<SignalExpr>),
-    Or(Vec<SignalExpr>),
-    Not(Box<SignalExpr>),
-    Term(Signal),
-    True,
-    Flase,
-}
-
-impl std::ops::BitOr for SignalExpr {
-    type Output = Self;
-
-    fn bitor(mut self, mut rhs: Self) -> Self::Output {
-        if let SignalExpr::Or(expr) = &mut self {
-            if let SignalExpr::Or(expr1) = &mut rhs {
-                expr.append(expr1);
-                return self;
-            }
-            expr.push(rhs);
-            return self;
-        }
-        if let SignalExpr::Or(expr) = &mut rhs {
-            expr.push(self);
-            return rhs;
-        }
-        return SignalExpr::Or(vec![self, rhs]);
-    }
-}
-impl std::ops::BitAnd for SignalExpr {
-    type Output = Self;
-
-    fn bitand(mut self, mut rhs: Self) -> Self::Output {
-        if let SignalExpr::And(expr) = &mut self {
-            if let SignalExpr::And(expr1) = &mut rhs {
-                expr.append(expr1);
-                return self;
-            }
-            expr.push(rhs);
-            return self;
-        }
-        if let SignalExpr::And(expr) = &mut rhs {
-            expr.push(self);
-            return rhs;
-        }
-        return SignalExpr::And(vec![self, rhs]);
-    }
-}
-
-impl std::ops::Not for SignalExpr {
-    type Output = Self;
-
-    fn not(self) -> Self::Output {
-        if let Self::Not(expr) = self {
-            return *expr;
-        }
-        SignalExpr::Not(Box::new(self))
-    }
-}
-
 #[derive(Hash, Clone, Copy, PartialEq, Eq)]
 pub enum Signal {
     MeshChanged(MeshKey),
@@ -103,28 +44,6 @@ pub enum Signal {
     ShaderGroupsChanged,
     ShaderGroupsResized,
     CameraChanged,
-}
-
-impl std::ops::BitOr for Signal {
-    type Output = SignalExpr;
-
-    fn bitor(self, rhs: Self) -> Self::Output {
-        SignalExpr::Or(vec![SignalExpr::Term(self), SignalExpr::Term(rhs)])
-    }
-}
-impl std::ops::BitAnd for Signal {
-    type Output = SignalExpr;
-
-    fn bitand(self, rhs: Self) -> Self::Output {
-        SignalExpr::And(vec![SignalExpr::Term(self), SignalExpr::Term(rhs)])
-    }
-}
-impl std::ops::Not for Signal {
-    type Output = SignalExpr;
-
-    fn not(self) -> Self::Output {
-        SignalExpr::Not(Box::new(SignalExpr::Term(self)))
-    }
 }
 
 pub struct RTRenderer {
