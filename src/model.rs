@@ -5,6 +5,7 @@ use crate::{accel::Blas, buffers::TypedBuffer, dense_arena::*};
 use bevy_ecs::prelude::*;
 use bevy_transform::prelude::*;
 use bytemuck::cast_slice;
+use glam::Mat4;
 
 new_key_type! {
     pub struct TextureKey;
@@ -32,7 +33,7 @@ pub struct Mesh {
 
 #[derive(Clone)]
 pub struct MeshInstance {
-    pub transform: Transform,
+    pub transform: Mat4,
     pub mesh: MeshKey,
     pub material: MaterialKey,
     pub shader_groups: Vec<ShaderGroupKey>,

@@ -1632,6 +1632,7 @@ dependencies = [
  "bitflags",
  "bytemuck",
  "egui",
+ "glam",
  "gltf",
  "image",
  "inline-spirv",

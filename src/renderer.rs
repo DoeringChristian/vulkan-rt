@@ -74,15 +74,6 @@ impl<T> DerefMut for Resource<T> {
     }
 }
 
-pub struct RenderScene {
-    pub meshes: DenseArena<MeshKey, Mesh>,
-    pub textures: DenseArena<TextureKey, Arc<Image>>,
-    pub materials: DenseArena<MaterialKey, Material>,
-    pub instances: DenseArena<InstanceKey, MeshInstance>,
-    pub shaders: DenseArena<ShaderKey, Shader>,
-    pub shader_groups: DenseArena<ShaderGroupKey, ShaderGroup>,
-}
-
 pub struct RTRenderer {
     pub blases: HashMap<MeshKey, Resource<Blas>>,
     pub tlas: Option<Resource<Tlas>>,
@@ -328,7 +319,7 @@ impl RTRenderer {
     fn recreate_tlas(&mut self, device: &Arc<Device>) {
         let mut instances = vec![];
         for (i, (key, instance)) in self.instances.iter().enumerate() {
-            let matrix = instance.transform.compute_matrix();
+            let matrix = instance.transform;
             let matrix = [
                 matrix.x_axis.x,
                 matrix.y_axis.x,
@@ -365,7 +356,7 @@ impl RTRenderer {
         let mut instancedata = vec![];
         for instance in self.instances.values_as_slice() {
             instancedata.push(GlslInstanceData {
-                transform: instance.transform.compute_matrix().to_cols_array_2d(),
+                transform: instance.transform.to_cols_array_2d(),
                 //mat_index: self.materials[instance.material].index,
                 mat_index: self.materials.dense_index(instance.material) as _,
                 indices: self.mesh_bufs.dense_index(instance.mesh) as _,
@@ -650,7 +641,7 @@ impl RTRenderer {
                     let matrix = node.transform().matrix();
                     instances.push(
                         self.insert_instance(MeshInstance {
-                            transform: Transform::from_matrix(Mat4::from_cols_array_2d(&matrix)),
+                            transform: Mat4::from_cols_array_2d(&matrix),
                             material: material_entities[&mesh
                                 .primitives()
                                 .next()

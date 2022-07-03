@@ -152,7 +152,7 @@ fn main() -> anyhow::Result<()> {
                             .unwrap()
                             .deref()
                             .clone();
-                        inst.transform = Transform::from_xyz(0., 0., 0.);
+                        inst.transform = Mat4::IDENTITY;
                         rt_renderer.insert_instance(inst);
                     }
                 });
