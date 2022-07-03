@@ -9,10 +9,28 @@ use crate::{
 use glam::*;
 use screen_13::prelude::*;
 use screen_13_fx::ImageLoader;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::Arc;
 
+#[derive(Hash, Clone, Copy, PartialEq, Eq)]
+pub enum RenderWorldEvent {
+    MeshChanged(MeshKey),
+    MeshResized(MeshKey),
+    InstancesChanged,
+    InstancesResized,
+    MaterialsChanged,
+    MaterialsResized,
+    TexturesChanged,
+    TexturesResized,
+    ShadersChanged,
+    ShadersResized,
+    ShaderGroupsChanged,
+    ShaderGroupsResized,
+    CameraChanged,
+}
+
+#[derive(Default)]
 pub struct RenderWorld {
     pub meshes: DenseArena<MeshKey, Mesh>,
     pub textures: DenseArena<TextureKey, Arc<Image>>,
@@ -20,32 +38,46 @@ pub struct RenderWorld {
     pub instances: DenseArena<InstanceKey, MeshInstance>,
     pub shaders: DenseArena<ShaderKey, Shader>,
     pub shader_groups: DenseArena<ShaderGroupKey, ShaderGroup>,
-    pub miss_groups: Vec<ShaderGroupKey>,
-    pub rgen_group: Option<ShaderGroupKey>,
     pub camera: GlslCamera,
+    pub events: HashSet<RenderWorldEvent>,
 }
 
 impl RenderWorld {
+    pub fn reset_events(&mut self) {
+        self.events.clear();
+    }
+    fn set_event(&mut self, event: RenderWorldEvent) {
+        self.events.insert(event);
+    }
+    pub fn event_called(&self, event: &RenderWorldEvent) -> bool {
+        self.events.contains(event)
+    }
+    pub fn any_event(&self, events: impl Iterator<Item = RenderWorldEvent>) -> bool {
+        for event in events {
+            if self.events.contains(&event) {
+                return true;
+            }
+        }
+        false
+    }
     pub fn set_camera(&mut self, camera: GlslCamera) {
+        self.set_event(RenderWorldEvent::CameraChanged);
         self.camera = camera;
     }
     pub fn insert_shader(&mut self, shader: Shader) -> ShaderKey {
+        self.set_event(RenderWorldEvent::ShadersResized);
         self.shaders.insert(shader)
     }
     pub fn insert_shader_group(&mut self, group: ShaderGroup) -> ShaderGroupKey {
+        self.set_event(RenderWorldEvent::ShaderGroupsResized);
         self.shader_groups.insert(group)
-    }
-    pub fn set_miss_groups(&mut self, groups: Vec<ShaderGroupKey>) {
-        self.miss_groups = groups;
-    }
-    pub fn set_rgen_group(&mut self, rgen: ShaderGroupKey) {
-        self.rgen_group = Some(rgen);
     }
     pub fn insert_texture(
         &mut self,
         device: &Arc<Device>,
         img: &image::DynamicImage,
     ) -> TextureKey {
+        self.set_event(RenderWorldEvent::TexturesResized);
         let mut img_loader = ImageLoader::new(device).unwrap();
         let img = img.as_rgba8().unwrap();
         let img = img_loader
@@ -59,9 +91,11 @@ impl RenderWorld {
         self.textures.insert(img)
     }
     pub fn insert_material(&mut self, material: Material) -> MaterialKey {
+        self.set_event(RenderWorldEvent::MaterialsResized);
         self.materials.insert(material)
     }
     pub fn insert_instance(&mut self, instance: MeshInstance) -> InstanceKey {
+        self.set_event(RenderWorldEvent::InstancesResized);
         self.instances.insert(instance)
     }
     pub fn insert_mesh(
@@ -70,7 +104,7 @@ impl RenderWorld {
         indices: &[Index],
         vertices: &[Vertex],
     ) -> MeshKey {
-        self.meshes.insert(Mesh {
+        let key = self.meshes.insert(Mesh {
             indices: Arc::new(TypedBuffer::create(
                 device,
                 indices,
@@ -85,7 +119,9 @@ impl RenderWorld {
                     | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                     | vk::BufferUsageFlags::STORAGE_BUFFER,
             )),
-        })
+        });
+        self.set_event(RenderWorldEvent::MeshResized(key));
+        key
     }
     pub fn append_gltf(
         &mut self,
@@ -246,4 +282,3 @@ impl RenderWorld {
         instances
     }
 }
-

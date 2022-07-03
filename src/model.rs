@@ -139,6 +139,20 @@ pub struct GlslCamera {
     pub fc: u32,
     pub depth: u32,
 }
+impl Default for GlslCamera {
+    fn default() -> Self {
+        Self {
+            up: [0., 0., 1., 1.],
+            right: [0., 1., 0., 1.],
+            pos: [1., 0., 0., 1.],
+            focus: 1.,
+            diameter: 0.1,
+            fov: 1.,
+            fc: 0,
+            depth: 16,
+        }
+    }
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]

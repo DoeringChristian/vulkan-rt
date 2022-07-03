@@ -26,6 +26,7 @@ use buffers::*;
 use gbuffer::GBuffer;
 use model::*;
 use post::*;
+use render_world::RenderWorldEvent;
 use renderer::*;
 use sbt::*;
 
@@ -81,12 +82,14 @@ fn main() -> anyhow::Result<()> {
     let mut angle: f32 = 0.;
 
     event_loop.run(|mut frame| {
+        /*
         if fc == 3 {
-            rt_renderer.instances.values_mut().next().unwrap().status = ResourceStatus::Recreated;
-            for blas in rt_renderer.blases.values_mut() {
-                blas.status = ResourceStatus::Recreated
-            }
+            rt_renderer
+                .world
+                .events
+                .insert(RenderWorldEvent::InstancesResized);
         }
+        */
         rt_renderer.recreate_stage(frame.device);
         rt_renderer.build_stage(&mut cache, &mut frame.render_graph);
         rt_renderer.cleanup_stage();
@@ -122,19 +125,19 @@ fn main() -> anyhow::Result<()> {
                 egui::Window::new("Test").show(&ctx, |ui| {
                     recreate_frame |= ui
                         .add(egui::Slider::new(
-                            &mut rt_renderer.camera.pos[0],
+                            &mut rt_renderer.world.camera.pos[0],
                             -10.0..=10.,
                         ))
                         .changed();
                     recreate_frame |= ui
                         .add(egui::Slider::new(
-                            &mut rt_renderer.camera.pos[1],
+                            &mut rt_renderer.world.camera.pos[1],
                             -10.0..=10.,
                         ))
                         .changed();
                     recreate_frame |= ui
                         .add(egui::Slider::new(
-                            &mut rt_renderer.camera.pos[2],
+                            &mut rt_renderer.world.camera.pos[2],
                             -10.0..=10.,
                         ))
                         .changed();
@@ -142,10 +145,14 @@ fn main() -> anyhow::Result<()> {
                         .add(egui::Slider::new(&mut angle, -10.0..=10.0))
                         .changed();
                     recreate_frame |= ui
-                        .add(egui::Slider::new(&mut rt_renderer.camera.depth, 0..=16))
+                        .add(egui::Slider::new(
+                            &mut rt_renderer.world.camera.depth,
+                            0..=16,
+                        ))
                         .changed();
                     if ui.button("Add instance").clicked() {
                         let mut inst = rt_renderer
+                            .world
                             .instances
                             .values()
                             .next()
@@ -160,9 +167,9 @@ fn main() -> anyhow::Result<()> {
         );
         if recreate_frame {
             let v = Vec3::new(angle.sin(), 0., angle.cos());
-            rt_renderer.camera.up = [v.x, v.y, v.z, 1.];
+            rt_renderer.world.camera.up = [v.x, v.y, v.z, 1.];
             //println!("{:#?}", gpu_scene.camera.right);
-            rt_renderer.camera.fc = 0;
+            rt_renderer.world.camera.fc = 0;
         }
 
         fc += 1;
