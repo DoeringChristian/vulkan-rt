@@ -78,7 +78,8 @@ fn main() -> anyhow::Result<()> {
     let gbuffer = GBuffer::new(&event_loop.device, [1000, 1000]);
 
     let mut fc = 0;
-    let mut angle: f32 = 0.;
+    let mut angle: f32 = std::f32::consts::PI;
+    let mut camera = rt_renderer.get_camera();
 
     event_loop.run(|mut frame| {
         if fc == 3 {
@@ -109,7 +110,7 @@ fn main() -> anyhow::Result<()> {
 
         presenter.present_image(frame.render_graph, tmp_image_node, frame.swapchain_image);
 
-        let mut recreate_frame = false;
+        let mut camera_changed = false;
         egui.run(
             frame.window,
             frame.events,
@@ -117,32 +118,20 @@ fn main() -> anyhow::Result<()> {
             &mut frame.render_graph,
             |ctx| {
                 egui::Window::new("Test").show(&ctx, |ui| {
-                    recreate_frame |= ui
-                        .add(egui::Slider::new(
-                            &mut rt_renderer.world.camera.pos[0],
-                            -10.0..=10.,
-                        ))
+                    camera_changed |= ui
+                        .add(egui::Slider::new(&mut camera.pos[0], -10.0..=10.))
                         .changed();
-                    recreate_frame |= ui
-                        .add(egui::Slider::new(
-                            &mut rt_renderer.world.camera.pos[1],
-                            -10.0..=10.,
-                        ))
+                    camera_changed |= ui
+                        .add(egui::Slider::new(&mut camera.pos[1], -10.0..=10.))
                         .changed();
-                    recreate_frame |= ui
-                        .add(egui::Slider::new(
-                            &mut rt_renderer.world.camera.pos[2],
-                            -10.0..=10.,
-                        ))
+                    camera_changed |= ui
+                        .add(egui::Slider::new(&mut camera.pos[2], -10.0..=10.))
                         .changed();
-                    recreate_frame |= ui
+                    camera_changed |= ui
                         .add(egui::Slider::new(&mut angle, -10.0..=10.0))
                         .changed();
-                    recreate_frame |= ui
-                        .add(egui::Slider::new(
-                            &mut rt_renderer.world.camera.depth,
-                            0..=16,
-                        ))
+                    camera_changed |= ui
+                        .add(egui::Slider::new(&mut camera.depth, 0..=16))
                         .changed();
                     if ui.button("Add instance").clicked() {
                         let mut inst = rt_renderer
@@ -159,11 +148,10 @@ fn main() -> anyhow::Result<()> {
                 });
             },
         );
-        if recreate_frame {
+        if camera_changed {
             let v = Vec3::new(angle.sin(), 0., angle.cos());
-            rt_renderer.world.camera.up = [v.x, v.y, v.z, 1.];
-            //println!("{:#?}", gpu_scene.camera.right);
-            rt_renderer.world.camera.fc = 0;
+            camera.up = [v.x, v.y, v.z, 1.];
+            rt_renderer.set_camera(camera);
         }
 
         fc += 1;

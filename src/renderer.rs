@@ -84,7 +84,10 @@ impl RTRenderer {
         self.signals.clear();
     }
     pub fn recreate_stage(&mut self, device: &Arc<Device>) {
-        if self.signaled(&Signal::ShadersResized) || self.signaled(&Signal::ShaderGroupsResized) {
+        if self.signaled(&Signal::ShadersResized)
+            || self.signaled(&Signal::ShaderGroupsResized)
+            || self.signaled(&Signal::ShadersChanged)
+        {
             self.recreate_pipeline(device);
         }
         let mut recreate_blases = false;
@@ -115,7 +118,7 @@ impl RTRenderer {
         if self.signaled(&Signal::MaterialsResized) || self.signaled(&Signal::MaterialsChanged) {
             self.recreate_material_buf(device);
         }
-        if self.signaled(&Signal::InstancesResized) {
+        if self.signaled(&Signal::InstancesResized) || self.signaled(&Signal::MaterialsResized) {
             self.recreate_sbt_buf(device);
             self.recreate_instancedata_buf(device);
         }
@@ -209,7 +212,7 @@ impl RTRenderer {
             miss_indices: &miss_indices,
             callable_indices: &[],
         };
-        println!("SbtBufferInfo: {:#?}", sbt_info);
+        //println!("SbtBufferInfo: {:#?}", sbt_info);
         self.sbt =
             Some(SbtBuffer::create(device, sbt_info, &self.pipeline.as_ref().unwrap()).unwrap());
         self.hit_offsets = hit_offsets;
@@ -351,6 +354,9 @@ impl RTRenderer {
     pub fn set_camera(&mut self, camera: GlslCamera) {
         self.emit(Signal::CameraChanged);
         self.world.set_camera(camera)
+    }
+    pub fn get_camera(&self) -> GlslCamera {
+        self.world.get_camera()
     }
     pub fn insert_shader(&mut self, shader: Shader) -> ShaderKey {
         self.emit(Signal::ShadersResized);
