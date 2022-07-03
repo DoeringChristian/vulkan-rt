@@ -13,23 +13,6 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::Arc;
 
-#[derive(Hash, Clone, Copy, PartialEq, Eq)]
-pub enum RenderWorldEvent {
-    MeshChanged(MeshKey),
-    MeshResized(MeshKey),
-    InstancesChanged,
-    InstancesResized,
-    MaterialsChanged,
-    MaterialsResized,
-    TexturesChanged,
-    TexturesResized,
-    ShadersChanged,
-    ShadersResized,
-    ShaderGroupsChanged,
-    ShaderGroupsResized,
-    CameraChanged,
-}
-
 #[derive(Default)]
 pub struct RenderWorld {
     pub meshes: DenseArena<MeshKey, Mesh>,
@@ -39,10 +22,11 @@ pub struct RenderWorld {
     pub shaders: DenseArena<ShaderKey, Shader>,
     pub shader_groups: DenseArena<ShaderGroupKey, ShaderGroup>,
     pub camera: GlslCamera,
-    pub events: HashSet<RenderWorldEvent>,
+    //pub events: HashSet<RenderWorldEvent>,
 }
 
 impl RenderWorld {
+    /*
     pub fn reset_events(&mut self) {
         self.events.clear();
     }
@@ -60,16 +44,17 @@ impl RenderWorld {
         }
         false
     }
+    */
     pub fn set_camera(&mut self, camera: GlslCamera) {
-        self.set_event(RenderWorldEvent::CameraChanged);
+        //self.set_event(RenderWorldEvent::CameraChanged);
         self.camera = camera;
     }
     pub fn insert_shader(&mut self, shader: Shader) -> ShaderKey {
-        self.set_event(RenderWorldEvent::ShadersResized);
+        //self.set_event(RenderWorldEvent::ShadersResized);
         self.shaders.insert(shader)
     }
     pub fn insert_shader_group(&mut self, group: ShaderGroup) -> ShaderGroupKey {
-        self.set_event(RenderWorldEvent::ShaderGroupsResized);
+        //self.set_event(RenderWorldEvent::ShaderGroupsResized);
         self.shader_groups.insert(group)
     }
     pub fn insert_texture(
@@ -77,7 +62,7 @@ impl RenderWorld {
         device: &Arc<Device>,
         img: &image::DynamicImage,
     ) -> TextureKey {
-        self.set_event(RenderWorldEvent::TexturesResized);
+        //self.set_event(RenderWorldEvent::TexturesResized);
         let mut img_loader = ImageLoader::new(device).unwrap();
         let img = img.as_rgba8().unwrap();
         let img = img_loader
@@ -91,11 +76,11 @@ impl RenderWorld {
         self.textures.insert(img)
     }
     pub fn insert_material(&mut self, material: Material) -> MaterialKey {
-        self.set_event(RenderWorldEvent::MaterialsResized);
+        //self.set_event(RenderWorldEvent::MaterialsResized);
         self.materials.insert(material)
     }
     pub fn insert_instance(&mut self, instance: MeshInstance) -> InstanceKey {
-        self.set_event(RenderWorldEvent::InstancesResized);
+        //self.set_event(RenderWorldEvent::InstancesResized);
         self.instances.insert(instance)
     }
     pub fn insert_mesh(
@@ -120,7 +105,7 @@ impl RenderWorld {
                     | vk::BufferUsageFlags::STORAGE_BUFFER,
             )),
         });
-        self.set_event(RenderWorldEvent::MeshResized(key));
+        //self.set_event(RenderWorldEvent::MeshResized(key));
         key
     }
     pub fn append_gltf(

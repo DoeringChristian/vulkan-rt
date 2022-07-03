@@ -26,7 +26,6 @@ use buffers::*;
 use gbuffer::GBuffer;
 use model::*;
 use post::*;
-use render_world::RenderWorldEvent;
 use renderer::*;
 use sbt::*;
 
