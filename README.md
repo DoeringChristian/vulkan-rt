@@ -4,4 +4,4 @@ This is a simple Vulkan path tracer written in rust using the [screen-13](https:
 The current screen-13 version needed is from this [branch](https://github.com/DoeringChristian/screen-13/tree/update-accel).
 
 
-Current output: ![](./screenshots/s11.png)
+Current output: ![](./screenshots/s12.png)

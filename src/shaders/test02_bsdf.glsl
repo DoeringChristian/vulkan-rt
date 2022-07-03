@@ -200,20 +200,9 @@ void sample_metallic(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2)
     vec3 F0 = hit.albedo.rgb;
     vec3 F = fresnelSchlick(clamp(dot(m, hit.wo), 0., 1.), F0);
     
-    float kS = (F.r + F.g + F.b) / 3.;
-    float kD = 1. - kS;
-
-    //vec3 F = mix(F0, vec3(1.), kS);
+    sample_specular(hit, ray, m);
+    ray.attenuation *= F;
     
-    if (randf(ray.seed) < kS){
-        // Specular case
-        sample_specular(hit, ray, m);
-        ray.attenuation *= F / kS;
-    }
-    else{
-        //sample_diffuse(hit, ray, m);
-        ray.attenuation *= (1. - F) / kS;
-    }
 }
 
 //Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior, vec3 seed){
