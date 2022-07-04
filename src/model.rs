@@ -1,3 +1,4 @@
+use screen_13::prelude::vk;
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -101,10 +102,10 @@ pub enum ShaderGroup {
 pub struct GlslInstanceData {
     pub transform: [[f32; 4]; 4],
     pub mat_index: u32,
-    pub indices: u32,
-    pub vertices: u32,
-
     pub normal_uv_mask: u32,
+    pub vertices: vk::DeviceAddress,
+    pub indices: vk::DeviceAddress,
+    pub _pad: [u32; 2],
 }
 
 ///

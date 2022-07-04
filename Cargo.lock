@@ -1641,6 +1641,7 @@ dependencies = [
  "screen-13-egui",
  "screen-13-fx",
  "slotmap",
+ "spirq",
  "tobj",
 ]
 

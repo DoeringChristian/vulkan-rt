@@ -2,6 +2,9 @@
 #version 460
 #extension GL_EXT_ray_tracing : require
 #extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_buffer_reference2 : require
+#extension GL_EXT_scalar_block_layout : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
 #include "rand.glsl"
 #include "common.glsl"
@@ -13,20 +16,21 @@ hitAttributeEXT vec2 hit_co;
 layout(location = 0) rayPayloadInEXT Payload payload;
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT tlas;
-//layout(set = 0, binding = 1, rgba32f) uniform image2D image;
 layout(std140, set = 0, binding = 1) buffer Instances{
     Instance instances[];
 };
-layout(set = 0, binding = 2) buffer Materials{
+
+layout(set = 0, binding = 5) uniform sampler2D textures[];
+layout(set = 0, binding = 3) buffer Materials{
     Material materials[];
 };
-layout(set = 0, binding = 3) buffer Indices{
-    uint indices[];
-}model_indices[];
-layout(set = 0, binding = 4) buffer Vertices{
-    Vertex vertices[];
-}model_vertices[];
-layout(set = 0, binding = 5) uniform sampler2D textures[];
+
+layout(buffer_reference, scalar) buffer Indices{
+    uint i[];
+};
+layout(buffer_reference, scalar) buffer Vertices{
+    Vertex v[];
+};
 
 mat3 compute_TBN(vec2 duv0, vec2 duv1, vec3 dpos0, vec3 dpos1, vec3 n){
     float r = 1./(duv0.x * duv1.y - duv0.y * duv1.x);
@@ -49,15 +53,17 @@ void main() {
     mat4 transform = mat4(inst.trans0, inst.trans1, inst.trans2, inst.trans3);
     Material mat = materials[inst.mat_index];
 
-    ivec3 indices = ivec3(model_indices[inst.indices].indices[3 * gl_PrimitiveID + 0],
-                          model_indices[inst.indices].indices[3 * gl_PrimitiveID + 1],
-                          model_indices[inst.indices].indices[3 * gl_PrimitiveID + 2]);
+    Indices indices = Indices(inst.indices);
+    Vertices vertices = Vertices(inst.vertices);
+    ivec3 tri = ivec3(indices.i[3 * gl_PrimitiveID + 0],
+                      indices.i[3 * gl_PrimitiveID + 1],
+                      indices.i[3 * gl_PrimitiveID + 2]);
 
     vec3 barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
-
-    Vertex vert0 = model_vertices[inst.vertices].vertices[indices.x];
-    Vertex vert1 = model_vertices[inst.vertices].vertices[indices.y];
-    Vertex vert2 = model_vertices[inst.vertices].vertices[indices.z];
+    
+    Vertex vert0 = vertices.v[tri.x];
+    Vertex vert1 = vertices.v[tri.y];
+    Vertex vert2 = vertices.v[tri.z];
 
     vec3 pos0 = vert0.pos.xyz;
     vec3 pos1 = vert1.pos.xyz;

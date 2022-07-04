@@ -65,7 +65,7 @@ pub struct RTRenderer {
 mod bindings {
     pub const TLAS: (u32, u32) = (0, 0);
     pub const INSTANCES: (u32, u32) = (0, 1);
-    pub const MATERIALS: (u32, u32) = (0, 2);
+    pub const MATERIALS: (u32, u32) = (0, 3);
     pub const INDICES: (u32, u32) = (0, 3);
     pub const VERTICES: (u32, u32) = (0, 4);
     pub const TEXTURES: (u32, u32) = (0, 5);
@@ -301,9 +301,12 @@ impl RTRenderer {
                 transform: instance.transform.to_cols_array_2d(),
                 //mat_index: self.materials[instance.material].index,
                 mat_index: self.world.materials.dense_index(instance.material) as _,
-                indices: self.world.meshes.dense_index(instance.mesh) as _,
-                vertices: self.world.meshes.dense_index(instance.mesh) as _,
                 normal_uv_mask: 0,
+                //indices: self.world.meshes.dense_index(instance.mesh) as _,
+                //vertices: self.world.meshes.dense_index(instance.mesh) as _,
+                indices: Buffer::device_address(&self.world.meshes[instance.mesh].indices.buf),
+                vertices: Buffer::device_address(&self.world.meshes[instance.mesh].vertices.buf),
+                _pad: [0, 0],
             });
         }
         self.instancedata_buf = Some(TypedBuffer::create(
@@ -487,14 +490,8 @@ impl RTRenderer {
             .read_descriptor(bindings::MATERIALS, material_node);
 
         for (i, (indices, vertices)) in mesh_nodes.into_iter().enumerate() {
-            pass = pass.read_descriptor(
-                (bindings::INDICES.0, bindings::INDICES.1, [i as _]),
-                indices,
-            );
-            pass = pass.read_descriptor(
-                (bindings::VERTICES.0, bindings::VERTICES.1, [i as _]),
-                vertices,
-            );
+            pass = pass.read_node(indices);
+            pass = pass.read_node(vertices);
         }
         for (i, node) in texture_nodes.into_iter().enumerate() {
             pass =

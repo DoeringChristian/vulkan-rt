@@ -23,3 +23,4 @@ gltf = {version = "*", features = ["KHR_materials_transmission", "KHR_materials_
 image = "*"
 bitflags = "*"
 glam = "*"
+spirq = "0.5.1"

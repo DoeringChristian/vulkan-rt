@@ -32,6 +32,14 @@ use sbt::*;
 fn main() -> anyhow::Result<()> {
     pretty_env_logger::init();
 
+    let rchit = inline_spirv::include_spirv!("src/shaders/rchit.glsl", rchit, vulkan1_2).as_slice();
+    let entry_points = spirq::ReflectConfig::new()
+        .spv(rchit)
+        .combine_img_samplers(true)
+        .reflect()
+        .unwrap();
+    println!("{:#?}", entry_points);
+
     let event_loop = EventLoop::new()
         .ray_tracing(true)
         .configure(|config| config.sync_display(true))

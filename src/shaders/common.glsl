@@ -41,10 +41,10 @@ struct Instance{
     vec4 trans2;
     vec4 trans3;
     uint mat_index;
-    uint indices;
-    uint vertices;
-
     uint normal_uv_mask;
+    
+    uint64_t indices;
+    uint64_t vertices;
 };
 
 struct Payload{
