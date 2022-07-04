@@ -65,7 +65,7 @@ pub struct RTRenderer {
 mod bindings {
     pub const TLAS: (u32, u32) = (0, 0);
     pub const INSTANCES: (u32, u32) = (0, 1);
-    pub const MATERIALS: (u32, u32) = (0, 3);
+    pub const MATERIALS: (u32, u32) = (0, 2);
     pub const INDICES: (u32, u32) = (0, 3);
     pub const VERTICES: (u32, u32) = (0, 4);
     pub const TEXTURES: (u32, u32) = (0, 5);

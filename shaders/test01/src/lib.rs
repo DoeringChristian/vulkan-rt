@@ -8,7 +8,7 @@
 #![allow(unused, dead_code)]
 
 use common::{Camera, Instance, Material, Payload};
-use rand::{rand2f, randu};
+use rand::{rand2f, rand3f, randu};
 #[cfg(not(target_arch = "spirv"))]
 use spirv_std::macros::spirv;
 
@@ -119,12 +119,22 @@ pub fn main_rchit(
     #[spirv(incoming_ray_payload)] ray: &mut Payload,
     #[spirv(hit_attribute)] hit_co: &mut Vec2,
     #[spirv(descriptor_set = 0, binding = 1, storage_buffer)] instances: &[Instance],
-    #[spirv(descriptor_set = 0, binding = 3, storage_buffer)] materials: &[Material],
+    #[spirv(descriptor_set = 0, binding = 2, storage_buffer)] materials: &[Material],
+    #[spirv(instance_custom_index)] index: u32,
 ) {
     if ray.ray_active == 0 {
         return;
     }
-    ray.color = vec3(1., 0., 0.);
+
+    //let inst = instances.get(index as usize).unwrap();
+    let inst = instances[index as usize];
+    let mat = materials[inst.mat_index as usize];
+    //let mut seed = inst.mat_index;
+
+    //ray.color = rand3f(&mut seed);
+    ray.color = mat.albedo.xyz();
+
+    //ray.color = vec3(1., 0., 0.);
     ray.ray_active = 0;
 }
 

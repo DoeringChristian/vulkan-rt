@@ -4,9 +4,9 @@ use spirv_std::glam::*;
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Material {
-    pub albedo: [f32; 4],
-    pub mr: [f32; 4],
-    pub emission: [f32; 4],
+    pub albedo: Vec4,
+    pub mr: Vec4,
+    pub emission: Vec4,
     pub transmission: f32,
     pub transmission_roughness: f32,
     pub ior: f32,
