@@ -494,8 +494,7 @@ impl RTRenderer {
             pass = pass.read_node(vertices);
         }
         for (i, node) in texture_nodes.into_iter().enumerate() {
-            pass =
-                pass.read_descriptor((bindings::TEXTURES.0, bindings::TEXTURES.1, [i as _]), node);
+            //pass = pass.read_descriptor((bindings::TEXTURES.0, bindings::TEXTURES.1, [i as _]), node);
         }
         pass.record_ray_trace(move |ray_trace| {
             ray_trace.push_constants(cast_slice(&[push_constant]));

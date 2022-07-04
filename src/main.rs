@@ -32,13 +32,8 @@ use sbt::*;
 fn main() -> anyhow::Result<()> {
     pretty_env_logger::init();
 
-    let rchit = inline_spirv::include_spirv!("src/shaders/rchit.glsl", rchit, vulkan1_2).as_slice();
-    let entry_points = spirq::ReflectConfig::new()
-        .spv(rchit)
-        .combine_img_samplers(true)
-        .reflect()
-        .unwrap();
-    println!("{:#?}", entry_points);
+    //let rchit = inline_spirv::include_spirv!("src/shaders/rchit.glsl", rchit, vulkan1_2).as_slice();
+    //println!("{:#?}", entry_points);
 
     let event_loop = EventLoop::new()
         .ray_tracing(true)
@@ -50,22 +45,30 @@ fn main() -> anyhow::Result<()> {
     let mut egui = Egui::new(&event_loop.device, event_loop.window());
 
     let mut rt_renderer = RTRenderer::new();
+    let shader_src = include_bytes!(env!("test01.spv")).as_slice();
+    println!("{}", env!("test01.spv"));
     let rgen_shader = rt_renderer.insert_shader(
         Shader::new_ray_gen(
-            inline_spirv::include_spirv!("src/shaders/rgen.glsl", rgen, vulkan1_2).as_slice(),
+            //inline_spirv::include_spirv!("src/shaders/rgen.glsl", rgen, vulkan1_2).as_slice(),
+            shader_src.clone(),
         )
+        .entry_name("main_rgen".into())
         .build(),
     );
     let rchit_shader = rt_renderer.insert_shader(
         Shader::new_closest_hit(
-            inline_spirv::include_spirv!("src/shaders/rchit.glsl", rchit, vulkan1_2).as_slice(),
+            //inline_spirv::include_spirv!("src/shaders/rchit.glsl", rchit, vulkan1_2).as_slice(),
+            shader_src.clone(),
         )
+        .entry_name("main_rchit".into())
         .build(),
     );
     let miss_shader = rt_renderer.insert_shader(
         Shader::new_miss(
-            inline_spirv::include_spirv!("src/shaders/rmiss.glsl", rmiss, vulkan1_2).as_slice(),
+            //inline_spirv::include_spirv!("src/shaders/rmiss.glsl", rmiss, vulkan1_2).as_slice(),
+            shader_src.clone(),
         )
+        .entry_name("main_miss".into())
         .build(),
     );
     let rgen_group = rt_renderer.insert_shader_group(ShaderGroup::General {
