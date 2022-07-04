@@ -21,9 +21,9 @@ pub struct Material {
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Camera {
-    pub up: [f32; 4],
-    pub right: [f32; 4],
-    pub pos: [f32; 4],
+    pub up: Vec4,
+    pub right: Vec4,
+    pub pos: Vec4,
     pub focus: f32,
     pub diameter: f32,
     pub fov: f32,

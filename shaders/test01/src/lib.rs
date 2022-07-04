@@ -58,15 +58,18 @@ pub fn main_rgen(
     seed = randu(&mut seed);
 
     let roff = rand2f(&mut seed);
-    uv += roff;
+    //uv += roff;
     uv /= launch_size.xy().as_vec2();
     uv = (uv * 2. - 1.) * vec2(1., 1.);
     uv *= (camera.fov / 2.).tan();
-    let up = vec3(camera.up[0], camera.up[1], camera.up[2]);
-    let right = vec3(camera.right[0], camera.right[1], camera.right[2]);
+    //let up = vec3(camera.up[0], camera.up[1], camera.up[2]);
+    //let right = vec3(camera.right[0], camera.right[1], camera.right[2]);
+    let up = camera.up.xyz();
+    let right = camera.right.xyz();
     let forward = up.cross(right).normalize();
 
-    ray.orig = vec3(camera.pos[0], camera.pos[1], camera.pos[2]);
+    //ray.orig = vec3(camera.pos[0], camera.pos[1], camera.pos[2]);
+    ray.orig = camera.pos.xyz();
     ray.dir = (up * uv.x + right * uv.y + forward).normalize();
 
     ray.color = vec3(0., 0., 0.);
@@ -100,11 +103,14 @@ pub fn main_rgen(
     if N == 0 {
         color = ray.color;
     } else {
-        color = 1. / ((N + 1) as f32) * ray.color + N as f32 / ((N + 1) as f32) * color;
+        let n = N as f32;
+        //color = 1. / ((N + 1) as f32) * ray.color + N as f32 / ((N + 1) as f32) * color;
+        color = 1. / (n + 1.) * ray.color + n / (n + 1.) * color;
     }
 
+    //color = vec3(0., 1., 0.);
     unsafe {
-        image.write(launch_id.xy(), vec4(color.x, color.y, color.z, 0.));
+        image.write(launch_id.xy(), vec4(color.x, color.y, color.z, 1.));
     }
 }
 
@@ -115,14 +121,15 @@ pub fn main_rchit(
     #[spirv(descriptor_set = 0, binding = 1, storage_buffer)] instances: &[Instance],
     #[spirv(descriptor_set = 0, binding = 3, storage_buffer)] materials: &[Material],
 ) {
-    if ray.ray_active == 1 {
+    if ray.ray_active == 0 {
         return;
     }
     ray.color = vec3(1., 0., 0.);
+    ray.ray_active = 0;
 }
 
 #[spirv(miss)]
 pub fn main_miss(#[spirv(incoming_ray_payload)] ray: &mut Payload) {
-    ray.color = vec3(1., 0., 0.);
+    ray.color = vec3(0., 0., 0.);
     ray.ray_active = 0;
 }
