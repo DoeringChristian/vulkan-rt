@@ -221,21 +221,6 @@ bool sample_metallic(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2)
     return sample_specular(hit, ray, m);
 }
 
-bool sample_bsdf(HitInfo hit, inout Payload ray, float n1, float n2){
-    vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
-
-    // flipping approach to normal mapping problem.
-    if (dot(m, hit.wo) < 0.){
-        m = reflect(-m, hit.g);
-    }
-    
-    if (randf(ray.seed) < hit.metallic){
-        return sample_metallic(hit, ray, m, n1, n2);
-    }else{
-        return sample_dielectric(hit, ray, m, n1, n2);
-    }
-}
-
 //Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior, vec3 seed){
 void sample_shader(HitInfo hit, inout Payload ray){
 
@@ -265,16 +250,36 @@ void sample_shader(HitInfo hit, inout Payload ray){
         n1 = 1.;
         n2 = hit.ior;
     }
-    //ray.orig += hit.n * RAY_TMIN;
     
     // m is the microfacet normal
-    //vec3 m = sample_DistributionGGX(roughness, hit.n, seed - vec3(M_PI));
-
-    uint max_rebounces = 5;
+    vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
+    uint max_rebounces = 1;
     uint i = 0;
     bool valid = false;
     while(i < max_rebounces && !valid){
-        valid = sample_bsdf(hit, ray, n1, n2);
+        vec3 m_f = reflect(-m, hit.n);
+        float p_flip = 0.;
+        // flipping approach to normal mapping problem.
+        if (dot(m, hit.wo) < 0.){
+            p_flip = 1.;
+            //m = reflect(-m, hit.g);
+        } else if (dot(m_f, hit.wo) < 0.){
+            p_flip = 0.;
+        }else{
+            float a_m = max(dot(hit.wo, m), 0.) / max(dot(hit.wo, hit.n), 0.);
+            float a_f = max(dot(hit.wo, m_f), 0.) / max(dot(hit.wo, hit.n), 0.);
+            p_flip = a_f / (a_m + a_f);
+        }
+
+        if (randf(ray.seed) < p_flip){
+            m = m_f;
+        }
+        if (randf(ray.seed) < hit.metallic){
+            valid = sample_metallic(hit, ray, m, n1, n2);
+        }else{
+            valid = sample_dielectric(hit, ray, m, n1, n2);
+        }
+
         hit.wo = ray.dir;
         //m = (m - hit.g) - hit.g * dot(hit.g, m);
         i++;
