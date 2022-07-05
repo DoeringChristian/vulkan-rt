@@ -7,7 +7,7 @@
 #![deny(warnings)]
 #![allow(unused, dead_code)]
 
-use common::{Camera, Instance, Material, Payload, Vertex};
+use common::{Camera, HitInfo, Instance, Material, Payload, Vertex};
 use rand::{rand2f, rand3f, randu};
 #[cfg(not(target_arch = "spirv"))]
 use spirv_std::macros::spirv;
@@ -34,6 +34,7 @@ mod rand;
 
 use glam_macro::*;
 
+const INDEX_UNDEF: u32 = 0xffffffff;
 pub unsafe fn convert_u_to_ptr<T>(handle: u64) -> *mut T {
     let result: *mut T;
     asm!(
@@ -42,6 +43,14 @@ pub unsafe fn convert_u_to_ptr<T>(handle: u64) -> *mut T {
         result = out(reg) result,
     );
     result
+}
+
+#[allow(non_snake_case)]
+pub fn compute_TBN(duv0: Vec2, duv1: Vec2, dpos0: Vec3, dpos1: Vec3, n: Vec3) -> Mat3 {
+    let r = 1. / (duv0.x * duv1.y - duv0.y * duv1.x);
+    let t = (dpos0 * duv1.y - dpos1 * duv0.y) * r;
+    let b = (dpos1 * duv0.x - dpos0 * duv1.x) * r;
+    mat3(t, b, n)
 }
 
 #[spirv(ray_generation)]
@@ -182,8 +191,53 @@ pub fn main_rchit(
         gnorm
     };
 
+    let prev_orig = ray.orig;
+    let prev_dir = ray.dir;
+
+    let wo = (-prev_dir).normalize();
+    let dist = prev_orig.distance(pos);
+
+    let mut hit = HitInfo {
+        albedo: mat.albedo,
+        emission: mat.emission,
+        metallic: mat.mr.x,
+        roughness: mat.mr.y,
+        transmission: mat.transmission,
+        ior: mat.ior,
+
+        pos,
+        wo,
+        gnorm,
+        norm,
+        dist,
+    };
+
+    let uv0 = vert0.uv.xy();
+    let uv1 = vert1.uv.xy();
+    let uv2 = vert2.uv.xy();
+    let uv = uv0 * barycentric.x + uv1 * barycentric.y + uv2 * barycentric.z;
+
+    if mat.diffuse_tex != INDEX_UNDEF {
+        let mr: Vec4 = unsafe { textures.index(mat.mr_tex as usize).sample_by_lod(uv, 0.) };
+        hit.metallic = mr.z;
+        hit.roughness = mr.y;
+    }
+    if mat.normal_tex != INDEX_UNDEF {
+        let tbn = compute_TBN(uv1 - uv0, uv2 - uv0, pos1 - pos0, pos2 - pos0, norm);
+
+        let norm_tex: Vec4 = unsafe {
+            textures
+                .index(mat.normal_tex as usize)
+                .sample_by_lod(uv, 0.)
+        };
+        let mut norm_tex = norm_tex.xyz();
+        norm_tex = vec3(norm_tex.x, 1. - norm_tex.y, norm_tex.z);
+        norm_tex = Vec3::normalize(norm_tex * 2. - 1.);
+        hit.norm = Vec3::normalize(tbn * norm_tex);
+    }
+
     //ray.color = mat.albedo.xyz();
-    ray.color = norm.xyz();
+    ray.color = hit.norm;
 
     //ray.color = vec3(1., 0., 0.);
     ray.ray_active = 0;
