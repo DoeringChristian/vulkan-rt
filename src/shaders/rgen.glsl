@@ -59,7 +59,7 @@ void main() {
     for (int x = 0; x < camera.depth; x++) {
     //for (int x = 0; x < 1; x++) {
         traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
-                    payload.orig, 0.001, payload.dir, 10000.0, 0);
+                    payload.orig, RAY_TMIN, payload.dir, 10000.0, 0);
     }
     // DEBUG: boost light:
     //payload.color *= 10.;

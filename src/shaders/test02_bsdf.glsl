@@ -129,7 +129,7 @@ vec3 sample_DistributionBeckmann(float roughness, vec3 n, inout uint seed){
     return normalize(allign_hemisphere(m, n));
 }
 
-void sample_diffuse(HitInfo hit, inout Payload ray, vec3 m){
+bool sample_diffuse(HitInfo hit, inout Payload ray, vec3 m){
     vec3 wi = allign_hemisphere(cosine_hemisphere(ray.seed), hit.n);
     //vec3 wi = allign_hemisphere(uniform_hemisphere(ray.seed), hit.n);
     //vec3 wi = sample_coshemisphere(hit.n, ray.seed);
@@ -140,9 +140,10 @@ void sample_diffuse(HitInfo hit, inout Payload ray, vec3 m){
     // Sample:
     ray.attenuation *= fr * (2. * M_PI);
     ray.dir = wi;
+    return true;
 }
 
-void sample_refraction(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2){
+bool sample_refraction(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2){
     vec3 wi = refract(-hit.wo, m, n1/n2);
     float wi_dot_n = max(dot(m, -wi), 0.);
     float NdotV = max(dot(hit.n, wi), 0.0);
@@ -154,9 +155,10 @@ void sample_refraction(HitInfo hit, inout Payload ray, vec3 m, float n1, float n
     ray.attenuation *= fr * wi_dot_n * (2. * M_PI);
     //ray.ior = n2;
     ray.dir = wi;
+    return true;
 }
 
-void sample_specular_cosine(HitInfo hit, inout Payload ray){
+bool sample_specular_cosine(HitInfo hit, inout Payload ray){
     vec3 wi = allign_hemisphere(cosine_hemisphere(ray.seed), hit.n);
 
     //float wi_dot_n = max(dot(hit.n, wi), 0.);
@@ -171,9 +173,10 @@ void sample_specular_cosine(HitInfo hit, inout Payload ray){
 
     ray.attenuation *= fr * (2. * M_PI);
     ray.dir = wi;
+    return true;
 }
 
-void sample_specular_refl(HitInfo hit, inout Payload ray, vec3 m){
+bool sample_specular_refl(HitInfo hit, inout Payload ray, vec3 m){
     vec3 wi = reflect(-hit.wo, m);
     float wi_dot_m = max(dot(m, wi), 0.);
     float G = GeometrySmith(hit.n, hit.wo, wi, hit.roughness);
@@ -186,22 +189,19 @@ void sample_specular_refl(HitInfo hit, inout Payload ray, vec3 m){
     // Sample:
     ray.attenuation *= fr * wi_dot_m * (2 * M_PI);
     ray.dir = wi;
-}
-
-void sample_specular(HitInfo hit, inout Payload ray, vec3 m){
     
-    float p_cosine = 0.;
-
-    if (randf(ray.seed) < p_cosine){
-        sample_specular_cosine(hit, ray);
-        ray.attenuation /= p_cosine;
-    }else{
-        sample_specular_refl(hit, ray, m);
-        ray.attenuation /= (1. - p_cosine);
+    if (dot(hit.gnorm, wi) < 0.){
+        return false;
     }
+    return true;
 }
 
-void sample_dielectric(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2){
+bool sample_specular(HitInfo hit, inout Payload ray, vec3 m){
+    
+    return sample_specular_refl(hit, ray, m);
+}
+
+bool sample_dielectric(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2){
     float F0_sqrt = (n1 - n2) / (n1 + n2);
     float F0 = F0_sqrt * F0_sqrt;
     
@@ -211,32 +211,31 @@ void sample_dielectric(HitInfo hit, inout Payload ray, vec3 m, float n1, float n
 
     if (randf(ray.seed) < kS){
         // Specular case
-        sample_specular(hit, ray, m);
+        return sample_specular(hit, ray, m);
     }
     else{
 
         if(randf(ray.seed) >= hit.transmission){
             // Diffuse Case
-            sample_diffuse(hit, ray, m);
+            return sample_diffuse(hit, ray, m);
         }
         else{
             // Refraction case
-            sample_refraction(hit, ray, m, n1, n2);
+            return sample_refraction(hit, ray, m, n1, n2);
         }
     }
 }
 
-void sample_metallic(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2){
+bool sample_metallic(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2){
     vec3 F0 = hit.albedo.rgb;
     vec3 F = mix(F0, vec3(1.), fresnelSchlick(clamp(dot(m, hit.wo), 0., 1.), F0));
     
-    sample_specular(hit, ray, m);
     ray.attenuation *= F;
-    
+    return sample_specular(hit, ray, m);
 }
 
 //Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior, vec3 seed){
-void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
+void sample_shader(HitInfo hit, inout Payload ray){
 
     ray.orig = hit.pos;
     ray.color += ray.attenuation * hit.emission.rgb;
@@ -246,11 +245,13 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
     //ray.color = vec3(max(0., -dot(hit.gnorm, hit.wo) * 200.));
     //return;
     
+    vec3 g = hit.gnorm;
     float n1 = 1.;
     float n2 = 1.;
     if (dot(hit.gnorm, hit.wo) < 0.){
         // From inside of material
         hit.n = -hit.n;
+        g = -hit.gnorm;
         n1 = hit.ior;
         n2 = 1.;
         // Don't quite know where the 2PI term comes from.
@@ -260,17 +261,32 @@ void sample_shader(HitInfo hit, inout Payload ray, vec3 seed){
         n1 = 1.;
         n2 = hit.ior;
     }
+    //ray.orig += hit.n * RAY_TMIN;
     
     // m is the microfacet normal
     //vec3 m = sample_DistributionGGX(roughness, hit.n, seed - vec3(M_PI));
     vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
 
+    if (dot(hit.wo, m) < 0.){
+        m = reflect(m, g);
+    }
+
+    bool valid = false;
     if (randf(ray.seed) < hit.metallic){
-        sample_metallic(hit, ray, m, n1, n2);
+        valid = sample_metallic(hit, ray, m, n1, n2);
+    }else{
+        valid = sample_dielectric(hit, ray, m, n1, n2);
     }
-    else{
-        sample_dielectric(hit, ray, m, n1, n2);
+
+    if (valid == false){
+        m = reflect(m, g);
+        if (randf(ray.seed) < hit.metallic){
+            valid = sample_metallic(hit, ray, m, n1, n2);
+        }else{
+            valid = sample_dielectric(hit, ray, m, n1, n2);
+        }
     }
+
 
     // Debug:
     //ray.color = ray.dir;

@@ -47,6 +47,7 @@ struct Instance{
     uint normal_uv_mask;
 };
 
+#define RAY_TMIN 0.001
 struct Payload{
     vec3 orig;
     vec3 dir;

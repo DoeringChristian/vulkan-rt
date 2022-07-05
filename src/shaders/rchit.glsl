@@ -147,7 +147,7 @@ void main() {
     // Call BRDF functions:
     //===========================================================
     
-    sample_shader(hit, payload, pos);
+    sample_shader(hit, payload);
     
     // thrgouhput roussian roulette propability
     //p_{RR} = max_{RGB}\leftb( \prod_{d = 1}^{D-1} \left({f_r(x_d, w_d \rightarrow v_d) cos(\theta_d)) \over p(w_d)p_{RR_d}}\right)\right)
