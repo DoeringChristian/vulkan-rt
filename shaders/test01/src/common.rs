@@ -89,7 +89,7 @@ pub struct Payload {
 
     pub seed: u32,
     pub depth: u32,
-    pub ray_active: u32,
+    pub active: u32,
 }
 
 pub fn allign_hemisphere(hemisphere: Vec3, up: Vec3) -> Vec3 {

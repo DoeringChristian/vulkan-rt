@@ -1,6 +1,6 @@
 use crate::{
     common::*,
-    rand::{cosine_hemisphere, rand2f, randf},
+    rand::{cosine_hemisphere, rand2f, randf, uniform_hemisphere},
 };
 use core::f32::consts::PI;
 use spirv_std::{glam::*, num_traits::Float};
@@ -85,11 +85,13 @@ pub fn fresnel_schlick_n(mut cos_theta: f32, n1: f32, n2: f32) -> f32 {
 }
 
 pub fn sample_diffuse(hit: &HitInfo, ray: &mut Payload) {
-    let wi = allign_hemisphere(cosine_hemisphere(&mut ray.seed), hit.norm);
+    //let wi = allign_hemisphere(cosine_hemisphere(&mut ray.seed), hit.norm);
+    let wi = allign_hemisphere(uniform_hemisphere(&mut ray.seed), hit.norm);
+    let wi_dot_n = wi.dot(hit.norm).max(0.);
 
     let fr = hit.albedo.xyz() / PI;
 
-    ray.attenuation *= fr * (2. * PI);
+    ray.attenuation *= fr * wi_dot_n * (2. * PI);
     ray.dir = wi;
 }
 
@@ -153,22 +155,23 @@ pub fn sample_shader(mut hit: HitInfo, ray: &mut Payload) {
     ray.orig = hit.pos;
     ray.color += ray.attenuation * hit.emission.xyz();
 
+    //ray.color = ray.attenuation;
     let n1;
     let n2;
     if hit.gnorm.dot(hit.wo) < 0. {
         hit.norm = -hit.norm;
         n1 = hit.ior;
         n2 = 1.;
+        ray.attenuation *= (-2. * PI / hit.albedo.xyz() * hit.dist).exp();
     } else {
         n1 = 1.;
         n2 = hit.ior;
     }
-
     let m = sample_distribution_ggx(hit.roughness, hit.norm, &mut ray.seed);
 
     if randf(&mut ray.seed) < hit.metallic {
-        sample_dielectric(&hit, ray, m, n1, n2);
-    } else {
         sample_metallic(&hit, ray, m, n1, n2);
+    } else {
+        sample_dielectric(&hit, ray, m, n1, n2);
     }
 }

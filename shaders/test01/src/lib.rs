@@ -94,7 +94,7 @@ pub fn main_rgen(
 
     ray.seed = seed;
     ray.depth = 0;
-    ray.ray_active = 1;
+    ray.active = 1;
 
     let color: Vec4 = image.read(launch_id.xy());
     let mut color = color.xyz();
@@ -143,7 +143,7 @@ pub fn main_rchit(
     #[spirv(instance_custom_index)] index: u32,
     #[spirv(primitive_id)] primitive_id: u32,
 ) {
-    if ray.ray_active == 0 {
+    if ray.active == 0 {
         return;
     }
 
@@ -220,9 +220,17 @@ pub fn main_rchit(
     let uv = uv0 * barycentric.x + uv1 * barycentric.y + uv2 * barycentric.z;
 
     if mat.diffuse_tex != INDEX_UNDEF {
+        let diffuse: Vec4 = unsafe {
+            textures
+                .index(mat.diffuse_tex as usize)
+                .sample_by_lod(uv, 0.)
+        };
+        hit.albedo = diffuse;
+    }
+    if mat.mr_tex != INDEX_UNDEF {
         let mr: Vec4 = unsafe { textures.index(mat.mr_tex as usize).sample_by_lod(uv, 0.) };
-        hit.metallic = mr.z;
         hit.roughness = mr.y;
+        hit.metallic = mr.z;
     }
     if mat.normal_tex != INDEX_UNDEF {
         let tbn = compute_TBN(uv1 - uv0, uv2 - uv0, pos1 - pos0, pos2 - pos0, norm);
@@ -253,13 +261,13 @@ pub fn main_rchit(
     if randf(&mut ray.seed) < p_rr {
         ray.attenuation *= 1. / p_rr;
     } else {
-        ray.ray_active = 0;
+        ray.active = 0;
         return;
     }
+    ray.depth += 1;
 }
 
 #[spirv(miss)]
 pub fn main_miss(#[spirv(incoming_ray_payload)] ray: &mut Payload) {
-    ray.color = vec3(0., 0., 0.);
-    ray.ray_active = 0;
+    ray.active = 0;
 }

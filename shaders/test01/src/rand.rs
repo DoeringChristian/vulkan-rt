@@ -51,3 +51,14 @@ pub fn cosine_hemisphere(seed: &mut u32) -> Vec3 {
 
     vec3(x, y, (1. - x * x - y * y).sqrt())
 }
+
+pub fn uniform_hemisphere(seed: &mut u32) -> Vec3 {
+    let uv = rand2f(seed);
+    let theta = (1. - uv.x).acos();
+    let phi = 2. * PI * uv.y;
+    vec3(
+        phi.cos() * theta.sin(),
+        phi.sin() * theta.sin(),
+        theta.cos(),
+    )
+}
