@@ -333,7 +333,7 @@ dependencies = [
 [[package]]
 name = "spirv-std"
 version = "0.4.0-alpha.12"
-source = "git+https://github.com/EmbarkStudios/rust-gpu#0866cf591a7fdbbd15bdb3468e192bb9b6189fd0"
+source = "git+https://github.com/DoeringChristian/rust-gpu?branch=u_to_ptr#b127cb3a3cb8d5d73cc52942722797cfda16c091"
 dependencies = [
  "bitflags",
  "glam",
@@ -345,7 +345,7 @@ dependencies = [
 [[package]]
 name = "spirv-std-macros"
 version = "0.4.0-alpha.12"
-source = "git+https://github.com/EmbarkStudios/rust-gpu#0866cf591a7fdbbd15bdb3468e192bb9b6189fd0"
+source = "git+https://github.com/DoeringChristian/rust-gpu?branch=u_to_ptr#b127cb3a3cb8d5d73cc52942722797cfda16c091"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -374,7 +374,7 @@ dependencies = [
 [[package]]
 name = "spirv-types"
 version = "0.4.0-alpha.12"
-source = "git+https://github.com/EmbarkStudios/rust-gpu#0866cf591a7fdbbd15bdb3468e192bb9b6189fd0"
+source = "git+https://github.com/DoeringChristian/rust-gpu?branch=u_to_ptr#b127cb3a3cb8d5d73cc52942722797cfda16c091"
 
 [[package]]
 name = "syn"
