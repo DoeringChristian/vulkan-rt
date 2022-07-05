@@ -119,10 +119,6 @@ pub fn main_rgen(
     }
 }
 
-pub struct Textures {
-    textures: RuntimeArray<SampledImage<Image!(2D, type = f32, sampled, depth = false)>>,
-}
-
 #[spirv(closest_hit)]
 pub fn main_rchit(
     #[spirv(incoming_ray_payload)] ray: &mut Payload,
@@ -133,7 +129,6 @@ pub fn main_rchit(
     #[spirv(descriptor_set = 0, binding = 3)] textures: &RuntimeArray<
         SampledImage<Image!(2d, type = f32, sampled, depth = false)>,
     >,
-    #[spirv(descriptor_set = 0, binding = 32)] sampler: &Sampler,
     #[spirv(instance_custom_index)] index: u32,
     #[spirv(primitive_id)] primitive_id: u32,
 ) {
@@ -169,9 +164,26 @@ pub fn main_rchit(
     let pos = pos0 * barycentric.x + pos1 * barycentric.y + pos2 * barycentric.z;
 
     let gnorm = (pos1 - pos0).cross(pos2 - pos1).normalize();
+    let norm0 = vert0.normal.xyz();
+    let norm1 = vert1.normal.xyz();
+    let norm2 = vert2.normal.xyz();
+
+    let norm = if norm0.length_squared() > 0.1
+        && norm1.length_squared() > 0.1
+        && norm2.length_squared() > 0.1
+    {
+        let norm0 = Vec3::normalize(norm0);
+        let norm1 = Vec3::normalize(norm1);
+        let norm2 = Vec3::normalize(norm2);
+
+        let norm = norm0 * barycentric.x + norm1 * barycentric.y + norm2 * barycentric.z;
+        (Mat3::from_mat4(transform).transpose().inverse() * norm).normalize()
+    } else {
+        gnorm
+    };
 
     //ray.color = mat.albedo.xyz();
-    ray.color = gnorm.xyz();
+    ray.color = norm.xyz();
 
     //ray.color = vec3(1., 0., 0.);
     ray.ray_active = 0;
