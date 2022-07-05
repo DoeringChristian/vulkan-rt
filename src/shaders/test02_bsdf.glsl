@@ -221,6 +221,21 @@ bool sample_metallic(HitInfo hit, inout Payload ray, vec3 m, float n1, float n2)
     return sample_specular(hit, ray, m);
 }
 
+bool sample_bsdf(HitInfo hit, inout Payload ray, float n1, float n2){
+    vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
+
+    // flipping approach to normal mapping problem.
+    if (dot(m, hit.wo) < 0.){
+        m = reflect(-m, hit.g);
+    }
+    
+    if (randf(ray.seed) < hit.metallic){
+        return sample_metallic(hit, ray, m, n1, n2);
+    }else{
+        return sample_dielectric(hit, ray, m, n1, n2);
+    }
+}
+
 //Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior, vec3 seed){
 void sample_shader(HitInfo hit, inout Payload ray){
 
@@ -254,24 +269,14 @@ void sample_shader(HitInfo hit, inout Payload ray){
     
     // m is the microfacet normal
     //vec3 m = sample_DistributionGGX(roughness, hit.n, seed - vec3(M_PI));
-    vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
-
-    // flipping approach to normal mapping problem.
-    if (dot(m, hit.wo) < 0.){
-        m = reflect(-m, hit.g);
-    }
 
     uint max_rebounces = 5;
     uint i = 0;
     bool valid = false;
     while(i < max_rebounces && !valid){
-        if (randf(ray.seed) < hit.metallic){
-            valid = sample_metallic(hit, ray, m, n1, n2);
-        }else{
-            valid = sample_dielectric(hit, ray, m, n1, n2);
-        }
+        valid = sample_bsdf(hit, ray, n1, n2);
+        hit.wo = ray.dir;
         //m = (m - hit.g) - hit.g * dot(hit.g, m);
-        m = reflect(-m, hit.g);
         i++;
     }
 
