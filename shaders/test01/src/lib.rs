@@ -8,7 +8,7 @@
 #![allow(unused, dead_code)]
 
 use common::{Camera, HitInfo, Instance, Material, Payload, Vertex};
-use rand::{rand2f, rand3f, randu};
+use rand::{rand2f, rand3f, randf, randu};
 #[cfg(not(target_arch = "spirv"))]
 use spirv_std::macros::spirv;
 
@@ -30,11 +30,13 @@ use core::arch::asm;
 mod common;
 #[macro_use]
 mod glam_macro;
+mod bsdf01;
 mod rand;
 
 use glam_macro::*;
 
 const INDEX_UNDEF: u32 = 0xffffffff;
+const MIN_RR: u32 = 2;
 pub unsafe fn convert_u_to_ptr<T>(handle: u64) -> *mut T {
     let result: *mut T;
     asm!(
@@ -236,11 +238,24 @@ pub fn main_rchit(
         hit.norm = Vec3::normalize(tbn * norm_tex);
     }
 
-    //ray.color = mat.albedo.xyz();
-    ray.color = hit.norm;
+    bsdf01::sample_shader(hit, ray);
 
-    //ray.color = vec3(1., 0., 0.);
-    ray.ray_active = 0;
+    // Russian Roulette
+    let mut p_rr = ray
+        .attenuation
+        .x
+        .max(ray.attenuation.y)
+        .max(ray.attenuation.z);
+    if ray.depth < MIN_RR {
+        p_rr = 1.;
+    }
+
+    if randf(&mut ray.seed) < p_rr {
+        ray.attenuation *= 1. / p_rr;
+    } else {
+        ray.ray_active = 0;
+        return;
+    }
 }
 
 #[spirv(miss)]

@@ -1,4 +1,6 @@
-use spirv_std::glam::*;
+use core::f32;
+
+use spirv_std::{glam::*, num_traits::Float};
 
 #[allow(dead_code)]
 #[repr(C)]
@@ -88,4 +90,49 @@ pub struct Payload {
     pub seed: u32,
     pub depth: u32,
     pub ray_active: u32,
+}
+
+pub fn allign_hemisphere(hemisphere: Vec3, up: Vec3) -> Vec3 {
+    let right = Vec3::normalize(Vec3::cross(up, vec3(0.0072, 1., 0.0034)));
+    let forward = right.cross(up);
+
+    hemisphere.x * forward + hemisphere.y * right + hemisphere.z * up
+}
+
+pub fn refract(incident: Vec3, normal: Vec3, n: f32) -> Vec3 {
+    let cos_i = -normal.dot(incident);
+    let sin2_t = n * n * (1. - cos_i * cos_i);
+    if sin2_t > 1. {
+        return Vec3::ZERO;
+    }
+    let cos_t = (1. - sin2_t).sqrt();
+    n * incident + (n * cos_i - cos_t) * normal
+}
+pub fn reflect(incident: Vec3, normal: Vec3) -> Vec3 {
+    incident - 2. * normal.dot(incident) * normal
+}
+
+pub trait Mix<F> {
+    fn mix(self, other: Self, factor: F) -> Self;
+}
+
+impl Mix<f32> for f32 {
+    fn mix(self, other: Self, factor: f32) -> Self {
+        other * factor + self * (1. - factor)
+    }
+}
+impl Mix<f32> for Vec2 {
+    fn mix(self, other: Self, factor: f32) -> Self {
+        other * factor + self * (1. - factor)
+    }
+}
+impl Mix<f32> for Vec3 {
+    fn mix(self, other: Self, factor: f32) -> Self {
+        other * factor + self * (1. - factor)
+    }
+}
+impl Mix<f32> for Vec4 {
+    fn mix(self, other: Self, factor: f32) -> Self {
+        other * factor + self * (1. - factor)
+    }
 }

@@ -1,4 +1,5 @@
-use spirv_std::glam::*;
+use core::f32::consts::PI;
+use spirv_std::{glam::*, num_traits::Float};
 
 pub fn uint_to_unit_float(mut u: u32) -> f32 {
     const MANTISSA_MASK: u32 = 0x007FFFFFu32;
@@ -39,4 +40,14 @@ pub fn rand3f(seed: &mut u32) -> Vec3 {
     let y = randf(seed);
     let z = randf(seed);
     vec3(x, y, z)
+}
+
+pub fn cosine_hemisphere(seed: &mut u32) -> Vec3 {
+    let r = randf(seed).sqrt();
+    let phi = randf(seed) * 2. * PI;
+
+    let x = r * phi.cos();
+    let y = r * phi.sin();
+
+    vec3(x, y, (1. - x * x - y * y).sqrt())
 }
