@@ -46,6 +46,14 @@ fn main() -> anyhow::Result<()> {
 
     let mut rt_renderer = RTRenderer::new();
     let shader_src = include_bytes!(env!("test01.spv")).as_slice();
+
+    let result = spirq::ReflectConfig::new()
+        .spv(shader_src)
+        .ref_all_rscs(true)
+        .combine_img_samplers(true)
+        .reflect()
+        .unwrap();
+
     println!("{}", env!("test01.spv"));
     let rgen_shader = rt_renderer.insert_shader(
         Shader::new_ray_gen(

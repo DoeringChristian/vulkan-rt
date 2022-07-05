@@ -18,9 +18,10 @@ use spirv_std::RuntimeArray;
 #[allow(unused_imports)]
 use spirv_std::glam::*;
 use spirv_std::{
+    image::SampledImage,
     num_traits::Float,
     ray_tracing::{AccelerationStructure, RayFlags},
-    Image,
+    Image, Sampler,
 };
 
 #[allow(unused_imports)]
@@ -118,12 +119,21 @@ pub fn main_rgen(
     }
 }
 
+pub struct Textures {
+    textures: RuntimeArray<SampledImage<Image!(2D, type = f32, sampled, depth = false)>>,
+}
+
 #[spirv(closest_hit)]
 pub fn main_rchit(
     #[spirv(incoming_ray_payload)] ray: &mut Payload,
     #[spirv(hit_attribute)] hit_co: &mut Vec2,
     #[spirv(descriptor_set = 0, binding = 1, storage_buffer)] instances: &[Instance],
     #[spirv(descriptor_set = 0, binding = 2, storage_buffer)] materials: &[Material],
+    //#[spirv(descriptor_set = 0, binding = 3, uniform)] textures: &Textures,
+    #[spirv(descriptor_set = 0, binding = 3)] textures: &RuntimeArray<
+        SampledImage<Image!(2d, type = f32, sampled, depth = false)>,
+    >,
+    #[spirv(descriptor_set = 0, binding = 32)] sampler: &Sampler,
     #[spirv(instance_custom_index)] index: u32,
     #[spirv(primitive_id)] primitive_id: u32,
 ) {

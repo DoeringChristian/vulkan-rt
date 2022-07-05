@@ -66,10 +66,10 @@ mod bindings {
     pub const TLAS: (u32, u32) = (0, 0);
     pub const INSTANCES: (u32, u32) = (0, 1);
     pub const MATERIALS: (u32, u32) = (0, 2);
+    pub const COLOR: (u32, u32) = (1, 0);
+    pub const TEXTURES: (u32, u32) = (0, 3);
     pub const INDICES: (u32, u32) = (0, 3);
     pub const VERTICES: (u32, u32) = (0, 4);
-    pub const TEXTURES: (u32, u32) = (0, 5);
-    pub const COLOR: (u32, u32) = (1, 0);
 }
 
 impl RTRenderer {
@@ -494,7 +494,8 @@ impl RTRenderer {
             pass = pass.read_node(vertices);
         }
         for (i, node) in texture_nodes.into_iter().enumerate() {
-            //pass = pass.read_descriptor((bindings::TEXTURES.0, bindings::TEXTURES.1, [i as _]), node);
+            pass =
+                pass.read_descriptor((bindings::TEXTURES.0, bindings::TEXTURES.1, [i as _]), node);
         }
         pass.record_ray_trace(move |ray_trace| {
             ray_trace.push_constants(cast_slice(&[push_constant]));

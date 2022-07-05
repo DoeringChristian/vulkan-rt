@@ -7,6 +7,7 @@ fn main() {
         .capability(Capability::RayTracingKHR)
         .capability(Capability::Int64)
         .capability(Capability::PhysicalStorageBufferAddresses)
+        .capability(Capability::RuntimeDescriptorArray)
         .print_metadata(MetadataPrintout::Full)
         .spirv_metadata(SpirvMetadata::Full)
         .preserve_bindings(true)
