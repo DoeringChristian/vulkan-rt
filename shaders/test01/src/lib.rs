@@ -27,7 +27,11 @@ use spirv_std::{
 use core::arch::asm;
 
 mod common;
+#[macro_use]
+mod glam_macro;
 mod rand;
+
+use glam_macro::*;
 
 pub unsafe fn convert_u_to_ptr<T>(handle: u64) -> *mut T {
     let result: *mut T;
@@ -146,9 +150,9 @@ pub fn main_rchit(
     let mut pos1 = vert1.pos.xyz();
     let mut pos2 = vert2.pos.xyz();
 
-    pos0 = (transform * Vec4::from((pos0, 1.))).xyz();
-    pos1 = (transform * Vec4::from((pos1, 1.))).xyz();
-    pos2 = (transform * Vec4::from((pos2, 1.))).xyz();
+    pos0 = (transform * vec4!(pos0, 1.)).xyz();
+    pos1 = (transform * vec4!(pos1, 1.)).xyz();
+    pos2 = (transform * vec4!(pos2, 1.)).xyz();
 
     let barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
 
