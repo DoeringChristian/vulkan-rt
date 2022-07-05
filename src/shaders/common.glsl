@@ -27,7 +27,7 @@ struct HitInfo{
     vec3 pos;
     vec3 wo;
     // Geometry Normal
-    vec3 gnorm;
+    vec3 g;
     // Texture Normal
     vec3 n;
     float dist;
