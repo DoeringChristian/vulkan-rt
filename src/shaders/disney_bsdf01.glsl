@@ -65,7 +65,20 @@ float disney_fresnel(HitInfo hit, float eta, float l_dot_h, float v_dot_h){
 
 vec3 eval_diffuse(HitInfo hit, vec3 csheen, vec3 v, vec3 l, vec3 h, out float pdf){
     pdf = 0;
+    if (dot(l, hit.n) < 0.){
+        return vec3(0.);
+    }
+    FL = fresnel_schlick(dot(l, hit.n));
+    FV = fresnel_schlick(dot(v, hit.n));
+    FH = fresnel_schlick(dot(h, hit.n));
+    float Fd90 = 0.5 + 2. * dot(l, h) * dot(l, h) * hit.roughness;
+    float Fd = mix(1., Fd90, FL) * mix(1., Fd90, FV);
     
+    float Fss90 = dot(l, h) * dot(l, h) * hit.roughness;
+    float Fss = mix(1.0, Fss90, FL) * mix(1.0, Fss90, FV);
+    float ss = 1.25 * (Fss * (1.0 / (dot(l, hit.n) + dot(v, hit.n)) - 0.5) + 0.5);
+    
+    vec3 Fsheen = FH * 0.5 * csheen;
 }
 
 void sample_shader(HitInfo hit, inout Payload ray){

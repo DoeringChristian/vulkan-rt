@@ -176,10 +176,6 @@ void sample_specular_refr(HitInfo hit, inout Payload ray, float n1, float n2){
     vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
     vec3 wi = refract(-hit.wo, m, n1/n2);
 
-    if (dot(wi, hit.n) < 0){
-        reflect(wi, hit.n);
-    }
-
     // Sample:
     ray.dir = wi;
 }
@@ -193,7 +189,12 @@ void eval_specular_refr(HitInfo hit, inout Payload ray, float n1, float n2){
 
 void sample_specular_refl(HitInfo hit, inout Payload ray){
     vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
+    
     vec3 wi = reflect(-hit.wo, m);
+    
+    if (dot(wi, hit.g) < 0){
+        reflect(wi, hit.n);
+    }
 
     // Sample:
     ray.dir = wi;
@@ -216,7 +217,12 @@ void eval_specular_refl(HitInfo hit, inout Payload ray, float n1, float n2){
 
 void sample_metallic_refl(HitInfo hit, inout Payload ray){
     vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
+    
     vec3 wi = reflect(-hit.wo, m);
+    
+    if (dot(wi, hit.g) < 0){
+        reflect(wi, hit.n);
+    }
 
     // Sample:
     ray.dir = wi;
@@ -233,7 +239,7 @@ void eval_metallic_refl(HitInfo hit, inout Payload ray){
     float denominator = 4. * max(dot(hit.n, hit.wo), 0.) * max(dot(hit.n, ray.dir), 0.) + 0.001;
     vec3 specular = numerator/denominator;
 
-    ray.attenuation *= F * specular * wi_dot_n * (2. * M_PI);
+    ray.attenuation *= F * hit.metallic * specular * wi_dot_n * (2. * M_PI);
 }
 
 float luminance(vec3 c){
@@ -242,6 +248,10 @@ float luminance(vec3 c){
 
 
 void sample_bsdf(HitInfo hit, inout Payload ray, float n1, float n2){
+
+    if (dot(hit.n, hit.wo) < 0){
+        hit.n ==  reflect(-hit.n, hit.g);
+    }
 
     if (randf(ray.seed) < hit.metallic){
         // Metallic
@@ -313,7 +323,6 @@ void sample_shader(HitInfo hit, inout Payload ray){
     ray.orig = hit.pos;
     ray.color += ray.attenuation * hit.emission.rgb;
     //hit.transmission = 0;
-    //hit.roughness = 1;
     
     // DEBUG:
     
