@@ -193,7 +193,7 @@ bool sample_dielectric(HitInfo hit, inout Payload ray, vec3 m, float n1, float n
     float F0 = F0_sqrt * F0_sqrt;
     
     //float kS = fresnelSchlickReflectAmount(n1, n2, m, -hit.wo, F0);
-    float kS = fresnelSchlick(dot(m, hit.wo), n1, n2, F0, 1.);
+    float kS = mix(F0, 1., fresnelSchlick(dot(m, hit.wo), n1, n2));
     float kD = 1. - kS;
 
     if (randf(ray.seed) < kS){
@@ -228,9 +228,6 @@ void sample_shader(HitInfo hit, inout Payload ray){
     ray.color += ray.attenuation * hit.emission.rgb;
     
     // DEBUG:
-    //ray.color = hit.n;
-    //ray.color = vec3(max(0., -dot(hit.gnorm, hit.wo) * 200.));
-    //return;
     
     float n1 = 1.;
     float n2 = 1.;
@@ -253,37 +250,20 @@ void sample_shader(HitInfo hit, inout Payload ray){
     
     // m is the microfacet normal
     vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
-    uint max_rebounces = 1;
-    uint i = 0;
-    bool valid = false;
-    while(i < max_rebounces && !valid){
-        vec3 m_f = reflect(-m, hit.n);
-        float p_flip = 0.;
-        // flipping approach to normal mapping problem.
-        if (dot(m, hit.wo) < 0.){
-            p_flip = 1.;
-            //m = reflect(-m, hit.g);
-        } else if (dot(m_f, hit.wo) < 0.){
-            p_flip = 0.;
-        }else{
-            float a_m = max(dot(hit.wo, m), 0.) / max(dot(hit.wo, hit.n), 0.);
-            float a_f = max(dot(hit.wo, m_f), 0.) / max(dot(hit.wo, hit.n), 0.);
-            p_flip = a_f / (a_m + a_f);
-        }
-
-        if (randf(ray.seed) < p_flip){
-            m = m_f;
-        }
-        if (randf(ray.seed) < hit.metallic){
-            valid = sample_metallic(hit, ray, m, n1, n2);
-        }else{
-            valid = sample_dielectric(hit, ray, m, n1, n2);
-        }
-
-        hit.wo = ray.dir;
-        //m = (m - hit.g) - hit.g * dot(hit.g, m);
-        i++;
+    
+    // flip mirror the normal along the hit 
+    /*
+    if (dot(hit.wo, m) < 0.){
+        m = reflect(-m, hit.g);
     }
+    */
+    bool valid = false;
+    if (randf(ray.seed) < hit.metallic){
+        valid = sample_metallic(hit, ray, m, n1, n2);
+    }else{
+        valid = sample_dielectric(hit, ray, m, n1, n2);
+    }
+
 
 
 
@@ -291,4 +271,5 @@ void sample_shader(HitInfo hit, inout Payload ray){
     //ray.color = ray.dir;
     //ray.color = vec3(kS);
     //ray.color = hit.n;
+    //ray.color = ray.attenuation;
 }
