@@ -199,7 +199,11 @@ void sample_specular_refl(HitInfo hit, inout Payload ray){
     ray.dir = wi;
 }
 
-void eval_specular_refl(HitInfo hit, inout Payload ray){
+void eval_specular_refl(HitInfo hit, inout Payload ray, float n1, float n2){
+    float F0_sqrt = (n1 - n2) / (n1 + n2);
+    float F0 = F0_sqrt * F0_sqrt;
+    float kS = mix(F0, 1., fresnelSchlick(dot(hit.n, hit.wo), n1, n2));
+    
     float wi_dot_n = max(dot(hit.n, ray.dir), 0.);
     float G = GeometrySmith(hit.n, hit.wo, ray.dir, hit.roughness);
 
@@ -207,7 +211,29 @@ void eval_specular_refl(HitInfo hit, inout Payload ray){
     float denominator = 4. * max(dot(hit.n, hit.wo), 0.) * max(dot(hit.n, ray.dir), 0.) + 0.001;
     vec3 specular = numerator/denominator;
 
-    ray.attenuation *= specular * wi_dot_n * (2. * M_PI);
+    ray.attenuation *= kS * specular * wi_dot_n * (2. * M_PI);
+}
+
+void sample_metallic_refl(HitInfo hit, inout Payload ray){
+    vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
+    vec3 wi = reflect(-hit.wo, m);
+
+    // Sample:
+    ray.dir = wi;
+}
+
+void eval_metallic_refl(HitInfo hit, inout Payload ray){
+    vec3 F0 = hit.albedo.rgb;
+    vec3 F = mix(F0, vec3(1.), fresnelSchlick(clamp(dot(hit.n, hit.wo), 0., 1.), F0));
+    
+    float wi_dot_n = max(dot(hit.n, ray.dir), 0.);
+    float G = GeometrySmith(hit.n, hit.wo, ray.dir, hit.roughness);
+
+    vec3 numerator = G * vec3(1.);
+    float denominator = 4. * max(dot(hit.n, hit.wo), 0.) * max(dot(hit.n, ray.dir), 0.) + 0.001;
+    vec3 specular = numerator/denominator;
+
+    ray.attenuation *= F * specular * wi_dot_n * (2. * M_PI);
 }
 
 float luminance(vec3 c){
@@ -217,41 +243,39 @@ float luminance(vec3 c){
 
 void sample_bsdf(HitInfo hit, inout Payload ray, float n1, float n2){
 
-    float wo_dot_n = dot(hit.n, hit.wo);
-    float f_m = fresnel_schlick(wo_dot_n);
-    float f_d = fresnel_dielectric(abs(wo_dot_n), n1/n2);
-    float F = mix(f_d, f_m, hit.metallic);
-
-    vec3 spec_color = mix(vec3(0.04), hit.albedo.rgb, hit.metallic);
-    
-    float p_diff = luminance(hit.albedo.rgb) * (1. - hit.metallic);
-    float p_refl = luminance(mix(spec_color, vec3(1.), F));
-    float p_refr = (1. - F) * (1. - hit.metallic) * hit.transmission * luminance(hit.albedo.rgb);
-    float total = p_diff + p_refl + p_refr;
-    p_diff /= total;
-    p_refl /= total;
-    p_refr /= total;
-
-    float rnd = randf(ray.seed);
-
-    if (rnd < p_diff){
-        // Diffuse
-        ray.attenuation /= p_diff;
-        sample_diffuse(hit, ray);
-        eval_diffuse(hit, ray);
+    if (randf(ray.seed) < hit.metallic){
+        // Metallic
+        ray.attenuation /= hit.metallic;
         
-    } else if (rnd < p_refl + p_diff){
-        // Reflection
-        ray.attenuation /= p_refl;
-        sample_specular_refl(hit, ray);
-        eval_specular_refl(hit, ray);
+        sample_metallic_refl(hit, ray);
+        eval_metallic_refl(hit, ray);
+    } else{
+        ray.attenuation /= (1. - hit.metallic);
         
-    } else if (rnd < p_refr + p_diff){
-        // Refraction
-        ray.attenuation /= p_refr;
-        sample_specular_refr(hit, ray, n1, n2);
-        eval_specular_refr(hit, ray, n1, n2);
+        float F0_sqrt = (n1 - n2) / (n1 + n2);
+        float F0 = F0_sqrt * F0_sqrt;
+        float kS = mix(F0, 1., fresnelSchlick(dot(hit.n, hit.wo), n1, n2));
         
+        if (randf(ray.seed) < kS){
+            ray.attenuation /= kS;
+            
+            sample_specular_refl(hit, ray);
+            eval_specular_refl(hit, ray, n1, n2);
+        } else{
+            ray.attenuation /= (1. - kS);
+            
+            if(randf(ray.seed) < hit.transmission){
+                ray.attenuation /= hit.transmission;
+                
+                sample_specular_refr(hit, ray, n1, n2);
+                eval_specular_refr(hit, ray, n1, n2);
+            } else{
+                ray.attenuation /= (1. - hit.transmission);
+                
+                sample_diffuse(hit, ray);
+                eval_diffuse(hit, ray);
+            }
+        }
     }
 }
 
