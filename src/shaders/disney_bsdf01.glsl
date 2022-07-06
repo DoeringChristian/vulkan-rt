@@ -296,7 +296,7 @@ void sample_shader(HitInfo hit, inout Payload ray){
         0,
         0.01,
         hit.emission.rgb,
-        0.01,
+        0.00,
         hit.metallic,
         hit.roughness,
         0.01,
@@ -307,8 +307,8 @@ void sample_shader(HitInfo hit, inout Payload ray){
         0.01,
         0.01,
         hit.ior,
-        0.01,
-        0.02,
+        1.,
+        1.,
     };
 
     float pdf = 1.;
