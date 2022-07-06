@@ -145,9 +145,9 @@ void sample_diffuse(HitInfo hit, inout Payload ray){
 
 void sample_refraction(HitInfo hit, inout Payload ray, float n1, float n2){
     vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
-    
     vec3 wi = refract(-hit.wo, m, n1/n2);
-    float wi_dot_n = max(dot(m, -wi), 0.);
+    
+    float wi_dot_n = max(dot(hit.n, -wi), 0.);
     float NdotV = max(dot(hit.n, wi), 0.0);
     float G = GeometrySchlickGGX(NdotV, hit.roughness);
 
@@ -161,18 +161,19 @@ void sample_refraction(HitInfo hit, inout Payload ray, float n1, float n2){
 
 void sample_specular_refl(HitInfo hit, inout Payload ray){
     vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
-    
     vec3 wi = reflect(-hit.wo, m);
-    float wi_dot_m = max(dot(m, wi), 0.);
+    
+    
+    float wi_dot_n = max(dot(hit.n, wi), 0.);
     float G = GeometrySmith(hit.n, hit.wo, wi, hit.roughness);
 
     vec3 numerator = G * vec3(1.);
-    float denominator = 4. * max(dot(m, hit.wo), 0.) * max(dot(m, wi), 0.) + 0.001;
+    float denominator = 4. * max(dot(hit.n, hit.wo), 0.) * max(dot(hit.n, wi), 0.) + 0.001;
     vec3 specular = numerator/denominator;
     vec3 fr = specular;
 
     // Sample:
-    ray.attenuation *= fr * wi_dot_m * (2 * M_PI);
+    ray.attenuation *= fr * wi_dot_n * (2 * M_PI);
     ray.dir = wi;
     
 }
@@ -194,7 +195,6 @@ void sample_dielectric(HitInfo hit, inout Payload ray, float n1, float n2){
         sample_specular(hit, ray);
     }
     else{
-
         if(randf(ray.seed) >= hit.transmission){
             // Diffuse Case
             sample_diffuse(hit, ray);
