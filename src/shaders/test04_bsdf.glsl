@@ -233,10 +233,6 @@ void sample_dielectric(HitInfo hit, inout Payload ray, float n1, float n2){
 }
 
 void sample_metallic(HitInfo hit, inout Payload ray, float n1, float n2){
-    vec3 F0 = hit.albedo.rgb;
-    vec3 F = mix(F0, vec3(1.), fresnelSchlick(clamp(dot(hit.n, hit.wo), 0., 1.), F0));
-    
-    //ray.attenuation *= F;
     sample_specular_refl(hit, ray, n1, n2);
 }
 
