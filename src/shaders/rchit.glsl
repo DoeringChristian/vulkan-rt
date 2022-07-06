@@ -5,7 +5,7 @@
 
 #include "rand.glsl"
 #include "common.glsl"
-#include "test04_bsdf.glsl"
+#include "disney_bsdf01.glsl"
 
 
 hitAttributeEXT vec2 hit_co;

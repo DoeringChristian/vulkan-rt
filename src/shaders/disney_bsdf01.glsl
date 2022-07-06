@@ -1,6 +1,3 @@
-#include "common.glsl"
-// Disney bsdf adapted from:
-// https://github.com/knightcrawler25/GLSL-PathTracer/blob/master/src/shaders/common/disney.glsl
 /*
  * MIT License
  *
@@ -36,55 +33,289 @@
  * [8] [Pixar’s Foundation for Materials] https://graphics.pixar.com/library/PxrMaterialsCourse2017/paper.pdf
  */
 
-float fresnel_schlick(float u){
-    float m = clamp(1. - u, 0., 1.);
-    flaot m2 = m * m;
-    return m2 * m2 * m;
+#include "sampling.glsl"
+#include "common.glsl"
+
+struct DisneyMaterial
+{
+    vec3 baseColor;
+    float opacity;
+    int alphaMode;
+    float alphaCutoff;
+    vec3 emission;
+    float anisotropic;
+    float metallic;
+    float roughness;
+    float subsurface;
+    float specularTint;
+    float sheen;
+    float sheenTint;
+    float clearcoat;
+    float clearcoatRoughness;
+    float specTrans;
+    float ior;
+    float ax;
+    float ay;
+};
+
+struct DisneyState{
+    int depth;
+    float eta;
+    float hitDist;
+
+    vec3 fhp;
+    vec3 normal;
+    vec3 ffnormal;
+    vec3 tangent;
+    vec3 bitangent;
+
+    bool isEmitter;
+
+    vec2 texCoord;
+    Material mat;
+};
+
+float Luminance(vec3 c)
+{
+    return 0.212671 * c.x + 0.715160 * c.y + 0.072169 * c.z;
 }
 
-float fresnel_dielectric(float cos_theta_i, float eta){
-    float sin2_theta_t = eta * eta * (1. - cos_theta_i * cos_theta_i);
-
-    if (sin2_theta_t > 1.){
-        return 1.;
-    }
-
-    float cos_theta_t = sqrt(max(1. - sin2_theta_t, 0.));
-
-    float rs = (eta * cos_theta_t - cos_theta_i) / (eta * cos_theta_t + cos_theta_i);
-    float rp = (eta * cos_theta_i - cos_theta_t) / (eta * cos_theta_i + cos_theta_t);
-    return 0.f * (rs * rs + rp * rp);
-    
+vec3 ToWorld(vec3 X, vec3 Y, vec3 Z, vec3 V)
+{
+    return V.x * X + V.y * Y + V.z * Z;
 }
 
-float disney_fresnel(HitInfo hit, float eta, float l_dot_h, float v_dot_h){
-    float metallic_f = fresnel_schlick(l_dot_h);
-    float dielectric_f = fresnel_dielectric(abs(v_dot_h), eta);
-    return mix(dielectric_f, metallic_f, hit.metallic);
+vec3 ToLocal(vec3 X, vec3 Y, vec3 Z, vec3 V)
+{
+    return vec3(dot(V, X), dot(V, Y), dot(V, Z));
 }
 
-vec3 eval_diffuse(HitInfo hit, vec3 csheen, vec3 v, vec3 l, vec3 h, out float pdf){
-    pdf = 0;
-    if (dot(l, hit.n) < 0.){
-        return vec3(0.);
-    }
-    FL = fresnel_schlick(dot(l, hit.n));
-    FV = fresnel_schlick(dot(v, hit.n));
-    FH = fresnel_schlick(dot(h, hit.n));
-    float Fd90 = 0.5 + 2. * dot(l, h) * dot(l, h) * hit.roughness;
-    float Fd = mix(1., Fd90, FL) * mix(1., Fd90, FV);
-    
-    float Fss90 = dot(l, h) * dot(l, h) * hit.roughness;
+float DisneyFresnel(DisneyMaterial mat, float eta, float LDotH, float VDotH)
+{
+    float metallicFresnel = SchlickFresnel(LDotH);
+    float dielectricFresnel = DielectricFresnel(abs(VDotH), eta);
+    return mix(dielectricFresnel, metallicFresnel, mat.metallic);
+}
+
+vec3 EvalDiffuse(DisneyMaterial mat, vec3 Csheen, vec3 V, vec3 L, vec3 H, out float pdf)
+{
+    pdf = 0.0;
+    if (L.z <= 0.0)
+        return vec3(0.0);
+
+    // Diffuse
+    float FL = SchlickFresnel(L.z);
+    float FV = SchlickFresnel(V.z);
+    float FH = SchlickFresnel(dot(L, H));
+    float Fd90 = 0.5 + 2.0 * dot(L, H) * dot(L, H) * mat.roughness;
+    float Fd = mix(1.0, Fd90, FL) * mix(1.0, Fd90, FV);
+
+    // Fake Subsurface TODO: Replace with volumetric scattering
+    float Fss90 = dot(L, H) * dot(L, H) * mat.roughness;
     float Fss = mix(1.0, Fss90, FL) * mix(1.0, Fss90, FV);
-    float ss = 1.25 * (Fss * (1.0 / (dot(l, hit.n) + dot(v, hit.n)) - 0.5) + 0.5);
-    
-    vec3 Fsheen = FH * 0.5 * csheen;
+    float ss = 1.25 * (Fss * (1.0 / (L.z + V.z) - 0.5) + 0.5);
+
+    // Sheen
+    vec3 Fsheen = FH * mat.sheen * Csheen;
+
+    pdf = L.z * INV_PI;
+    return (1.0 - mat.metallic) * (1.0 - mat.specTrans) * (INV_PI * mix(Fd, ss, mat.subsurface) * mat.baseColor + Fsheen);
+}
+
+vec3 EvalSpecReflection(DisneyMaterial mat, float eta, vec3 specCol, vec3 V, vec3 L, vec3 H, out float pdf)
+{
+    pdf = 0.0;
+    if (L.z <= 0.0)
+        return vec3(0.0);
+
+    float FM = DisneyFresnel(mat, eta, dot(L, H), dot(V, H));
+    vec3 F = mix(specCol, vec3(1.0), FM);
+    float D = GTR2Aniso(H.z, H.x, H.y, mat.ax, mat.ay);
+    float G1 = SmithGAniso(abs(V.z), V.x, V.y, mat.ax, mat.ay);
+    float G2 = G1 * SmithGAniso(abs(L.z), L.x, L.y, mat.ax, mat.ay);
+
+    pdf = G1 * D / (4.0 * V.z);
+    return F * D * G2 / (4.0 * L.z * V.z);
+}
+
+vec3 EvalSpecRefraction(DisneyMaterial mat, float eta, vec3 V, vec3 L, vec3 H, out float pdf)
+{
+    pdf = 0.0;
+    if (L.z >= 0.0)
+        return vec3(0.0);
+
+    float F = DielectricFresnel(abs(dot(V, H)), eta);
+    float D = GTR2Aniso(H.z, H.x, H.y, mat.ax, mat.ay);
+    float G1 = SmithGAniso(abs(V.z), V.x, V.y, mat.ax, mat.ay);
+    float G2 = G1 * SmithGAniso(abs(L.z), L.x, L.y, mat.ax, mat.ay);
+    float denom = dot(L, H) + dot(V, H) * eta;
+    denom *= denom;
+    float eta2 = eta * eta;
+    float jacobian = abs(dot(L, H)) / denom;
+
+    pdf = G1 * max(0.0, dot(V, H)) * D * jacobian / V.z;
+
+    return pow(mat.baseColor, vec3(0.5)) * (1.0 - mat.metallic) * mat.specTrans * (1.0 - F) * D * G2 * abs(dot(V, H)) * jacobian * eta2 / abs(L.z * V.z);
+}
+
+vec3 EvalClearcoat(DisneyMaterial mat, vec3 V, vec3 L, vec3 H, out float pdf)
+{
+    pdf = 0.0;
+    if (L.z <= 0.0)
+        return vec3(0.0);
+
+    float FH = DielectricFresnel(dot(V, H), 1.0 / 1.5);
+    float F = mix(0.04, 1.0, FH);
+    float D = GTR1(H.z, mat.clearcoatRoughness);
+    float G = SmithG(L.z, 0.25)
+        * SmithG(V.z, 0.25);
+    float jacobian = 1.0 / (4.0 * dot(V, H));
+
+    pdf = D * H.z * jacobian;
+    return vec3(0.25) * mat.clearcoat * F * D * G / (4.0 * L.z * V.z);
+}
+
+void GetSpecColor(DisneyMaterial mat, float eta, out vec3 specCol, out vec3 sheenCol)
+{
+    float lum = Luminance(mat.baseColor);
+    vec3 ctint = lum > 0.0 ? mat.baseColor / lum : vec3(1.0f);
+    float F0 = (1.0 - eta) / (1.0 + eta);
+    specCol = mix(F0 * F0 * mix(vec3(1.0), ctint, mat.specularTint), mat.baseColor, mat.metallic);
+    sheenCol = mix(vec3(1.0), ctint, mat.sheenTint);
+}
+
+void GetLobeProbabilities(DisneyMaterial mat, float eta, vec3 specCol, float approxFresnel, out float diffuseWt, out float specReflectWt, out float specRefractWt, out float clearcoatWt)
+{
+    diffuseWt = Luminance(mat.baseColor) * (1.0 - mat.metallic) * (1.0 - mat.specTrans);
+    specReflectWt = Luminance(mix(specCol, vec3(1.0), approxFresnel));
+    specRefractWt = (1.0 - approxFresnel) * (1.0 - mat.metallic) * mat.specTrans * Luminance(mat.baseColor);
+    clearcoatWt = 0.25 * mat.clearcoat * (1.0 - mat.metallic);
+    float totalWt = diffuseWt + specReflectWt + specRefractWt + clearcoatWt;
+
+    diffuseWt /= totalWt;
+    specReflectWt /= totalWt;
+    specRefractWt /= totalWt;
+    clearcoatWt /= totalWt;
+}
+
+vec3 DisneySample(DisneyMaterial mat, float eta, vec3 V, vec3 N, out vec3 L, out float pdf, inout uint seed)
+{
+    pdf = 0.0;
+    vec3 f = vec3(0.0);
+
+    float r1 = randf(seed);
+    float r2 = randf(seed);
+
+    // TODO: Tangent and bitangent should be calculated from mesh (provided, the mesh has proper uvs)
+    vec3 T, B;
+    Onb(N, T, B);
+    V = ToLocal(T, B, N, V); // NDotL = L.z; NDotV = V.z; NDotH = H.z
+
+    // Specular and sheen color
+    vec3 specCol, sheenCol;
+    GetSpecColor(mat, eta, specCol, sheenCol);
+
+    // Lobe weights
+    float diffuseWt, specReflectWt, specRefractWt, clearcoatWt;
+    // Note: Fresnel is approx and based on N and not H since H isn't available at this stage.
+    float approxFresnel = DisneyFresnel(mat, eta, V.z, V.z);
+    GetLobeProbabilities(mat, eta, specCol, approxFresnel, diffuseWt, specReflectWt, specRefractWt, clearcoatWt);
+
+    // CDF for picking a lobe
+    float cdf[4];
+    cdf[0] = diffuseWt;
+    cdf[1] = cdf[0] + clearcoatWt;
+    cdf[2] = cdf[1] + specReflectWt;
+    cdf[3] = cdf[2] + specRefractWt;
+
+    if (r1 < cdf[0]) // Diffuse Reflection Lobe
+    {
+        r1 /= cdf[0];
+        L = CosineSampleHemisphere(r1, r2);
+
+        vec3 H = normalize(L + V);
+
+        f = EvalDiffuse(mat, sheenCol, V, L, H, pdf);
+        pdf *= diffuseWt;
+    }
+    else if (r1 < cdf[1]) // Clearcoat Lobe
+    {
+        r1 = (r1 - cdf[0]) / (cdf[1] - cdf[0]);
+
+        vec3 H = SampleGTR1(mat.clearcoatRoughness, r1, r2);
+
+        if (H.z < 0.0)
+            H = -H;
+
+        L = normalize(reflect(-V, H));
+
+        f = EvalClearcoat(mat, V, L, H, pdf);
+        pdf *= clearcoatWt;
+    }
+    else  // Specular Reflection/Refraction Lobes
+    {
+        r1 = (r1 - cdf[1]) / (1.0 - cdf[1]);
+        vec3 H = SampleGGXVNDF(V, mat.ax, mat.ay, r1, r2);
+
+        if (H.z < 0.0)
+            H = -H;
+
+        // TODO: Refactor into metallic BRDF and specular BSDF
+        float fresnel = DisneyFresnel(mat, eta, dot(L, H), dot(V, H));
+        float F = 1.0 - ((1.0 - fresnel) * mat.specTrans * (1.0 - mat.metallic));
+
+        if (randf(seed) < F)
+        {
+            L = normalize(reflect(-V, H));
+
+            f = EvalSpecReflection(mat, eta, specCol, V, L, H, pdf);
+            pdf *= F;
+        }
+        else
+        {
+            L = normalize(refract(-V, H, eta));
+
+            f = EvalSpecRefraction(mat, eta, V, L, H, pdf);
+            pdf *= 1.0 - F;
+        }
+
+        pdf *= specReflectWt + specRefractWt;
+    }
+
+    L = ToWorld(T, B, N, L);
+    return f * abs(dot(N, L));
 }
 
 void sample_shader(HitInfo hit, inout Payload ray){
     ray.orig = hit.pos;
     ray.color += ray.attenuation * hit.emission.rgb;
+
+    DisneyMaterial mat = {
+        hit.albedo.rgb,
+        hit.transmission,
+        0,
+        0.0,
+        hit.emission.rgb,
+        0.,
+        hit.metallic,
+        hit.roughness,
+        0.,
+        0.,
+        0.,
+        0.,
+        0.,
+        0.,
+        0.,
+        hit.ior,
+        0.,
+        0.,
+    };
+
+    float pdf = 1.;
+    vec3 f = DisneySample(mat, ray.ior, hit.wo, hit.n, ray.dir, pdf, ray.seed);
+    f = f / pdf;
+    ray.attenuation *= f;
     
     // DEBUG:
-    ray.color = hit.albedo.xyz;
+    //ray.color = hit.albedo.xyz;
 }
