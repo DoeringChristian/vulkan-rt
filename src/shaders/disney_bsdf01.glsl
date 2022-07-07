@@ -273,6 +273,7 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
         ray.attenuation *= f/pdf;
     } else{
         ray.ray_active = 0;
+        ray.color = vec3(1., 0., 0.);
     }
     
     //ray.color = vec3(1., 0., 0.);
