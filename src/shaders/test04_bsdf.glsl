@@ -188,7 +188,7 @@ void eval_specular_refl(HitInfo hit, inout Payload ray, float eta){
     ray.attenuation *= specular * wi_dot_n * (2 * M_PI);
     
     // DEBUG:
-    ray.color = F;
+    //ray.color = F;
 }
 
 //Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior, vec3 seed){
