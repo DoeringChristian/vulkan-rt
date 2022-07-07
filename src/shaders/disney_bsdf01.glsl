@@ -95,10 +95,10 @@ vec3 EvalSpecReflection(MatInfo mat, float eta, vec3 specCol, vec3 V, vec3 L, ve
     float G1 = SmithGAniso(abs(V.z), V.x, V.y, mat.ax, mat.ay);
     float G2 = G1 * SmithGAniso(abs(L.z), L.x, L.y, mat.ax, mat.ay);
 
-    //pdf = G1 * D / (4.0 * V.z);
-    //return F * D * G2 / (4.0 * L.z * V.z);
-    pdf = G1 / (4.0 * V.z);
-    return F * G2 / (4.0 * L.z * V.z);
+    pdf = G1 * D / (4.0 * V.z);
+    return F * D * G2 / (4.0 * L.z * V.z);
+    //pdf = G1 / (4.0 * V.z);
+    //return F * G2 / (4.0 * L.z * V.z);
 }
 
 vec3 EvalSpecRefraction(MatInfo mat, float eta, vec3 V, vec3 L, vec3 H, out float pdf)
@@ -116,12 +116,11 @@ vec3 EvalSpecRefraction(MatInfo mat, float eta, vec3 V, vec3 L, vec3 H, out floa
     float eta2 = eta * eta;
     float jacobian = abs(dot(L, H)) / denom;
 
-    //pdf = G1 * max(0.0, dot(V, H)) * D * jacobian / V.z;
-
-    //return pow(mat.albedo, vec3(0.5)) * (1.0 - mat.metallic) * mat.transmission * (1.0 - F) * D * G2 * abs(dot(V, H)) * jacobian * eta2 / abs(L.z * V.z);
+    pdf = G1 * max(0.0, dot(V, H)) * D * jacobian / V.z;
+    return pow(mat.albedo, vec3(0.5)) * (1.0 - mat.metallic) * mat.transmission * (1.0 - F) * D * G2 * abs(dot(V, H)) * jacobian * eta2 / abs(L.z * V.z);
     
-    pdf = G1 * max(0.0, dot(V, H)) / V.z;
-    return pow(mat.albedo, vec3(0.5)) * (1.0 - mat.metallic) * mat.transmission * (1.0 - F) * G2 * abs(dot(V, H)) *  eta2 / abs(L.z * V.z);
+    //pdf = G1 * max(0.0, dot(V, H)) / V.z;
+    //return pow(mat.albedo, vec3(0.5)) * (1.0 - mat.metallic) * mat.transmission * (1.0 - F) * G2 * abs(dot(V, H)) *  eta2 / abs(L.z * V.z);
 }
 
 vec3 EvalClearcoat(MatInfo mat, vec3 V, vec3 L, vec3 H, out float pdf)
@@ -137,10 +136,10 @@ vec3 EvalClearcoat(MatInfo mat, vec3 V, vec3 L, vec3 H, out float pdf)
         * SmithG(V.z, 0.25);
     float jacobian = 1.0 / (4.0 * dot(V, H));
 
-    //pdf = D * H.z * jacobian;
-    //return vec3(0.25) * mat.clearcoat * F * D * G / (4.0 * L.z * V.z);
-    pdf = H.z * jacobian;
-    return vec3(0.25) * mat.clearcoat * F * G / (4.0 * L.z * V.z);
+    pdf = D * H.z * jacobian;
+    return vec3(0.25) * mat.clearcoat * F * D * G / (4.0 * L.z * V.z);
+    //pdf = H.z * jacobian;
+    //return vec3(0.25) * mat.clearcoat * F * G / (4.0 * L.z * V.z);
 }
 
 void GetSpecColor(MatInfo mat, float eta, out vec3 specCol, out vec3 sheenCol)
@@ -271,7 +270,7 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
     
     ray.dir = normalize(L);
     if (pdf > 0.){
-        ray.attenuation *= f/max(pdf, 0.0001);
+        ray.attenuation *= f/pdf;
     }
     
     //ray.color = vec3(1., 0., 0.);
