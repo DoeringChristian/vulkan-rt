@@ -157,18 +157,17 @@ void sample_diffuse(HitInfo hit, inout Payload ray){
     // cosine sample along the geometry normal to prevent samples insid the geometry
     // TODO: not best approach leads to fireflies
     vec3 wi = allign_hemisphere(cosine_hemisphere(ray.seed), hit.n);
-    //float wi_dot_g = max(dot(hit.g, wi), 0.);
-    //float wi_dot_m = max(dot(m, wi), 0.);
     if (dot(wi, hit.g) < 0.){
-        //ray.attenuation /= dot(wi, hit.n);
         wi = reflect(wi, hit.g);
-        //ray.attenuation *= dot(wi, hit.n);
     } 
 
     
     // Sample:
     ray.attenuation *= hit.albedo.rgb / M_PI * (2. * M_PI);
     ray.dir = wi;
+}
+void eval_diffuse(HitInfo hit, inout Payload ray){
+    ray.attenuation *= hit.albedo.rgb / M_PI * (2. * M_PI);
 }
 
 void sample_refraction(HitInfo hit, inout Payload ray, float eta){
@@ -185,6 +184,15 @@ void sample_refraction(HitInfo hit, inout Payload ray, float eta){
     ray.attenuation *= fr * wi_dot_n * (2. * M_PI);
     //ray.ior = n2;
     ray.dir = wi;
+}
+void eval_specular_refr(HitInfo hit, inout Payload ray, float eta){
+    vec3 h = normalize(ray.dir + hit.wo);
+    
+    float wi_dot_n = max(dot(hit.n, -ray.dir), 0.);
+    float NdotV = max(dot(hit.n, ray.dir), 0.);
+    float G = GeometrySchlickGGX(NdotV, hit.roughness);
+
+    ray.attenuation *= wi_dot_n * (2. * M_PI);
 }
 
 void sample_specular_refl(HitInfo hit, inout Payload ray, float eta){
@@ -214,6 +222,27 @@ void sample_specular_refl(HitInfo hit, inout Payload ray, float eta){
     // Sample:
     ray.attenuation *= fr * wi_dot_n * (2 * M_PI);
     
+}
+
+void eval_specular_refl(HitInfo hit, inout Payload ray, float eta){
+    vec3 wi = ray.dir;
+    vec3 h = normalize(wi + hit.wo);
+
+    if(dot(wi, hit.n) < 0.){
+        ray.attenuation *= 0;
+    }
+    float F0 = (1. - eta) / (1. + eta);
+    vec3 cspec = mix(F0 * F0 * vec3(1.), hit.albedo.rgb, hit.metallic);
+    float FM = fresnelDisney(hit.metallic, eta, dot(wi, h), dot(hit.wo, h));
+    vec3 F = mix(cspec, vec3(1.), FM);
+
+    float wi_dot_n = max(dot(hit.n, wi), 0.);
+    float G = GeometrySmith(hit.n, hit.wo, wi, hit.roughness);
+    vec3 numerator = G * F;
+    float denominator = 4. * max(dot(hit.n, hit.wo), 0.) * max(dot(hit.n, wi), 0.) + 0.001;
+    vec3 specular = numerator/denominator;
+    
+    ray.attenuation *= specular * wi_dot_n * (2 * M_PI);
 }
 
 void sample_dielectric(HitInfo hit, inout Payload ray, float eta){
@@ -252,6 +281,9 @@ void sample_shader(HitInfo hit, inout Payload ray){
 
     ray.orig = hit.pos;
     ray.color += ray.attenuation * hit.emission.rgb;
+    hit.metallic = 0;
+    hit.transmission = 0;
+    hit.roughness = 1.;
     
     // DEBUG:
     
@@ -273,11 +305,48 @@ void sample_shader(HitInfo hit, inout Payload ray){
         n1 = 1.;
         n2 = hit.ior;
     }
+    float eta = n1 / n2;
+    float wo_dot_n = dot(hit.wo, hit.n);
     
-    
-    if (randf(ray.seed) < hit.metallic){
-        sample_metallic(hit, ray, n1/n2);
-    }else{
-        sample_dielectric(hit, ray, n1/n2);
+    float F0 = (1. - eta) / (1. + eta);
+    vec3 cspec = mix(F0 * F0 * vec3(1.), hit.albedo.rgb, hit.metallic);
+    float F_approx = fresnelDisney(hit.metallic, eta, wo_dot_n, wo_dot_n);
+
+    float p_diff = luminance(hit.albedo.rgb) * (1. - hit.metallic) * (1. - hit.transmission);
+    float p_refl = luminance(mix(cspec, vec3(1.), F_approx));
+    float p_refr = luminance(hit.albedo.rgb) * (1. - F_approx) * (1. - hit.metallic) * hit.transmission;
+    float total = p_diff + p_refl + p_refr;
+    p_diff /= total;
+    p_refl /= total;
+    p_refr /= total;
+
+    float rnd = randf(ray.seed);
+    if (rnd < p_diff){ // Diffuse sample/eval
+        ray.attenuation /= p_diff;
+        
+        ray.dir = allign_hemisphere(cosine_hemisphere(ray.seed), hit.n);
+        
+        eval_diffuse(hit, ray);
+    } else if(rnd < p_refl + p_refr + p_diff){ // Specular refl/refr
+        ray.attenuation /= (p_refl + p_refr);
+        vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
+
+        if (dot(m, hit.n) < 0){
+            reflect(m, hit.n);
+        }
+
+        if (randf(ray.seed) < F_approx){ // Specular reflection
+            ray.attenuation /= F_approx;
+            
+            vec3 wi = normalize(reflect(-hit.wo, m));
+            
+            eval_specular_refl(hit, ray, eta);
+        } else{ // Specular refraction
+            ray.attenuation /= (1. - F_approx);
+            
+            vec3 wi = normalize(refract(-hit.wo, m, eta));
+
+            eval_specular_refr(hit, ray, eta);
+        }
     }
 }
