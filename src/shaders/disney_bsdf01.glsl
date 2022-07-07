@@ -97,8 +97,8 @@ vec3 EvalSpecReflection(MatInfo mat, float eta, vec3 specCol, vec3 V, vec3 L, ve
 
     pdf = G1 * D / (4.0 * V.z);
     return F * D * G2 / (4.0 * L.z * V.z);
-    //pdf = G1 / (4.0 * V.z);
-    //return F * G2 / (4.0 * L.z * V.z);
+    //pdf = 1.;
+    //return F * G2/G1 / L.z;
 }
 
 vec3 EvalSpecRefraction(MatInfo mat, float eta, vec3 V, vec3 L, vec3 H, out float pdf)
@@ -187,6 +187,7 @@ vec3 DisneySample(MatInfo mat, float eta, vec3 V, vec3 N, out vec3 L, out float 
     // Note: Fresnel is approx and based on N and not H since H isn't available at this stage.
     float approxFresnel = DisneyFresnel(mat, eta, V.z, V.z);
     GetLobeProbabilities(mat, eta, specCol, approxFresnel, diffuseWt, specReflectWt, specRefractWt, clearcoatWt);
+    // DEBUG:
 
     // CDF for picking a lobe
     float cdf[4];
@@ -228,7 +229,7 @@ vec3 DisneySample(MatInfo mat, float eta, vec3 V, vec3 N, out vec3 L, out float 
             H = -H;
 
         // TODO: Refactor into metallic BRDF and specular BSDF
-        float fresnel = DisneyFresnel(mat, eta, dot(L, H), dot(V, H));
+        float fresnel = DisneyFresnel(mat, eta, dot(V, H), dot(V, H));
         float F = 1.0 - ((1.0 - fresnel) * mat.transmission * (1.0 - mat.metallic));
 
         if (randf(seed) < F)
@@ -265,7 +266,7 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
     }
 
     float pdf = 0;
-    vec3 L = vec3(0.);
+    vec3 L = vec3(ray.dir);
     vec3 f = DisneySample(mat, eta, hit.wo, hit.n, L, pdf, ray.seed);
     
     ray.dir = normalize(L);
@@ -273,7 +274,8 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
         ray.attenuation *= f/pdf;
     } else{
         ray.ray_active = 0;
-        ray.color = vec3(1., 0., 0.);
+        ray.attenuation *= 0;
+        //ray.color = vec3(1., 0., 0.);
     }
     
     //ray.color = vec3(1., 0., 0.);
