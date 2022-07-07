@@ -260,9 +260,11 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
 
     float pdf = 0;
     vec3 f = DisneySample(mat, eta, hit.wo, hit.n, ray.dir, pdf, ray.seed);
+    
     ray.attenuation *= f / pdf;
     
     //ray.color = vec3(1., 0., 0.);
     // DEBUG:
     //ray.color = hit.albedo.xyz;
+    //ray.color = mat.albedo;
 }

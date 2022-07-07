@@ -115,6 +115,24 @@ void main() {
     matinfo.metallic = mat.mr.x;
     matinfo.roughness = mat.mr.y;
     matinfo.ior = mat.ior;
+    
+    //mat.transmission = 0;
+    //mat.roughness = 0;
+    //mat.metallic = 0;
+    matinfo.anisotropic = 0;
+    matinfo.subsurface = 0;
+    matinfo.specularTint = 0;
+    matinfo.sheen = 0;
+    matinfo.sheenTint = 0;
+    matinfo.clearcoat = 0;
+    matinfo.clearcoatRoughness = 0;
+    //mat.ior = 1.4;
+    matinfo.ax = 0.001;
+    matinfo.ay = 0.001;
+
+    //float aspect = sqrt(1. - matinfo.anisotropic * 0.9);
+    //matinfo.ax = max(0.001, matinfo.roughness / aspect);
+    //matinfo.ay = max(0.001, matinfo.roughness / aspect);
 
     // TODO: material interpolation and tangent space.
     vec2 uv0 = vert0.uv.xy;

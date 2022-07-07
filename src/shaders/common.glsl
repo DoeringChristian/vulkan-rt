@@ -24,7 +24,7 @@ struct MatInfo{
     float transmission;
     float roughness;
     float metallic;
-    float anispotropic;
+    float anisotropic;
     float subsurface;
     float specularTint;
     float sheen;
