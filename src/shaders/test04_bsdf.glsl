@@ -162,8 +162,9 @@ void eval_specular_refr(HitInfo hit, inout Payload ray, float eta){
     float wi_dot_n = max(dot(hit.n, -ray.dir), 0.);
     float NdotV = max(dot(hit.n, ray.dir), 0.);
     float G = GeometrySchlickGGX(NdotV, hit.roughness);
+    float F = fresnel_dielectric(abs(dot(hit.wo, h)), eta);
 
-    ray.attenuation *= wi_dot_n * (2. * M_PI);
+    ray.attenuation *= wi_dot_n * (2. * M_PI) * F;
 }
 
 void eval_specular_refl(HitInfo hit, inout Payload ray, float eta){
@@ -173,7 +174,7 @@ void eval_specular_refl(HitInfo hit, inout Payload ray, float eta){
     if(dot(wi, hit.n) < 0.){
         ray.attenuation *= 0;
     }
-    float F0 = (-1. + eta) / (1. + eta);
+    float F0 = (1. - eta) / (1. + eta);
     vec3 cspec = mix(vec3(F0 * F0), hit.albedo.rgb, hit.metallic);
     float FM = fresnelDisney(hit.metallic, eta, dot(wi, h), dot(hit.wo, h));
     vec3 F = mix(cspec, vec3(1.), FM);
@@ -185,6 +186,9 @@ void eval_specular_refl(HitInfo hit, inout Payload ray, float eta){
     vec3 specular = numerator/denominator;
     
     ray.attenuation *= specular * wi_dot_n * (2 * M_PI);
+    
+    // DEBUG:
+    ray.color = F;
 }
 
 //Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior, vec3 seed){
