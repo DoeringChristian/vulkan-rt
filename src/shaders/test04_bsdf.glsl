@@ -1,5 +1,10 @@
 #include "common.glsl"
 
+float luminance(vec3 c)
+{
+    return 0.212671 * c.x + 0.715160 * c.y + 0.072169 * c.z;
+}
+
 // From LearnOpenGL
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
@@ -84,23 +89,30 @@ float fresnelSchlick(float cosTheta, float n1, float n2, float f0, float f90){
     float ret = r0 + (1. - r0) * x * x * x * x * x;
     return mix(f0, f90, ret);
 }
-//https://blog.demofox.org/2020/06/14/casual-shadertoy-path-tracing-3-fresnel-rough-refraction-absorption-orbit-camera/
-float fresnelSchlickReflectAmount(float n1, float n2, vec3 normal, vec3 incident, float f0){
-    float r0 = (n1-n2)/(n1+n2);
-    r0 *= r0;
-    float cosTheta = -dot(normal, incident);
-    if (n1 > n2)
-    {
-        float n = n1/n2;
-        float sin2Theta = n*n*(1.0- cosTheta * cosTheta);
-        // Total internal reflection
-        if (sin2Theta > 1.0)
-            return 1.;
-        cosTheta = sqrt(1.0 - sin2Theta);
+
+float fresnelSchlick(float x){
+    x = clamp(1.- 0, 0., 1.);
+    float x2 = x*x;
+    return x2 * x2 * x;
+}
+float fresnel_dielectric(float cosThetaI, float eta){
+    float sin2ThetaT = eta * eta * (1. - cosThetaI * cosThetaI);
+
+    if(sin2ThetaT > 1.){
+        return 1.;
     }
-    float x = 1.0 - cosTheta;
-    float ret = r0 + (1. - r0) * x * x * x * x * x;
-    return mix(f0, 1., ret);
+
+    float cosThetaT = sqrt(max(1. - sin2ThetaT, 0.));
+    
+    float rs = (eta * cosThetaT - cosThetaI) / (eta * cosThetaT + cosThetaI);
+    float rp = (eta * cosThetaI - cosThetaT) / (eta * cosThetaI + cosThetaT);
+
+    return 0.5 * (rs * rs + rp * rp);
+}
+float fresnelDisney(float metallic, float eta, float l_dot_h, float v_dot_h){
+    float Fm = fresnelSchlick(l_dot_h);
+    float Fd = fresnel_dielectric(abs(v_dot_h), eta);
+    return mix(Fd, Fm, metallic);
 }
 
 // from https://agraphicsguy.wordpress.com/2015/11/01/sampling-microfacet-brdf/
@@ -159,9 +171,9 @@ void sample_diffuse(HitInfo hit, inout Payload ray){
     ray.dir = wi;
 }
 
-void sample_refraction(HitInfo hit, inout Payload ray, float n1, float n2){
+void sample_refraction(HitInfo hit, inout Payload ray, float eta){
     vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
-    vec3 wi = refract(-hit.wo, m, n1/n2);
+    vec3 wi = refract(-hit.wo, m, eta);
     
     float wi_dot_n = max(dot(hit.n, -wi), 0.);
     float NdotV = max(dot(hit.n, wi), 0.0);
@@ -175,21 +187,21 @@ void sample_refraction(HitInfo hit, inout Payload ray, float n1, float n2){
     ray.dir = wi;
 }
 
-void sample_specular_refl(HitInfo hit, inout Payload ray, float n1, float n2){
+void sample_specular_refl(HitInfo hit, inout Payload ray, float eta){
+    // Sample:
     vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
     vec3 wi = reflect(-hit.wo, m);
+    ray.dir = wi;
     
     if (dot(wi, hit.g) < 0.){
         //wi = reflect(wi, hit.g);
     } 
 
-    float F0d_sqrt = (n1 - n2) / (n1 + n2);
-    vec3 F0d = vec3(F0d_sqrt * F0d_sqrt);
-    vec3 F0m = hit.albedo.rgb;
-    vec3 Fd = mix(F0d, vec3(1.), fresnelSchlick(dot(hit.n, hit.wo), n1, n2));
-    vec3 Fm = mix(F0m, vec3(1.), fresnelSchlick(dot(hit.n, hit.wo), F0m));
-    vec3 F = mix(Fd, Fm, hit.metallic);
-    
+    // Eval:
+    float F0 = (1. - eta) / (1. + eta);
+    vec3 cspec = mix(F0 * F0 * vec3(1.), hit.albedo.rgb, hit.metallic);
+    float FM = fresnelDisney(hit.metallic, eta, dot(wi, m), dot(hit.wo, m));
+    vec3 F = mix(cspec, vec3(1.), FM);
     
     float wi_dot_n = max(dot(hit.n, wi), 0.);
     float G = GeometrySmith(hit.n, hit.wo, wi, hit.roughness);
@@ -201,23 +213,22 @@ void sample_specular_refl(HitInfo hit, inout Payload ray, float n1, float n2){
 
     // Sample:
     ray.attenuation *= fr * wi_dot_n * (2 * M_PI);
-    ray.dir = wi;
     
 }
 
-void sample_dielectric(HitInfo hit, inout Payload ray, float n1, float n2){
-    float F0_sqrt = (n1 - n2) / (n1 + n2);
-    float F0 = F0_sqrt * F0_sqrt;
+void sample_dielectric(HitInfo hit, inout Payload ray, float eta){
+    float wo_dot_n = dot(hit.wo, hit.n);
+    float F_approx = fresnelDisney(hit.metallic, eta, wo_dot_n, wo_dot_n);
     
     //float kS = fresnelSchlickReflectAmount(n1, n2, m, -hit.wo, F0);
-    float kS = mix(F0, 1., fresnelSchlick(dot(hit.n, hit.wo), n1, n2));
+    float kS = F_approx;
     //kS = 0.5;
     float kD = 1. - kS;
 
     if (randf(ray.seed) < kS){
         ray.attenuation /= kS;
         // Specular case
-        sample_specular_refl(hit, ray, n1, n2);
+        sample_specular_refl(hit, ray, eta);
     }
     else{
         ray.attenuation /= kD;
@@ -227,13 +238,13 @@ void sample_dielectric(HitInfo hit, inout Payload ray, float n1, float n2){
         }
         else{
             // Refraction case
-            sample_refraction(hit, ray, n1, n2);
+            sample_refraction(hit, ray, eta);
         }
     }
 }
 
-void sample_metallic(HitInfo hit, inout Payload ray, float n1, float n2){
-    sample_specular_refl(hit, ray, n1, n2);
+void sample_metallic(HitInfo hit, inout Payload ray, float eta){
+    sample_specular_refl(hit, ray, eta);
 }
 
 //Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior, vec3 seed){
@@ -265,8 +276,8 @@ void sample_shader(HitInfo hit, inout Payload ray){
     
     
     if (randf(ray.seed) < hit.metallic){
-        sample_metallic(hit, ray, n1, n2);
+        sample_metallic(hit, ray, n1/n2);
     }else{
-        sample_dielectric(hit, ray, n1, n2);
+        sample_dielectric(hit, ray, n1/n2);
     }
 }

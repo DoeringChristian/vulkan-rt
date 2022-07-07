@@ -1,7 +1,7 @@
 #ifndef RAND_GLSL
 #define RAND_GLSL
 
-#define M_PI 3.1415926535897932384626433832795
+#include "math.glsl"
 
 float uint_to_unit_float(uint u){
     const uint mantissaMask = 0x007FFFFFu;
