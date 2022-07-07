@@ -5,7 +5,7 @@
 
 #include "rand.glsl"
 #include "common.glsl"
-#include "test04_bsdf.glsl"
+#include "disney_bsdf01.glsl"
 
 
 hitAttributeEXT vec2 hit_co;
@@ -101,20 +101,20 @@ void main() {
     vec3 wo = normalize(-prev_dir);
     float dist = length(prev_pos - pos);
     
-    HitInfo hit = { 
-        mat.albedo,
-        mat.emission,
-        mat.mr.x,
-        mat.mr.y,
-        mat.transmission,
-        mat.ior,
-
-        pos,
-        wo,
-        gnorm,
-        norm,
-        dist,
-    };
+    HitInfo hit;
+    hit.pos = pos;
+    hit.wo = wo;
+    hit.g = gnorm;
+    hit.n = norm;
+    hit.dist = dist;
+    
+    MatInfo matinfo;
+    matinfo.albedo = mat.albedo.rgb;
+    matinfo.emission = mat.emission.rgb;
+    matinfo.transmission = mat.transmission;
+    matinfo.metallic = mat.mr.x;
+    matinfo.roughness = mat.mr.y;
+    matinfo.ior = mat.ior;
 
     // TODO: material interpolation and tangent space.
     vec2 uv0 = vert0.uv.xy;
@@ -122,13 +122,13 @@ void main() {
     vec2 uv2 = vert2.uv.xy;
     vec2 uv = uv0 * barycentric.x + uv1 * barycentric.y + uv2 * barycentric.z;
     if (mat.albedo_tex != INDEX_UNDEF){
-        hit.albedo = texture(textures[mat.albedo_tex], uv);
+        matinfo.albedo = texture(textures[mat.albedo_tex], uv).rgb;
     }
     if (mat.mr_tex != INDEX_UNDEF){
         // As specified by gltf specs the blue chanel stores metallness, the green chanel roughness.
         vec2 mr = texture(textures[mat.mr_tex], uv).bg;
-        hit.metallic = mr.x;
-        hit.roughness = mr.y;
+        matinfo.metallic = mr.x;
+        matinfo.roughness = mr.y;
     }
     if (mat.normal_tex != INDEX_UNDEF){
         mat3 TBN = compute_TBN(uv1 - uv0, uv2 - uv0, pos1 - pos0, pos2 - pos0, norm);
@@ -141,13 +141,12 @@ void main() {
         hit.n = norm;
     }
 
-
     
     //===========================================================
     // Call BRDF functions:
     //===========================================================
     
-    sample_shader(hit, payload);
+    sample_shader(hit, matinfo, payload);
     
     // thrgouhput roussian roulette propability
     //p_{RR} = max_{RGB}\leftb( \prod_{d = 1}^{D-1} \left({f_r(x_d, w_d \rightarrow v_d) cos(\theta_d)) \over p(w_d)p_{RR_d}}\right)\right)

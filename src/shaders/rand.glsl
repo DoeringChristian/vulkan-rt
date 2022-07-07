@@ -23,9 +23,24 @@ uint pcg(uint v)
 	return (word >> 22u) ^ word;
 }
 
+// Rng state
+uvec4 seed;
+//RNG from code by Moroz Mykhailo (https://www.shadertoy.com/view/wltcRS)
+void pcg4d(inout uvec4 v)
+{
+    v = v * 1664525u + 1013904223u;
+    v.x += v.y * v.w; v.y += v.z * v.x; v.z += v.x * v.y; v.w += v.y * v.z;
+    v = v ^ (v >> 16u);
+    v.x += v.y * v.w; v.y += v.z * v.x; v.z += v.x * v.y; v.w += v.y * v.z;
+}
+
 float randf(inout uint seed){
     seed = pcg(seed);
     return uint_to_unit_float(seed);
+}
+float randf(){
+    pcg4d(seed);
+    return float(seed.x)/float(0xffffffffu);
 }
 uint randu(inout uint seed){
     seed = pcg(seed);

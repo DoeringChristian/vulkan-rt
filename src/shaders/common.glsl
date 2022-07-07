@@ -17,15 +17,26 @@ struct Material {
     uint normal_tex;
 };
 
-struct HitInfo{
-    vec4 albedo;
-    vec4 emission;
-    float metallic;
-    float roughness;
-    float transmission;
-    float ior;
-
+struct MatInfo{
+    vec3 albedo;
+    vec3 emission;
     
+    float transmission;
+    float roughness;
+    float metallic;
+    float anispotropic;
+    float subsurface;
+    float specularTint;
+    float sheen;
+    float sheenTint;
+    float clearcoat;
+    float clearcoatRoughness;
+    float ior;
+    float ax;
+    float ay;
+};
+
+struct HitInfo{
     vec3 pos;
     vec3 wo;
     // Geometry Normal
