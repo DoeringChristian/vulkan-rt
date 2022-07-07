@@ -281,9 +281,9 @@ void sample_shader(HitInfo hit, inout Payload ray){
 
     ray.orig = hit.pos;
     ray.color += ray.attenuation * hit.emission.rgb;
-    hit.metallic = 0;
-    hit.transmission = 0;
-    hit.roughness = 1.;
+    //hit.metallic = 1;
+    //hit.transmission = 0;
+    hit.roughness = 0.;
     
     // DEBUG:
     
@@ -338,13 +338,13 @@ void sample_shader(HitInfo hit, inout Payload ray){
         if (randf(ray.seed) < F_approx){ // Specular reflection
             ray.attenuation /= F_approx;
             
-            vec3 wi = normalize(reflect(-hit.wo, m));
+            ray.dir = normalize(reflect(-hit.wo, m));
             
             eval_specular_refl(hit, ray, eta);
         } else{ // Specular refraction
             ray.attenuation /= (1. - F_approx);
             
-            vec3 wi = normalize(refract(-hit.wo, m, eta));
+            ray.dir = normalize(refract(-hit.wo, m, eta));
 
             eval_specular_refr(hit, ray, eta);
         }
