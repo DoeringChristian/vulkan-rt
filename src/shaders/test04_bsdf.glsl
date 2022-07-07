@@ -152,39 +152,10 @@ vec3 sample_DistributionBeckmann(float roughness, vec3 n, inout uint seed){
 
     return normalize(allign_hemisphere(m, n));
 }
-
-void sample_diffuse(HitInfo hit, inout Payload ray){
-    // cosine sample along the geometry normal to prevent samples insid the geometry
-    // TODO: not best approach leads to fireflies
-    vec3 wi = allign_hemisphere(cosine_hemisphere(ray.seed), hit.n);
-    if (dot(wi, hit.g) < 0.){
-        wi = reflect(wi, hit.g);
-    } 
-
-    
-    // Sample:
-    ray.attenuation *= hit.albedo.rgb / M_PI * (2. * M_PI);
-    ray.dir = wi;
-}
 void eval_diffuse(HitInfo hit, inout Payload ray){
     ray.attenuation *= hit.albedo.rgb / M_PI * (2. * M_PI);
 }
 
-void sample_refraction(HitInfo hit, inout Payload ray, float eta){
-    vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
-    vec3 wi = refract(-hit.wo, m, eta);
-    
-    float wi_dot_n = max(dot(hit.n, -wi), 0.);
-    float NdotV = max(dot(hit.n, wi), 0.0);
-    float G = GeometrySchlickGGX(NdotV, hit.roughness);
-
-    vec3 fr = vec3(1.);
-
-    // Sample:
-    ray.attenuation *= fr * wi_dot_n * (2. * M_PI);
-    //ray.ior = n2;
-    ray.dir = wi;
-}
 void eval_specular_refr(HitInfo hit, inout Payload ray, float eta){
     vec3 h = normalize(ray.dir + hit.wo);
     
@@ -195,35 +166,6 @@ void eval_specular_refr(HitInfo hit, inout Payload ray, float eta){
     ray.attenuation *= wi_dot_n * (2. * M_PI);
 }
 
-void sample_specular_refl(HitInfo hit, inout Payload ray, float eta){
-    // Sample:
-    vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
-    vec3 wi = reflect(-hit.wo, m);
-    ray.dir = wi;
-    
-    if (dot(wi, hit.g) < 0.){
-        //wi = reflect(wi, hit.g);
-    } 
-
-    // Eval:
-    float F0 = (1. - eta) / (1. + eta);
-    vec3 cspec = mix(F0 * F0 * vec3(1.), hit.albedo.rgb, hit.metallic);
-    float FM = fresnelDisney(hit.metallic, eta, dot(wi, m), dot(hit.wo, m));
-    vec3 F = mix(cspec, vec3(1.), FM);
-    
-    float wi_dot_n = max(dot(hit.n, wi), 0.);
-    float G = GeometrySmith(hit.n, hit.wo, wi, hit.roughness);
-
-    vec3 numerator = G * F;
-    float denominator = 4. * max(dot(hit.n, hit.wo), 0.) * max(dot(hit.n, wi), 0.) + 0.001;
-    vec3 specular = numerator/denominator;
-    vec3 fr = specular;
-
-    // Sample:
-    ray.attenuation *= fr * wi_dot_n * (2 * M_PI);
-    
-}
-
 void eval_specular_refl(HitInfo hit, inout Payload ray, float eta){
     vec3 wi = ray.dir;
     vec3 h = normalize(wi + hit.wo);
@@ -231,8 +173,8 @@ void eval_specular_refl(HitInfo hit, inout Payload ray, float eta){
     if(dot(wi, hit.n) < 0.){
         ray.attenuation *= 0;
     }
-    float F0 = (1. - eta) / (1. + eta);
-    vec3 cspec = mix(F0 * F0 * vec3(1.), hit.albedo.rgb, hit.metallic);
+    float F0 = (-1. + eta) / (1. + eta);
+    vec3 cspec = mix(vec3(F0 * F0), hit.albedo.rgb, hit.metallic);
     float FM = fresnelDisney(hit.metallic, eta, dot(wi, h), dot(hit.wo, h));
     vec3 F = mix(cspec, vec3(1.), FM);
 
@@ -245,37 +187,6 @@ void eval_specular_refl(HitInfo hit, inout Payload ray, float eta){
     ray.attenuation *= specular * wi_dot_n * (2 * M_PI);
 }
 
-void sample_dielectric(HitInfo hit, inout Payload ray, float eta){
-    float wo_dot_n = dot(hit.wo, hit.n);
-    float F_approx = fresnelDisney(hit.metallic, eta, wo_dot_n, wo_dot_n);
-    
-    //float kS = fresnelSchlickReflectAmount(n1, n2, m, -hit.wo, F0);
-    float kS = F_approx;
-    //kS = 0.5;
-    float kD = 1. - kS;
-
-    if (randf(ray.seed) < kS){
-        ray.attenuation /= kS;
-        // Specular case
-        sample_specular_refl(hit, ray, eta);
-    }
-    else{
-        ray.attenuation /= kD;
-        if(randf(ray.seed) >= hit.transmission){
-            // Diffuse Case
-            sample_diffuse(hit, ray);
-        }
-        else{
-            // Refraction case
-            sample_refraction(hit, ray, eta);
-        }
-    }
-}
-
-void sample_metallic(HitInfo hit, inout Payload ray, float eta){
-    sample_specular_refl(hit, ray, eta);
-}
-
 //Sample generate_sample(vec3 n, vec3 wo, float dist, InterMaterial mat, float ior, vec3 seed){
 void sample_shader(HitInfo hit, inout Payload ray){
 
@@ -283,7 +194,7 @@ void sample_shader(HitInfo hit, inout Payload ray){
     ray.color += ray.attenuation * hit.emission.rgb;
     //hit.metallic = 1;
     //hit.transmission = 0;
-    hit.roughness = 0.;
+    //hit.roughness = 0.;
     
     // DEBUG:
     
@@ -329,6 +240,7 @@ void sample_shader(HitInfo hit, inout Payload ray){
         eval_diffuse(hit, ray);
     } else if(rnd < p_refl + p_refr + p_diff){ // Specular refl/refr
         ray.attenuation /= (p_refl + p_refr);
+        
         vec3 m = sample_DistributionGGX(hit.roughness, hit.n, ray.seed);
 
         if (dot(m, hit.n) < 0){
