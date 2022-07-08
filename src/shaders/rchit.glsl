@@ -49,15 +49,15 @@ void main() {
     mat4 transform = mat4(inst.trans0, inst.trans1, inst.trans2, inst.trans3);
     Material mat = materials[inst.mat_index];
 
-    ivec3 indices = ivec3(model_indices[inst.indices].indices[3 * gl_PrimitiveID + 0],
-                          model_indices[inst.indices].indices[3 * gl_PrimitiveID + 1],
-                          model_indices[inst.indices].indices[3 * gl_PrimitiveID + 2]);
+    ivec3 indices = ivec3(model_indices[inst.mesh_index].indices[3 * gl_PrimitiveID + 0],
+                          model_indices[inst.mesh_index].indices[3 * gl_PrimitiveID + 1],
+                          model_indices[inst.mesh_index].indices[3 * gl_PrimitiveID + 2]);
 
     vec3 barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
 
-    Vertex vert0 = model_vertices[inst.vertices].vertices[indices.x];
-    Vertex vert1 = model_vertices[inst.vertices].vertices[indices.y];
-    Vertex vert2 = model_vertices[inst.vertices].vertices[indices.z];
+    Vertex vert0 = model_vertices[inst.mesh_index].vertices[indices.x];
+    Vertex vert1 = model_vertices[inst.mesh_index].vertices[indices.y];
+    Vertex vert2 = model_vertices[inst.mesh_index].vertices[indices.z];
 
     vec3 pos0 = vert0.pos.xyz;
     vec3 pos1 = vert1.pos.xyz;
