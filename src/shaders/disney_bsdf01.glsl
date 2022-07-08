@@ -97,8 +97,6 @@ vec3 EvalSpecReflection(MatInfo mat, float eta, vec3 specCol, vec3 V, vec3 L, ve
 
     pdf = G1 * D / (4.0 * V.z);
     return F * D * G2 / (4.0 * L.z * V.z);
-    //pdf = 1.;
-    //return F * G2/G1 / L.z;
 }
 
 vec3 EvalSpecRefraction(MatInfo mat, float eta, vec3 V, vec3 L, vec3 H, out float pdf)
@@ -117,10 +115,8 @@ vec3 EvalSpecRefraction(MatInfo mat, float eta, vec3 V, vec3 L, vec3 H, out floa
     float jacobian = abs(dot(L, H)) / denom;
 
     pdf = G1 * max(0.0, dot(V, H)) * D * jacobian / V.z;
+
     return pow(mat.albedo, vec3(0.5)) * (1.0 - mat.metallic) * mat.transmission * (1.0 - F) * D * G2 * abs(dot(V, H)) * jacobian * eta2 / abs(L.z * V.z);
-    
-    //pdf = G1 * max(0.0, dot(V, H)) / V.z;
-    //return pow(mat.albedo, vec3(0.5)) * (1.0 - mat.metallic) * mat.transmission * (1.0 - F) * G2 * abs(dot(V, H)) *  eta2 / abs(L.z * V.z);
 }
 
 vec3 EvalClearcoat(MatInfo mat, vec3 V, vec3 L, vec3 H, out float pdf)
@@ -138,8 +134,6 @@ vec3 EvalClearcoat(MatInfo mat, vec3 V, vec3 L, vec3 H, out float pdf)
 
     pdf = D * H.z * jacobian;
     return vec3(0.25) * mat.clearcoat * F * D * G / (4.0 * L.z * V.z);
-    //pdf = H.z * jacobian;
-    //return vec3(0.25) * mat.clearcoat * F * G / (4.0 * L.z * V.z);
 }
 
 void GetSpecColor(MatInfo mat, float eta, out vec3 specCol, out vec3 sheenCol)
@@ -187,7 +181,6 @@ vec3 DisneySample(MatInfo mat, float eta, vec3 V, vec3 N, out vec3 L, out float 
     // Note: Fresnel is approx and based on N and not H since H isn't available at this stage.
     float approxFresnel = DisneyFresnel(mat, eta, V.z, V.z);
     GetLobeProbabilities(mat, eta, specCol, approxFresnel, diffuseWt, specReflectWt, specRefractWt, clearcoatWt);
-    // DEBUG:
 
     // CDF for picking a lobe
     float cdf[4];
@@ -229,7 +222,7 @@ vec3 DisneySample(MatInfo mat, float eta, vec3 V, vec3 N, out vec3 L, out float 
             H = -H;
 
         // TODO: Refactor into metallic BRDF and specular BSDF
-        float fresnel = DisneyFresnel(mat, eta, dot(V, H), dot(V, H));
+        float fresnel = DisneyFresnel(mat, eta, dot(L, H), dot(V, H));
         float F = 1.0 - ((1.0 - fresnel) * mat.transmission * (1.0 - mat.metallic));
 
         if (randf(seed) < F)
@@ -257,6 +250,7 @@ vec3 DisneySample(MatInfo mat, float eta, vec3 V, vec3 N, out vec3 L, out float 
 void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
     ray.orig = hit.pos;
     ray.color += ray.attenuation * mat.emission.rgb;
+    //mat.roughness = clamp(mat.roughness + 0.5, 0.001, 1);
 
     float eta;
     if (dot(hit.g, hit.wo) < 0.){
@@ -274,7 +268,7 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
         ray.attenuation *= f/pdf;
     } else{
         ray.ray_active = 0;
-        ray.attenuation *= 0;
+        //ray.attenuation *= 0;
         //ray.color = vec3(1., 0., 0.);
     }
     

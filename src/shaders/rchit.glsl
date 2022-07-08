@@ -113,13 +113,10 @@ void main() {
     matinfo.emission = mat.emission.rgb;
     matinfo.transmission = mat.transmission;
     matinfo.metallic = mat.mr.x;
-    matinfo.roughness = max(mat.mr.y, 0.001);
+    matinfo.roughness = max(mat.mr.y * mat.mr.y, 0.001);
     matinfo.ior = mat.ior;
     
-    //mat.transmission = 0;
-    //mat.roughness = 0;
-    //mat.metallic = 0;
-    matinfo.anisotropic = 0.01;
+    matinfo.anisotropic = 0.00;
     matinfo.subsurface = 0;
     matinfo.specularTint = 0;
     matinfo.sheen = 0;
@@ -129,10 +126,6 @@ void main() {
     //mat.ior = 1.4;
     matinfo.ax = 0.001;
     matinfo.ay = 0.001;
-
-    float aspect = sqrt(1. - matinfo.anisotropic * 0.9);
-    matinfo.ax = max(0.001, matinfo.roughness / aspect);
-    matinfo.ay = max(0.001, matinfo.roughness / aspect);
 
     // TODO: material interpolation and tangent space.
     vec2 uv0 = vert0.uv.xy;
@@ -146,7 +139,7 @@ void main() {
         // As specified by gltf specs the blue chanel stores metallness, the green chanel roughness.
         vec2 mr = texture(textures[mat.mr_tex], uv).bg;
         matinfo.metallic = mr.x;
-        matinfo.roughness = mr.y;
+        matinfo.roughness = max(mr.y * mr.y, 0.001);
     }
     if (mat.normal_tex != INDEX_UNDEF){
         mat3 TBN = compute_TBN(uv1 - uv0, uv2 - uv0, pos1 - pos0, pos2 - pos0, norm);
@@ -158,6 +151,12 @@ void main() {
         norm = normalize(TBN * norm_tex);
         hit.n = norm;
     }
+    // DEBUG:
+    //matinfo.roughness = 0.1;
+
+    float aspect = sqrt(1. - matinfo.anisotropic * 0.9);
+    matinfo.ax = max(0.001, matinfo.roughness / aspect);
+    matinfo.ay = max(0.001, matinfo.roughness / aspect);
 
     
     //===========================================================
