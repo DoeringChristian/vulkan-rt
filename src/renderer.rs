@@ -10,18 +10,13 @@ use crate::model::{
 use crate::render_world::RenderWorld;
 use crate::sbt::{SbtBuffer, SbtBufferInfo};
 
-use bevy_math::{Mat3, Mat4, Vec3, Vec4, Vec4Swizzles};
-use bevy_transform::prelude::*;
 use bytemuck::cast_slice;
 use screen_13::prelude::RayTracePipeline;
 use screen_13::prelude::*;
-use screen_13_fx::ImageLoader;
-use std::any::{Any, TypeId};
-use std::marker::PhantomData;
 //use slotmap::*;
 use crate::dense_arena::*;
+use glam::*;
 use std::collections::{HashMap, HashSet};
-use std::ops::{Deref, DerefMut, IndexMut};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -322,8 +317,8 @@ impl RTRenderer {
             .map(|m| GlslMaterial {
                 albedo: std140::vec4(m.albedo[0], m.albedo[1], m.albedo[2], m.albedo[3]),
                 emission: std140::vec4(m.emission[0], m.emission[1], m.emission[2], 1.),
-                metallic: std140::float(m.mr[0]),
-                roughness: std140::float(m.mr[1]),
+                metallic: std140::float(m.metallic),
+                roughness: std140::float(m.roughness),
                 transmission: std140::float(m.transmission),
                 transmission_roughness: std140::float(m.transmission_roughness),
                 ior: std140::float(m.ior),
@@ -617,9 +612,10 @@ impl RTRenderer {
                     .flatten();
                 let ior = material.ior().unwrap_or(1.4);
                 let material_entity = self.insert_material(Material {
-                    albedo: mr.base_color_factor(),
-                    mr: [mr.metallic_factor(), mr.roughness_factor(), 0., 0.],
-                    emission,
+                    albedo: Vec4::from(mr.base_color_factor()),
+                    metallic: mr.metallic_factor(),
+                    roughness: mr.roughness_factor(),
+                    emission: Vec3::from(emission),
                     transmission,
                     transmission_roughness: 0.,
                     ior,

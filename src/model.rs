@@ -2,7 +2,7 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 use crate::{buffers::TypedBuffer, dense_arena::*};
-use glam::Mat4;
+use glam::*;
 use std140::*;
 
 new_key_type! {
@@ -38,9 +38,10 @@ pub struct MeshInstance {
 }
 
 pub struct Material {
-    pub albedo: [f32; 4],
-    pub mr: [f32; 4],
-    pub emission: [f32; 3],
+    pub albedo: Vec4,
+    pub metallic: f32,
+    pub roughness: f32,
+    pub emission: Vec3,
     pub transmission: f32,
     pub ior: f32,
     pub transmission_roughness: f32,
