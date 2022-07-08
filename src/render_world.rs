@@ -1,9 +1,10 @@
 use crate::{
     buffers::TypedBuffer,
     dense_arena::DenseArena,
+    glsl,
     model::{
-        GlslCamera, Index, InstanceKey, Material, MaterialKey, Mesh, MeshInstance, MeshKey,
-        ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey, Vertex,
+        Camera, InstanceKey, Material, MaterialKey, Mesh, MeshInstance, MeshKey, ShaderGroup,
+        ShaderGroupKey, ShaderKey, TextureKey,
     },
 };
 use glam::*;
@@ -21,7 +22,7 @@ pub struct RenderWorld {
     pub instances: DenseArena<InstanceKey, MeshInstance>,
     pub shaders: DenseArena<ShaderKey, Shader>,
     pub shader_groups: DenseArena<ShaderGroupKey, ShaderGroup>,
-    pub camera: GlslCamera,
+    pub camera: Camera,
     //pub events: HashSet<RenderWorldEvent>,
 }
 
@@ -45,11 +46,11 @@ impl RenderWorld {
         false
     }
     */
-    pub fn set_camera(&mut self, camera: GlslCamera) {
+    pub fn set_camera(&mut self, camera: Camera) {
         //self.set_event(RenderWorldEvent::CameraChanged);
         self.camera = camera;
     }
-    pub fn get_camera(&self) -> GlslCamera {
+    pub fn get_camera(&self) -> Camera {
         self.camera
     }
     pub fn insert_shader(&mut self, shader: Shader) -> ShaderKey {
@@ -89,8 +90,8 @@ impl RenderWorld {
     pub fn insert_mesh(
         &mut self,
         device: &Arc<Device>,
-        indices: &[Index],
-        vertices: &[Vertex],
+        indices: &[glsl::Index],
+        vertices: &[glsl::Vertex],
     ) -> MeshKey {
         let key = self.meshes.insert(Mesh {
             indices: Arc::new(TypedBuffer::create(

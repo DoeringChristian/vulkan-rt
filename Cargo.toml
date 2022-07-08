@@ -22,5 +22,5 @@ slotmap = { git = "https://github.com/DoeringChristian/slotmap.git", branch = "a
 gltf = {version = "*", features = ["KHR_materials_transmission", "KHR_materials_ior"]}
 image = "*"
 bitflags = "*"
-glam = "*"
-std140 = "*"
+encase = { version = "*", features = ["glam"] }
+glam = { version = "0.21", features = [ "std" ], default-features = false }

@@ -279,7 +279,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20288df0f70ff258bbaffaf55209f1271a7436438591bbffc3d81e4d84b423f2"
 dependencies = [
  "bevy_reflect",
- "glam",
+ "glam 0.20.5",
 ]
 
 [[package]]
@@ -292,7 +292,7 @@ dependencies = [
  "bevy_utils",
  "downcast-rs",
  "erased-serde",
- "glam",
+ "glam 0.20.5",
  "parking_lot 0.11.2",
  "serde",
  "smallvec",
@@ -503,6 +503,12 @@ checksum = "30ed07550be01594c6026cff2a1d7fe9c8f683caa798e12b68694ac9e88286a3"
 dependencies = [
  "cache-padded",
 ]
+
+[[package]]
+name = "const_panic"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c0358e41e90e443c69b2b2811f6ec9892c228b93620634cf4344fe89967fa9f"
 
 [[package]]
 name = "core-foundation"
@@ -818,6 +824,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "encase"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a516181e9a36e8982cb37933c5e7dba638c42938cacde46ee4e5b4156f881b9"
+dependencies = [
+ "const_panic",
+ "encase_derive",
+ "glam 0.21.2",
+ "thiserror",
+]
+
+[[package]]
+name = "encase_derive"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5b802412eea315f29f2bb2da3a5963cd6121f56eaa06aebcdc0c54eea578f22"
+dependencies = [
+ "encase_derive_impl",
+]
+
+[[package]]
+name = "encase_derive_impl"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f2f4de457d974f548d2c2a16f709ebd81013579e543bd1a9b19ced88132c2cf"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "env_logger"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -970,6 +1008,12 @@ dependencies = [
  "bytemuck",
  "serde",
 ]
+
+[[package]]
+name = "glam"
+version = "0.21.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "781aa11be58ef14b0cd7326618afcbd9cdb5ba686bdab7193d87cdc322cd7033"
 
 [[package]]
 name = "gltf"
@@ -1632,7 +1676,8 @@ dependencies = [
  "bitflags",
  "bytemuck",
  "egui",
- "glam",
+ "encase",
+ "glam 0.21.2",
  "gltf",
  "image",
  "inline-spirv",
@@ -1641,7 +1686,6 @@ dependencies = [
  "screen-13-egui",
  "screen-13-fx",
  "slotmap",
- "std140",
  "tobj",
 ]
 
@@ -1816,7 +1860,7 @@ dependencies = [
  "anyhow",
  "bmfont",
  "bytemuck",
- "glam",
+ "glam 0.20.5",
  "inline-spirv",
  "lazy_static",
  "parking_lot 0.12.1",
@@ -1943,26 +1987,6 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
-
-[[package]]
-name = "std140"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d52c6ee297f4ee912194106bbc27d065be2d323e1ecf0fb49ab6565494b279a5"
-dependencies = [
- "std140-macros",
-]
-
-[[package]]
-name = "std140-macros"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1e740c6c0e8369dd5b36cc6598352eabc669351f9ec526fcb5cfdd5ecae581d"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
 
 [[package]]
 name = "strsim"

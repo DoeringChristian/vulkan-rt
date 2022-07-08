@@ -1,9 +1,9 @@
+use crate::glsl;
 use std::hash::Hash;
 use std::sync::Arc;
 
 use crate::{buffers::TypedBuffer, dense_arena::*};
 use glam::*;
-use std140::*;
 
 new_key_type! {
     pub struct TextureKey;
@@ -16,17 +16,9 @@ new_key_type! {
     pub struct ShaderBindingKeys;
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Vertex {
-    pub pos: [f32; 4],
-    pub normal: [f32; 4],
-    pub uv01: [f32; 4],
-}
-
 pub struct Mesh {
-    pub indices: Arc<TypedBuffer<Index>>,
-    pub vertices: Arc<TypedBuffer<Vertex>>,
+    pub indices: Arc<TypedBuffer<glsl::Index>>,
+    pub vertices: Arc<TypedBuffer<glsl::Vertex>>,
 }
 
 #[derive(Clone)]
@@ -52,9 +44,29 @@ pub struct Material {
     pub transmission_tex: Option<TextureKey>,
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Index(pub u32);
+#[derive(Clone, Copy)]
+pub struct Camera {
+    pub up: Vec3,
+    pub right: Vec3,
+    pub pos: Vec3,
+    pub focus: f32,
+    pub diameter: f32,
+    pub fov: f32,
+    pub depth: u32,
+}
+impl Default for Camera {
+    fn default() -> Self {
+        Self {
+            up: vec3(0., 0., 1.),
+            right: vec3(0., 1., 0.),
+            pos: vec3(1., 0., 0.),
+            focus: 1.,
+            diameter: 0.1,
+            fov: 1.,
+            depth: 16,
+        }
+    }
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -90,74 +102,10 @@ pub enum ShaderGroup {
     },
 }
 
-//===================================
-// Data that can be used in shaders.
-//===================================
-
-///
-/// Data relating to an instance used to acces materials etc. in the shader.
-///
-#[repr_std140]
-#[derive(Clone, Copy)]
-pub struct GlslInstanceData {
-    pub trans0: vec4,
-    pub trans1: vec4,
-    pub trans2: vec4,
-    pub trans3: vec4,
-
-    pub mat_index: uint,
-    pub indices: uint,
-    pub vertices: uint,
-}
-
-///
-/// Material to use in the shader.
-///
-#[repr_std140]
-#[derive(Clone, Copy)]
-pub struct GlslMaterial {
-    pub albedo: vec4,
-    pub emission: vec4,
-    pub metallic: float,
-    pub roughness: float,
-    pub transmission: float,
-    pub transmission_roughness: float,
-    pub ior: float,
-    pub albedo_tex: uint,
-    pub mr_tex: uint,
-    pub emission_tex: uint,
-    pub normal_tex: uint,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct GlslCamera {
-    pub up: [f32; 4],
-    pub right: [f32; 4],
-    pub pos: [f32; 4],
-    pub focus: f32,
-    pub diameter: f32,
-    pub fov: f32,
-    pub fc: u32,
-    pub depth: u32,
-}
-impl Default for GlslCamera {
-    fn default() -> Self {
-        Self {
-            up: [0., 0., 1., 1.],
-            right: [0., 1., 0., 1.],
-            pos: [1., 0., 0., 1.],
-            focus: 1.,
-            diameter: 0.1,
-            fov: 1.,
-            fc: 0,
-            depth: 16,
-        }
-    }
-}
-
+/*
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct PushConstant {
     pub camera: GlslCamera,
 }
+*/

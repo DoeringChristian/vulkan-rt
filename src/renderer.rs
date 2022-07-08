@@ -1,11 +1,10 @@
-use crate::accel::{Blas, BlasInfo, Tlas};
+use crate::accel::{Blas, Tlas};
 use crate::buffers::TypedBuffer;
 use crate::dense_arena::{DenseArena, KeyData};
 use crate::gbuffer::GBuffer;
 use crate::model::{
-    GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceKey, Material, MaterialKey, Mesh,
-    MeshInstance, MeshKey, PushConstant, ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey,
-    Vertex,
+    Camera, InstanceKey, Material, MaterialKey, Mesh, MeshInstance, MeshKey, ShaderGroup,
+    ShaderGroupKey, ShaderKey, TextureKey,
 };
 use crate::render_world::RenderWorld;
 use crate::sbt::{SbtBuffer, SbtBufferInfo};
@@ -14,7 +13,7 @@ use bytemuck::cast_slice;
 use screen_13::prelude::RayTracePipeline;
 use screen_13::prelude::*;
 //use slotmap::*;
-use crate::dense_arena::*;
+use crate::{dense_arena::*, glsl};
 use glam::*;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -28,6 +27,7 @@ pub enum Signal {
     MeshResized(MeshKey),
     BlasRecreated(MeshKey),
     TlasRecreated,
+    TlasBuilt,
     InstancesChanged,
     InstancesResized,
     MaterialsChanged,
@@ -42,17 +42,18 @@ pub enum Signal {
 }
 
 pub struct RTRenderer {
-    pub blases: HashMap<MeshKey, Blas>,
+    pub blases: HashMap<MeshKey, Blas<glsl::Index, glsl::Vertex>>,
     pub tlas: Option<Tlas>,
 
-    pub material_buf: Option<TypedBuffer<GlslMaterial>>,
-    pub instancedata_buf: Option<TypedBuffer<GlslInstanceData>>,
+    pub material_buf: Option<TypedBuffer<glsl::Material>>,
+    pub instancedata_buf: Option<TypedBuffer<glsl::InstanceData>>,
 
     pub pipeline: Option<Arc<RayTracePipeline>>,
     pub hit_offsets: HashMap<InstanceKey, usize>,
     pub miss_groups: Vec<ShaderGroupKey>,
     pub rgen_group: Option<ShaderGroupKey>,
     pub sbt: Option<SbtBuffer>,
+    pub camera: glsl::Camera,
 
     pub world: RenderWorld,
     pub signals: HashSet<Signal>,
@@ -94,16 +95,7 @@ impl RTRenderer {
             if self.signaled(&Signal::MeshResized(*key)) || !self.blases.contains_key(key) {
                 recreate_blases = true;
                 blas_signals.push(Signal::BlasRecreated(*key));
-                blases.insert(
-                    *key,
-                    Blas::create(
-                        device,
-                        &BlasInfo {
-                            indices: &mesh.indices,
-                            positions: &mesh.vertices,
-                        },
-                    ),
-                );
+                blases.insert(*key, Blas::create(device, &mesh.indices, &mesh.vertices));
             } else {
                 blases.insert(*key, self.blases.remove(key).unwrap());
             }
@@ -147,7 +139,7 @@ impl RTRenderer {
                 .as_ref()
                 .unwrap()
                 .build(cache, rgraph, &blas_nodes);
-            self.world.camera.fc = 0;
+            self.emit(Signal::TlasBuilt);
             //println!("Rebuild TLAS");
         }
     }
@@ -293,14 +285,14 @@ impl RTRenderer {
         let mut instancedata = vec![];
         for instance in self.world.instances.values_as_slice() {
             let mat = instance.transform.to_cols_array_2d();
-            instancedata.push(GlslInstanceData {
-                trans0: std140::vec4(mat[0][0], mat[0][1], mat[0][2], mat[0][3]),
-                trans1: std140::vec4(mat[1][0], mat[1][1], mat[1][2], mat[1][3]),
-                trans2: std140::vec4(mat[2][0], mat[2][1], mat[2][2], mat[2][3]),
-                trans3: std140::vec4(mat[3][0], mat[3][1], mat[3][2], mat[3][3]),
-                mat_index: std140::uint(self.world.materials.dense_index(instance.material) as _),
-                indices: std140::uint(self.world.meshes.dense_index(instance.mesh) as _),
-                vertices: std140::uint(self.world.meshes.dense_index(instance.mesh) as _),
+            instancedata.push(glsl::InstanceData {
+                trans0: vec4(mat[0][0], mat[0][1], mat[0][2], mat[0][3]),
+                trans1: vec4(mat[1][0], mat[1][1], mat[1][2], mat[1][3]),
+                trans2: vec4(mat[2][0], mat[2][1], mat[2][2], mat[2][3]),
+                trans3: vec4(mat[3][0], mat[3][1], mat[3][2], mat[3][3]),
+                mat_index: self.world.materials.dense_index(instance.material) as _,
+                mesh_index: self.world.meshes.dense_index(instance.mesh) as _,
+                _pad: [0, 0],
             });
         }
         self.instancedata_buf = Some(TypedBuffer::create(
@@ -314,34 +306,31 @@ impl RTRenderer {
             .world
             .materials
             .values()
-            .map(|m| GlslMaterial {
-                albedo: std140::vec4(m.albedo[0], m.albedo[1], m.albedo[2], m.albedo[3]),
-                emission: std140::vec4(m.emission[0], m.emission[1], m.emission[2], 1.),
-                metallic: std140::float(m.metallic),
-                roughness: std140::float(m.roughness),
-                transmission: std140::float(m.transmission),
-                transmission_roughness: std140::float(m.transmission_roughness),
-                ior: std140::float(m.ior),
-                albedo_tex: std140::uint(
-                    m.albedo_tex
-                        .map(|tex| self.world.textures.dense_index(tex) as _)
-                        .unwrap_or(INDEX_UNDEF),
-                ),
-                mr_tex: std140::uint(
-                    m.mr_tex
-                        .map(|tex| self.world.textures.dense_index(tex) as _)
-                        .unwrap_or(INDEX_UNDEF),
-                ),
-                emission_tex: std140::uint(
-                    m.emission_tex
-                        .map(|tex| self.world.textures.dense_index(tex) as _)
-                        .unwrap_or(INDEX_UNDEF),
-                ),
-                normal_tex: std140::uint(
-                    m.normal_tex
-                        .map(|tex| self.world.textures.dense_index(tex) as _)
-                        .unwrap_or(INDEX_UNDEF),
-                ),
+            .map(|m| glsl::Material {
+                albedo: vec4(m.albedo[0], m.albedo[1], m.albedo[2], m.albedo[3]),
+                emission: vec4(m.emission[0], m.emission[1], m.emission[2], 1.),
+                metallic: m.metallic,
+                roughness: m.roughness,
+                transmission: m.transmission,
+                transmission_roughness: m.transmission_roughness,
+                ior: m.ior,
+                albedo_tex: m
+                    .albedo_tex
+                    .map(|tex| self.world.textures.dense_index(tex) as _)
+                    .unwrap_or(INDEX_UNDEF),
+                mr_tex: m
+                    .mr_tex
+                    .map(|tex| self.world.textures.dense_index(tex) as _)
+                    .unwrap_or(INDEX_UNDEF),
+                emission_tex: m
+                    .emission_tex
+                    .map(|tex| self.world.textures.dense_index(tex) as _)
+                    .unwrap_or(INDEX_UNDEF),
+                normal_tex: m
+                    .normal_tex
+                    .map(|tex| self.world.textures.dense_index(tex) as _)
+                    .unwrap_or(INDEX_UNDEF),
+                _pad: [0],
             })
             .collect::<Vec<_>>();
         self.material_buf = Some(TypedBuffer::create(
@@ -352,11 +341,11 @@ impl RTRenderer {
     }
 }
 impl RTRenderer {
-    pub fn set_camera(&mut self, camera: GlslCamera) {
+    pub fn set_camera(&mut self, camera: Camera) {
         self.emit(Signal::CameraChanged);
         self.world.set_camera(camera)
     }
-    pub fn get_camera(&self) -> GlslCamera {
+    pub fn get_camera(&self) -> Camera {
         self.world.get_camera()
     }
     pub fn insert_shader(&mut self, shader: Shader) -> ShaderKey {
@@ -392,8 +381,8 @@ impl RTRenderer {
     pub fn insert_mesh(
         &mut self,
         device: &Arc<Device>,
-        indices: &[Index],
-        vertices: &[Vertex],
+        indices: &[glsl::Index],
+        vertices: &[glsl::Vertex],
     ) -> MeshKey {
         let key = self.world.insert_mesh(device, indices, vertices);
         self.emit(Signal::MeshResized(key));
@@ -411,6 +400,7 @@ impl RTRenderer {
             miss_groups: Vec::new(),
             pipeline: None,
             sbt: None,
+            camera: glsl::Camera::default(),
             signals: HashSet::new(),
             world: RenderWorld::default(),
         }
@@ -457,10 +447,8 @@ impl RTRenderer {
                 )
             })
             .collect::<Vec<_>>();
-        let push_constant = PushConstant {
-            camera: self.world.camera,
-        };
-        self.world.camera.fc += 1;
+        let push_constant = self.camera;
+        self.camera.fc += 1;
 
         let sbt_rgen = self.sbt.as_ref().unwrap().rgen();
         let sbt_miss = self.sbt.as_ref().unwrap().miss();
@@ -502,7 +490,12 @@ impl RTRenderer {
                 pass.read_descriptor((bindings::TEXTURES.0, bindings::TEXTURES.1, [i as _]), node);
         }
         pass.record_ray_trace(move |ray_trace| {
-            ray_trace.push_constants(cast_slice(&[push_constant]));
+            ray_trace.push_constants(unsafe {
+                std::slice::from_raw_parts(
+                    &push_constant as *const _ as *const _,
+                    std::mem::size_of::<glsl::Camera>(),
+                )
+            });
             ray_trace.trace_rays(
                 &sbt_rgen,
                 &sbt_miss,
@@ -565,16 +558,16 @@ impl RTRenderer {
                     if let Some(uv_iter) = uv1_iter.as_mut() {
                         uv1 = uv_iter.next().unwrap_or([0., 0.]);
                     }
-                    vertices.push(Vertex {
+                    vertices.push(glsl::Vertex {
                         pos: [pos[0], pos[1], pos[2], 1.],
                         normal: [normal[0], normal[1], normal[2], 0.],
-                        uv01: [uv0[0], uv0[1], uv1[0], uv1[0]],
+                        uv: [uv0[0], uv0[1], 0., 0.],
                     });
                 }
 
                 if let Some(iter) = reader.read_indices() {
                     for index in iter.into_u32() {
-                        indices.push(Index(index));
+                        indices.push(glsl::Index(index));
                     }
                 }
                 let entity = self.insert_mesh(device, &indices, &vertices);
@@ -642,14 +635,13 @@ impl RTRenderer {
                         let up = up.to_array();
                         let right = right.to_array();
                         let pos = pos.to_array();
-                        self.set_camera(GlslCamera {
-                            up: [up[0], up[1], up[2], 1.],
-                            right: [right[0], right[1], right[2], 1.],
-                            pos: [pos[0], pos[1], pos[2], 1.],
+                        self.set_camera(Camera {
+                            up: Vec3::from(up),
+                            right: Vec3::from(right),
+                            pos: vec3(pos[0], pos[1], pos[2]),
                             focus: 1.,
                             diameter: 0.1,
                             fov: proj.yfov(),
-                            fc: 0,
                             depth: 16,
                         });
                     }

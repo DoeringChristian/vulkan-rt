@@ -6,25 +6,23 @@ use std::{
     sync::{Arc, Weak},
 };
 
-use crate::model::{Index, Vertex};
-
 use super::buffers::*;
 
-pub struct BlasInfo<'a> {
-    pub indices: &'a Arc<TypedBuffer<Index>>,
-    pub positions: &'a Arc<TypedBuffer<Vertex>>,
+pub trait BlasPosition: Copy {
+    fn vertex_format() -> vk::Format;
+    fn vertex_stride() -> vk::DeviceSize;
 }
 
-pub struct Blas {
+pub struct Blas<I, V> {
     pub accel: Arc<AccelerationStructure>,
     // Not sure about the use of weaks.
-    pub indices: Weak<TypedBuffer<Index>>,
-    pub positions: Weak<TypedBuffer<Vertex>>,
+    pub indices: Weak<TypedBuffer<I>>,
+    pub positions: Weak<TypedBuffer<V>>,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
 }
 
-impl Blas {
+impl<I: Copy, V: BlasPosition> Blas<I, V> {
     pub fn build(
         &self,
         cache: &mut HashPool,
@@ -78,10 +76,14 @@ impl Blas {
         AnyAccelerationStructureNode::AccelerationStructure(accel_node)
     }
     // Maybee blas should safe the index of the indices/positions.
-    pub fn create(device: &Arc<Device>, info: &BlasInfo) -> Self {
+    pub fn create(
+        device: &Arc<Device>,
+        indices: &Arc<TypedBuffer<I>>,
+        positions: &Arc<TypedBuffer<V>>,
+    ) -> Self {
         //let triangle_count = geometry.indices.count() / 3;
-        let triangle_count = info.indices.count() / 3;
-        let vertex_count = info.positions.count();
+        let triangle_count = indices.count() / 3;
+        let vertex_count = positions.count();
         //let vertex_count = geometry.positions.count();
 
         let geometry_info = AccelerationStructureGeometryInfo {
@@ -92,16 +94,17 @@ impl Blas {
                 flags: vk::GeometryFlagsKHR::OPAQUE,
                 geometry: AccelerationStructureGeometryData::Triangles {
                     index_data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(
-                        &info.indices.buf,
+                        &indices.buf,
                     )),
                     index_type: vk::IndexType::UINT32,
                     transform_data: None,
                     max_vertex: vertex_count as _,
                     vertex_data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(
-                        &info.positions.buf,
+                        &positions.buf,
                     )),
-                    vertex_format: vk::Format::R32G32B32_SFLOAT,
-                    vertex_stride: std::mem::size_of::<Vertex>() as _,
+                    vertex_format: V::vertex_format(),
+                    //vertex_stride: std::mem::size_of::<V>() as _,
+                    vertex_stride: V::vertex_stride(),
                 },
             }],
         };
@@ -117,8 +120,8 @@ impl Blas {
         Self {
             //geometry: gkey,
             accel: Arc::new(accel),
-            indices: Arc::downgrade(&info.indices),
-            positions: Arc::downgrade(&info.positions),
+            indices: Arc::downgrade(&indices),
+            positions: Arc::downgrade(&positions),
             geometry_info,
             size: accel_size,
         }

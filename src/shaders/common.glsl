@@ -11,6 +11,7 @@ struct Material {
     float transmission;
     float transmission_roughness;
     float ior;
+    
     uint albedo_tex;
     uint mr_tex;
     uint emission_tex;
@@ -54,8 +55,8 @@ struct Instance{
     vec4 trans2;
     vec4 trans3;
     uint mat_index;
-    uint indices;
-    uint vertices;
+    uint mesh_index;
+    //uint vertices;
 };
 
 #define RAY_TMIN 0.001
@@ -89,10 +90,6 @@ struct Vertex{
     vec4 uv;
 };
 
-struct Evaluation{
-    vec3 brdf;
-    vec3 dir;
-};
 
 /*
 Vertex interpolate_vertex(Vertex vert0, Vertex vert1, Vertex vert2, vec3 barycentric){

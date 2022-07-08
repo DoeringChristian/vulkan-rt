@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
 use bevy_ecs::prelude::*;
-use bevy_math::*;
+use glam::*;
 use {
     bytemuck::cast_slice,
     screen_13::prelude::*,
@@ -15,13 +15,13 @@ mod buffers;
 #[macro_use]
 mod dense_arena;
 mod gbuffer;
+mod glsl;
 mod model;
 mod post;
 mod render_world;
 mod renderer;
 mod sbt;
 use accel::*;
-use bevy_transform::prelude::Transform;
 use buffers::*;
 use gbuffer::GBuffer;
 use model::*;
@@ -154,7 +154,7 @@ fn main() -> anyhow::Result<()> {
         );
         if camera_changed {
             let v = Vec3::new(angle.sin(), 0., angle.cos());
-            camera.up = [v.x, v.y, v.z, 1.];
+            camera.up = v;
             rt_renderer.set_camera(camera);
         }
 
