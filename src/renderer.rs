@@ -700,6 +700,15 @@ impl RTRenderer {
                         }),
                     );
                 }
+                if let Some(light) = node.light() {
+                    let transform = node.transform().matrix();
+                    let pos = Mat4::from_cols_array_2d(&transform) * vec4(0., 0., 0., 1.);
+                    self.insert_light(Light::Point {
+                        emission: Vec3::from(light.color()),
+                        position: pos.xyz(),
+                        strength: light.intensity(),
+                    });
+                }
             }
         }
         // Dummy light
