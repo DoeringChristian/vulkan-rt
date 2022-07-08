@@ -1641,6 +1641,7 @@ dependencies = [
  "screen-13-egui",
  "screen-13-fx",
  "slotmap",
+ "std140",
  "tobj",
 ]
 
@@ -1942,6 +1943,26 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
+name = "std140"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d52c6ee297f4ee912194106bbc27d065be2d323e1ecf0fb49ab6565494b279a5"
+dependencies = [
+ "std140-macros",
+]
+
+[[package]]
+name = "std140-macros"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1e740c6c0e8369dd5b36cc6598352eabc669351f9ec526fcb5cfdd5ecae581d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "strsim"

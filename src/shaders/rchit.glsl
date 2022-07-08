@@ -17,7 +17,7 @@ layout(set = 0, binding = 0) uniform accelerationStructureEXT tlas;
 layout(std140, set = 0, binding = 1) buffer Instances{
     Instance instances[];
 };
-layout(set = 0, binding = 2) buffer Materials{
+layout(std140, set = 0, binding = 2) buffer Materials{
     Material materials[];
 };
 layout(set = 0, binding = 3) buffer Indices{
@@ -112,8 +112,8 @@ void main() {
     matinfo.albedo = mat.albedo.rgb;
     matinfo.emission = mat.emission.rgb;
     matinfo.transmission = mat.transmission;
-    matinfo.metallic = mat.mr.x;
-    matinfo.roughness = max(mat.mr.y * mat.mr.y, 0.001);
+    matinfo.metallic = mat.metallic;
+    matinfo.roughness = max(mat.roughness * mat.roughness, 0.001);
     matinfo.ior = mat.ior;
     
     matinfo.anisotropic = 0.00;

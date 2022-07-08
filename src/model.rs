@@ -1,11 +1,9 @@
 use std::hash::Hash;
 use std::sync::Arc;
 
-use crate::{accel::Blas, buffers::TypedBuffer, dense_arena::*};
-use bevy_ecs::prelude::*;
-use bevy_transform::prelude::*;
-use bytemuck::cast_slice;
+use crate::{buffers::TypedBuffer, dense_arena::*};
 use glam::Mat4;
+use std140::*;
 
 new_key_type! {
     pub struct TextureKey;
@@ -61,6 +59,7 @@ pub struct Index(pub u32);
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct GlslRef(pub u32);
 
+#[allow(unused)]
 impl GlslRef {
     const REF_UNDEF: u32 = 0xffffffff;
     pub fn new(index: u32) -> Self {
@@ -74,6 +73,7 @@ impl GlslRef {
     }
 }
 
+#[allow(unused)]
 pub enum ShaderGroup {
     General {
         general: ShaderKey,
@@ -96,35 +96,36 @@ pub enum ShaderGroup {
 ///
 /// Data relating to an instance used to acces materials etc. in the shader.
 ///
-#[repr(C)]
-#[derive(Clone, Copy, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[repr_std140]
+#[derive(Clone, Copy)]
 pub struct GlslInstanceData {
-    pub transform: [[f32; 4]; 4],
-    pub mat_index: u32,
-    pub indices: u32,
-    pub vertices: u32,
+    pub trans0: vec4,
+    pub trans1: vec4,
+    pub trans2: vec4,
+    pub trans3: vec4,
 
-    pub normal_uv_mask: u32,
+    pub mat_index: uint,
+    pub indices: uint,
+    pub vertices: uint,
 }
 
 ///
 /// Material to use in the shader.
 ///
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[repr_std140]
+#[derive(Clone, Copy)]
 pub struct GlslMaterial {
-    pub albedo: [f32; 4],
-    pub mr: [f32; 4],
-    pub emission: [f32; 4],
-    pub transmission: f32,
-    pub transmission_roughness: f32,
-    pub ior: f32,
-    pub _pack: u32,
-    pub diffuse_tex: u32,
-    pub mr_tex: u32,
-    pub emission_tex: u32,
-    pub normal_tex: u32,
-    //pub _pad: [u32; 2],
+    pub albedo: vec4,
+    pub emission: vec4,
+    pub metallic: float,
+    pub roughness: float,
+    pub transmission: float,
+    pub transmission_roughness: float,
+    pub ior: float,
+    pub albedo_tex: uint,
+    pub mr_tex: uint,
+    pub emission_tex: uint,
+    pub normal_tex: uint,
 }
 
 #[repr(C)]

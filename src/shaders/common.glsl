@@ -5,12 +5,12 @@
 
 struct Material {
     vec4 albedo;
-    vec4 mr;
     vec4 emission;
+    float metallic;
+    float roughness;
     float transmission;
     float transmission_roughness;
     float ior;
-    uint _pack;
     uint albedo_tex;
     uint mr_tex;
     uint emission_tex;
@@ -56,8 +56,6 @@ struct Instance{
     uint mat_index;
     uint indices;
     uint vertices;
-
-    uint normal_uv_mask;
 };
 
 #define RAY_TMIN 0.001

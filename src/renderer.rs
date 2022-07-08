@@ -297,13 +297,15 @@ impl RTRenderer {
     fn recreate_instancedata_buf(&mut self, device: &Arc<Device>) {
         let mut instancedata = vec![];
         for instance in self.world.instances.values_as_slice() {
+            let mat = instance.transform.to_cols_array_2d();
             instancedata.push(GlslInstanceData {
-                transform: instance.transform.to_cols_array_2d(),
-                //mat_index: self.materials[instance.material].index,
-                mat_index: self.world.materials.dense_index(instance.material) as _,
-                indices: self.world.meshes.dense_index(instance.mesh) as _,
-                vertices: self.world.meshes.dense_index(instance.mesh) as _,
-                normal_uv_mask: 0,
+                trans0: std140::vec4(mat[0][0], mat[0][1], mat[0][2], mat[0][3]),
+                trans1: std140::vec4(mat[1][0], mat[1][1], mat[1][2], mat[1][3]),
+                trans2: std140::vec4(mat[2][0], mat[2][1], mat[2][2], mat[2][3]),
+                trans3: std140::vec4(mat[3][0], mat[3][1], mat[3][2], mat[3][3]),
+                mat_index: std140::uint(self.world.materials.dense_index(instance.material) as _),
+                indices: std140::uint(self.world.meshes.dense_index(instance.mesh) as _),
+                vertices: std140::uint(self.world.meshes.dense_index(instance.mesh) as _),
             });
         }
         self.instancedata_buf = Some(TypedBuffer::create(
@@ -318,29 +320,33 @@ impl RTRenderer {
             .materials
             .values()
             .map(|m| GlslMaterial {
-                albedo: m.albedo,
-                mr: m.mr,
-                emission: [m.emission[0], m.emission[1], m.emission[2], 0.],
-                transmission: m.transmission,
-                transmission_roughness: m.transmission_roughness,
-                ior: m.ior,
-                _pack: 0,
-                diffuse_tex: m
-                    .albedo_tex
-                    .map(|tex| self.world.textures.dense_index(tex) as _)
-                    .unwrap_or(INDEX_UNDEF),
-                mr_tex: m
-                    .mr_tex
-                    .map(|tex| self.world.textures.dense_index(tex) as _)
-                    .unwrap_or(INDEX_UNDEF),
-                emission_tex: m
-                    .emission_tex
-                    .map(|tex| self.world.textures.dense_index(tex) as _)
-                    .unwrap_or(INDEX_UNDEF),
-                normal_tex: m
-                    .normal_tex
-                    .map(|tex| self.world.textures.dense_index(tex) as _)
-                    .unwrap_or(INDEX_UNDEF),
+                albedo: std140::vec4(m.albedo[0], m.albedo[1], m.albedo[2], m.albedo[3]),
+                emission: std140::vec4(m.emission[0], m.emission[1], m.emission[2], 1.),
+                metallic: std140::float(m.mr[0]),
+                roughness: std140::float(m.mr[1]),
+                transmission: std140::float(m.transmission),
+                transmission_roughness: std140::float(m.transmission_roughness),
+                ior: std140::float(m.ior),
+                albedo_tex: std140::uint(
+                    m.albedo_tex
+                        .map(|tex| self.world.textures.dense_index(tex) as _)
+                        .unwrap_or(INDEX_UNDEF),
+                ),
+                mr_tex: std140::uint(
+                    m.mr_tex
+                        .map(|tex| self.world.textures.dense_index(tex) as _)
+                        .unwrap_or(INDEX_UNDEF),
+                ),
+                emission_tex: std140::uint(
+                    m.emission_tex
+                        .map(|tex| self.world.textures.dense_index(tex) as _)
+                        .unwrap_or(INDEX_UNDEF),
+                ),
+                normal_tex: std140::uint(
+                    m.normal_tex
+                        .map(|tex| self.world.textures.dense_index(tex) as _)
+                        .unwrap_or(INDEX_UNDEF),
+                ),
             })
             .collect::<Vec<_>>();
         self.material_buf = Some(TypedBuffer::create(
