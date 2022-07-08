@@ -1,5 +1,5 @@
 use crate::accel::{Blas, BlasInfo, Tlas};
-use crate::buffers::TypedBuffer;
+use crate::buffers::{SliceBuffer, TypedBuffer};
 use crate::dense_arena::{DenseArena, KeyData};
 use crate::gbuffer::GBuffer;
 use crate::glsl;
@@ -49,7 +49,7 @@ pub struct RTRenderer {
 
     pub material_buf: Option<TypedBuffer<glsl::MaterialData>>,
     pub instancedata_buf: Option<TypedBuffer<glsl::InstanceData>>,
-    pub lightdata_buf: Option<TypedBuffer<glsl::LightData>>,
+    pub lightdata_buf: Option<SliceBuffer<glsl::LightData>>,
 
     pub pipeline: Option<Arc<RayTracePipeline>>,
     pub hit_offsets: HashMap<InstanceKey, usize>,
@@ -325,7 +325,7 @@ impl RTRenderer {
             .values()
             .map(|l| glsl::LightData::from(*l))
             .collect::<Vec<_>>();
-        self.lightdata_buf = Some(TypedBuffer::create(
+        self.lightdata_buf = Some(SliceBuffer::create(
             device,
             &lights,
             vk::BufferUsageFlags::STORAGE_BUFFER,
@@ -703,7 +703,7 @@ impl RTRenderer {
             }
         }
         // Dummy light
-        self.insert_light(Light::default());
+        //self.insert_light(Light::default());
         instances
     }
 }

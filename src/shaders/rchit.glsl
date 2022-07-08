@@ -28,6 +28,7 @@ layout(set = 0, binding = 4) buffer Vertices{
 }model_vertices[];
 layout(set = 0, binding = 5) uniform sampler2D textures[];
 layout(set = 0, binding = 6) buffer Lights{
+    uvec4 count;
     LightData lights[];
 };
 
