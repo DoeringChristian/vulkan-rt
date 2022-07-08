@@ -54,8 +54,6 @@ struct Instance{
     vec4 trans2;
     vec4 trans3;
     uint mat_index;
-    //uint indices;
-    //uint vertices;
     uint mesh_index;
 };
 

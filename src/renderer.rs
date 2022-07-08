@@ -299,8 +299,6 @@ impl RTRenderer {
                 trans2: std140::vec4(mat[2][0], mat[2][1], mat[2][2], mat[2][3]),
                 trans3: std140::vec4(mat[3][0], mat[3][1], mat[3][2], mat[3][3]),
                 mat_index: std140::uint(self.world.materials.dense_index(instance.material) as _),
-                //indices: std140::uint(self.world.meshes.dense_index(instance.mesh) as _),
-                //vertices: std140::uint(self.world.meshes.dense_index(instance.mesh) as _),
                 mesh_index: std140::uint(self.world.meshes.dense_index(instance.mesh) as _),
             });
         }

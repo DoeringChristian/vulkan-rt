@@ -12,8 +12,6 @@ pub struct InstanceData {
     pub trans3: vec4,
 
     pub mat_index: uint,
-    //pub indices: uint,
-    //pub vertices: uint,
     pub mesh_index: uint,
 }
 
