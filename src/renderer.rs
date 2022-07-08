@@ -2,10 +2,10 @@ use crate::accel::{Blas, BlasInfo, Tlas};
 use crate::buffers::TypedBuffer;
 use crate::dense_arena::{DenseArena, KeyData};
 use crate::gbuffer::GBuffer;
+use crate::glsl;
 use crate::model::{
-    GlslCamera, GlslInstanceData, GlslMaterial, Index, InstanceKey, Material, MaterialKey, Mesh,
-    MeshInstance, MeshKey, PushConstant, ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey,
-    Vertex,
+    GlslCamera, Index, InstanceKey, Material, MaterialKey, Mesh, MeshInstance, MeshKey,
+    PushConstant, ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey, Vertex,
 };
 use crate::render_world::RenderWorld;
 use crate::sbt::{SbtBuffer, SbtBufferInfo};
@@ -45,8 +45,8 @@ pub struct RTRenderer {
     pub blases: HashMap<MeshKey, Blas>,
     pub tlas: Option<Tlas>,
 
-    pub material_buf: Option<TypedBuffer<GlslMaterial>>,
-    pub instancedata_buf: Option<TypedBuffer<GlslInstanceData>>,
+    pub material_buf: Option<TypedBuffer<glsl::Material>>,
+    pub instancedata_buf: Option<TypedBuffer<glsl::InstanceData>>,
 
     pub pipeline: Option<Arc<RayTracePipeline>>,
     pub hit_offsets: HashMap<InstanceKey, usize>,
@@ -293,7 +293,7 @@ impl RTRenderer {
         let mut instancedata = vec![];
         for instance in self.world.instances.values_as_slice() {
             let mat = instance.transform.to_cols_array_2d();
-            instancedata.push(GlslInstanceData {
+            instancedata.push(glsl::InstanceData {
                 trans0: std140::vec4(mat[0][0], mat[0][1], mat[0][2], mat[0][3]),
                 trans1: std140::vec4(mat[1][0], mat[1][1], mat[1][2], mat[1][3]),
                 trans2: std140::vec4(mat[2][0], mat[2][1], mat[2][2], mat[2][3]),
@@ -314,7 +314,7 @@ impl RTRenderer {
             .world
             .materials
             .values()
-            .map(|m| GlslMaterial {
+            .map(|m| glsl::Material {
                 albedo: std140::vec4(m.albedo[0], m.albedo[1], m.albedo[2], m.albedo[3]),
                 emission: std140::vec4(m.emission[0], m.emission[1], m.emission[2], 1.),
                 metallic: std140::float(m.metallic),

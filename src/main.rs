@@ -15,6 +15,7 @@ mod buffers;
 #[macro_use]
 mod dense_arena;
 mod gbuffer;
+mod glsl;
 mod model;
 mod post;
 mod render_world;
