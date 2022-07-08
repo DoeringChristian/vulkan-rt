@@ -45,7 +45,7 @@ pub struct RTRenderer {
     pub blases: HashMap<MeshKey, Blas>,
     pub tlas: Option<Tlas>,
 
-    pub material_buf: Option<TypedBuffer<glsl::Material>>,
+    pub material_buf: Option<TypedBuffer<glsl::MaterialData>>,
     pub instancedata_buf: Option<TypedBuffer<glsl::InstanceData>>,
 
     pub pipeline: Option<Arc<RayTracePipeline>>,
@@ -313,7 +313,7 @@ impl RTRenderer {
             .world
             .materials
             .values()
-            .map(|m| glsl::Material {
+            .map(|m| glsl::MaterialData {
                 albedo: std140::vec4(m.albedo[0], m.albedo[1], m.albedo[2], m.albedo[3]),
                 emission: std140::vec4(m.emission[0], m.emission[1], m.emission[2], 1.),
                 metallic: std140::float(m.metallic),

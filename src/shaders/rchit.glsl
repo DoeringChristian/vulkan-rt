@@ -15,10 +15,10 @@ layout(location = 0) rayPayloadInEXT Payload payload;
 layout(set = 0, binding = 0) uniform accelerationStructureEXT tlas;
 //layout(set = 0, binding = 1, rgba32f) uniform image2D image;
 layout(std140, set = 0, binding = 1) buffer Instances{
-    Instance instances[];
+    InstanceData instances[];
 };
 layout(std140, set = 0, binding = 2) buffer Materials{
-    Material materials[];
+    MaterialData materials[];
 };
 layout(set = 0, binding = 3) buffer Indices{
     uint indices[];
@@ -45,9 +45,9 @@ void main() {
     //===========================================================
     // Extract geometry information:
     //===========================================================
-    Instance inst = instances[gl_InstanceCustomIndexEXT];
+    InstanceData inst = instances[gl_InstanceCustomIndexEXT];
     mat4 transform = mat4(inst.trans0, inst.trans1, inst.trans2, inst.trans3);
-    Material mat = materials[inst.mat_index];
+    MaterialData mat = materials[inst.mat_index];
 
     ivec3 indices = ivec3(model_indices[inst.mesh_index].indices[3 * gl_PrimitiveID + 0],
                           model_indices[inst.mesh_index].indices[3 * gl_PrimitiveID + 1],

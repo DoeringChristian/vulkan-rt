@@ -3,7 +3,7 @@
 
 #include "math.glsl"
 
-struct Material {
+struct MaterialData {
     vec4 albedo;
     vec4 emission;
     float metallic;
@@ -47,7 +47,7 @@ struct HitInfo{
 };
 
 #define INDEX_UNDEF 0xffffffff
-struct Instance{
+struct InstanceData{
     //mat4 trans;
     vec4 trans0;
     vec4 trans1;
@@ -87,16 +87,5 @@ struct Vertex{
     vec4 normal;
     vec4 uv;
 };
-
-struct Evaluation{
-    vec3 brdf;
-    vec3 dir;
-};
-
-/*
-Vertex interpolate_vertex(Vertex vert0, Vertex vert1, Vertex vert2, vec3 barycentric){
-    
-}
-*/
 
 #endif //COMMON_GLSL

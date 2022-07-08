@@ -20,16 +20,21 @@ pub struct InstanceData {
 ///
 #[repr_std140]
 #[derive(Clone, Copy)]
-pub struct Material {
+pub struct MaterialData {
     pub albedo: vec4,
     pub emission: vec4,
     pub metallic: float,
     pub roughness: float,
     pub transmission: float,
     pub transmission_roughness: float,
+
     pub ior: float,
     pub albedo_tex: uint,
     pub mr_tex: uint,
     pub emission_tex: uint,
     pub normal_tex: uint,
 }
+
+#[repr_std140]
+#[derive(Clone, Copy)]
+pub struct Light {}
