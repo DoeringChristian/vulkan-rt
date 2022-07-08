@@ -2,8 +2,8 @@ use crate::{
     buffers::TypedBuffer,
     dense_arena::DenseArena,
     model::{
-        GlslCamera, Index, InstanceKey, Material, MaterialKey, Mesh, MeshInstance, MeshKey,
-        ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey, Vertex,
+        GlslCamera, Index, InstanceKey, Light, LightKey, Material, MaterialKey, Mesh, MeshInstance,
+        MeshKey, ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey, Vertex,
     },
 };
 use glam::*;
@@ -21,30 +21,12 @@ pub struct RenderWorld {
     pub instances: DenseArena<InstanceKey, MeshInstance>,
     pub shaders: DenseArena<ShaderKey, Shader>,
     pub shader_groups: DenseArena<ShaderGroupKey, ShaderGroup>,
+    pub lights: DenseArena<LightKey, Light>,
     pub camera: GlslCamera,
     //pub events: HashSet<RenderWorldEvent>,
 }
 
 impl RenderWorld {
-    /*
-    pub fn reset_events(&mut self) {
-        self.events.clear();
-    }
-    fn set_event(&mut self, event: RenderWorldEvent) {
-        self.events.insert(event);
-    }
-    pub fn event_called(&self, event: &RenderWorldEvent) -> bool {
-        self.events.contains(event)
-    }
-    pub fn any_event(&self, events: impl Iterator<Item = RenderWorldEvent>) -> bool {
-        for event in events {
-            if self.events.contains(&event) {
-                return true;
-            }
-        }
-        false
-    }
-    */
     pub fn set_camera(&mut self, camera: GlslCamera) {
         //self.set_event(RenderWorldEvent::CameraChanged);
         self.camera = camera;
@@ -77,6 +59,9 @@ impl RenderWorld {
             )
             .unwrap();
         self.textures.insert(img)
+    }
+    pub fn insert_light(&mut self, light: Light) -> LightKey {
+        self.lights.insert(light)
     }
     pub fn insert_material(&mut self, material: Material) -> MaterialKey {
         //self.set_event(RenderWorldEvent::MaterialsResized);

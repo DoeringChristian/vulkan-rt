@@ -37,4 +37,12 @@ pub struct MaterialData {
 
 #[repr_std140]
 #[derive(Clone, Copy)]
-pub struct Light {}
+pub struct LightData {
+    pub emission: vec4,
+    pub position: vec4,
+    pub light_type: uint,
+}
+
+impl LightData {
+    pub const TY_POINT: uint = uint(0);
+}

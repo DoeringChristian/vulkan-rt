@@ -88,4 +88,11 @@ struct Vertex{
     vec4 uv;
 };
 
+#define LIGHT_POINT 0
+struct LightData{
+    vec4 emission;
+    vec4 position;
+    uint light_type;
+};
+
 #endif //COMMON_GLSL

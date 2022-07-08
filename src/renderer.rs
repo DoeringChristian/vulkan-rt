@@ -4,8 +4,8 @@ use crate::dense_arena::{DenseArena, KeyData};
 use crate::gbuffer::GBuffer;
 use crate::glsl;
 use crate::model::{
-    GlslCamera, Index, InstanceKey, Material, MaterialKey, Mesh, MeshInstance, MeshKey,
-    PushConstant, ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey, Vertex,
+    GlslCamera, Index, InstanceKey, Light, LightKey, Material, MaterialKey, Mesh, MeshInstance,
+    MeshKey, PushConstant, ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey, Vertex,
 };
 use crate::render_world::RenderWorld;
 use crate::sbt::{SbtBuffer, SbtBufferInfo};
@@ -32,6 +32,8 @@ pub enum Signal {
     InstancesResized,
     MaterialsChanged,
     MaterialsResized,
+    LightChanged,
+    LightResized,
     TexturesChanged,
     TexturesResized,
     ShadersChanged,
@@ -47,6 +49,7 @@ pub struct RTRenderer {
 
     pub material_buf: Option<TypedBuffer<glsl::MaterialData>>,
     pub instancedata_buf: Option<TypedBuffer<glsl::InstanceData>>,
+    pub lightdata_buf: Option<TypedBuffer<glsl::LightData>>,
 
     pub pipeline: Option<Arc<RayTracePipeline>>,
     pub hit_offsets: HashMap<InstanceKey, usize>,
@@ -64,6 +67,7 @@ mod bindings {
     pub const INDICES: (u32, u32) = (0, 3);
     pub const VERTICES: (u32, u32) = (0, 4);
     pub const TEXTURES: (u32, u32) = (0, 5);
+    pub const LIGHTS: (u32, u32) = (0, 6);
     pub const COLOR: (u32, u32) = (1, 0);
 }
 
@@ -79,6 +83,12 @@ impl RTRenderer {
         self.signals.clear();
     }
     pub fn recreate_stage(&mut self, device: &Arc<Device>) {
+        if self.signaled(&Signal::LightChanged)
+            || self.signaled(&Signal::LightResized)
+            || self.lightdata_buf.is_none()
+        {
+            self.recreate_lightdata_buf(device);
+        }
         if self.signaled(&Signal::ShadersResized)
             || self.signaled(&Signal::ShaderGroupsResized)
             || self.signaled(&Signal::ShadersChanged)
@@ -308,6 +318,19 @@ impl RTRenderer {
             vk::BufferUsageFlags::STORAGE_BUFFER,
         ));
     }
+    fn recreate_lightdata_buf(&mut self, device: &Arc<Device>) {
+        let lights = self
+            .world
+            .lights
+            .values()
+            .map(|l| glsl::LightData::from(*l))
+            .collect::<Vec<_>>();
+        self.lightdata_buf = Some(TypedBuffer::create(
+            device,
+            &lights,
+            vk::BufferUsageFlags::STORAGE_BUFFER,
+        ));
+    }
     fn recreate_material_buf(&mut self, device: &Arc<Device>) {
         let materials = self
             .world
@@ -388,6 +411,10 @@ impl RTRenderer {
         self.emit(Signal::InstancesResized);
         self.world.insert_instance(instance)
     }
+    pub fn insert_light(&mut self, light: Light) -> LightKey {
+        self.emit(Signal::LightResized);
+        self.world.insert_light(light)
+    }
     pub fn insert_mesh(
         &mut self,
         device: &Arc<Device>,
@@ -404,6 +431,7 @@ impl RTRenderer {
             tlas: None,
             material_buf: None,
             instancedata_buf: None,
+            lightdata_buf: None,
             hit_offsets: HashMap::default(),
             //shader_group_offsets: HashMap::default(),
             rgen_group: None,
@@ -434,6 +462,7 @@ impl RTRenderer {
             .map(|(_, b)| rgraph.bind_node(&b.accel))
             .collect::<Vec<_>>();
         let material_node = rgraph.bind_node(&self.material_buf.as_ref().unwrap().buf);
+        let lights_node = rgraph.bind_node(&self.lightdata_buf.as_ref().unwrap().buf);
         let instancedata_node = rgraph.bind_node(&self.instancedata_buf.as_ref().unwrap().buf);
         let tlas_node = rgraph.bind_node(&self.tlas.as_ref().unwrap().accel);
         let sbt_node = rgraph.bind_node(self.sbt.as_ref().unwrap().buffer());
@@ -483,6 +512,7 @@ impl RTRenderer {
                 AccessType::RayTracingShaderReadAccelerationStructure,
             )
             .write_descriptor(bindings::COLOR, color_image_node)
+            .read_descriptor(bindings::LIGHTS, lights_node)
             .read_descriptor(bindings::INSTANCES, instancedata_node)
             .read_descriptor(bindings::MATERIALS, material_node);
 
@@ -672,6 +702,8 @@ impl RTRenderer {
                 }
             }
         }
+        // Dummy light
+        self.insert_light(Light::default());
         instances
     }
 }

@@ -27,6 +27,9 @@ layout(set = 0, binding = 4) buffer Vertices{
     Vertex vertices[];
 }model_vertices[];
 layout(set = 0, binding = 5) uniform sampler2D textures[];
+layout(set = 0, binding = 6) buffer Lights{
+    LightData lights[];
+};
 
 mat3 compute_TBN(vec2 duv0, vec2 duv1, vec3 dpos0, vec3 dpos1, vec3 n){
     float r = 1./(duv0.x * duv1.y - duv0.y * duv1.x);

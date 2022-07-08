@@ -1,9 +1,8 @@
 use std::hash::Hash;
 use std::sync::Arc;
 
-use crate::{buffers::TypedBuffer, dense_arena::*};
+use crate::{buffers::TypedBuffer, dense_arena::*, glsl};
 use glam::*;
-use std140::*;
 
 new_key_type! {
     pub struct TextureKey;
@@ -13,7 +12,7 @@ new_key_type! {
     pub struct MaterialKey;
     pub struct ShaderKey;
     pub struct ShaderGroupKey;
-    pub struct ShaderBindingKeys;
+    pub struct LightKey;
 }
 
 #[repr(C)]
@@ -88,6 +87,41 @@ pub enum ShaderGroup {
         closest_hit: ShaderKey,
         any_hit: Option<ShaderKey>,
     },
+}
+
+#[derive(Clone, Copy)]
+pub enum Light {
+    Point {
+        position: Vec3,
+        emission: Vec3,
+        strength: f32,
+    },
+}
+
+impl Default for Light {
+    fn default() -> Self {
+        Self::Point {
+            position: Vec3::ZERO,
+            emission: Vec3::ZERO,
+            strength: 0.,
+        }
+    }
+}
+
+impl From<Light> for glsl::LightData {
+    fn from(src: Light) -> Self {
+        match src {
+            Light::Point {
+                position,
+                emission,
+                strength,
+            } => Self {
+                emission: std140::vec4(emission.x, emission.y, emission.z, strength),
+                position: std140::vec4(position.x, position.y, position.z, 1.),
+                light_type: glsl::LightData::TY_POINT,
+            },
+        }
+    }
 }
 
 //===================================
