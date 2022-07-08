@@ -1194,6 +1194,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "malloc_buf"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1636,6 +1645,7 @@ dependencies = [
  "gltf",
  "image",
  "inline-spirv",
+ "macros",
  "pretty_env_logger",
  "screen-13",
  "screen-13-egui",

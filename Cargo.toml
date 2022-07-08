@@ -24,3 +24,4 @@ image = "*"
 bitflags = "*"
 glam = "*"
 std140 = "*"
+macros = { path = "./macros" }
