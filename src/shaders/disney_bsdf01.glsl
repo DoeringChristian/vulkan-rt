@@ -253,18 +253,21 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
     //mat.roughness = clamp(mat.roughness + 0.5, 0.001, 1);
 
     float eta;
+    vec3 ffnormal;
     if (dot(hit.g, hit.wo) < 0.){
+        ffnormal = -hit.n;
         eta = mat.ior/1.;
     } else{
+        ffnormal = hit.n;
         eta = 1. / mat.ior;
     }
 
     float pdf = 0;
     vec3 L = vec3(ray.dir);
-    vec3 f = DisneySample(mat, eta, hit.wo, hit.n, L, pdf, ray.seed);
+    vec3 f = DisneySample(mat, eta, hit.wo, ffnormal, L, pdf, ray.seed);
     
     ray.dir = normalize(L);
-    if (pdf > 0.){
+    if (pdf != 0.){
         ray.attenuation *= f/pdf;
     } else{
         ray.ray_active = 0;
