@@ -162,7 +162,6 @@ void main() {
     matinfo.ax = max(0.001, matinfo.roughness / aspect);
     matinfo.ay = max(0.001, matinfo.roughness / aspect);
 
-    
     //===========================================================
     // Call BRDF functions:
     //===========================================================

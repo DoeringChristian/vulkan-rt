@@ -36,6 +36,18 @@ struct MatInfo{
     float ay;
 };
 
+struct MediumData{
+    vec4 color;
+    float anisotropic;
+    float density;
+};
+
+struct Medium{
+    vec3 color;
+    float anisotropic;
+    float density;
+};
+
 struct HitInfo{
     vec3 pos;
     vec3 wo;

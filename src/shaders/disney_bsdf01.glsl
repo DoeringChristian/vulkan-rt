@@ -246,6 +246,66 @@ vec3 DisneySample(MatInfo mat, float eta, vec3 V, vec3 N, out vec3 L, out float 
     L = ToWorld(T, B, N, L);
     return f * abs(dot(N, L));
 }
+vec3 DisneyEval(MatInfo mat, float eta, vec3 V, vec3 N, vec3 L, out float bsdfPdf){
+    bsdfPdf = 0.0;
+    vec3 f = vec3(0.0);
+
+    // TODO: Tangent and bitangent should be calculated from mesh (provided, the mesh has proper uvs)
+    vec3 T, B;
+    Onb(N, T, B);
+    V = ToLocal(T, B, N, V); // NDotL = L.z; NDotV = V.z; NDotH = H.z
+    L = ToLocal(T, B, N, L);
+
+    vec3 H;
+    if (L.z > 0.0)
+        H = normalize(L + V);
+    else
+        H = normalize(L + V * eta);
+
+    if (H.z < 0.0)
+        H = -H;
+
+    // Specular and sheen color
+    vec3 specCol, sheenCol;
+    GetSpecColor(mat, eta, specCol, sheenCol);
+
+    // Lobe weights
+    float diffuseWt, specReflectWt, specRefractWt, clearcoatWt;
+    float fresnel = DisneyFresnel(mat, eta, dot(L, H), dot(V, H));
+    GetLobeProbabilities(mat, eta, specCol, fresnel, diffuseWt, specReflectWt, specRefractWt, clearcoatWt);
+
+    float pdf;
+
+    // Diffuse
+    if (diffuseWt > 0.0 && L.z > 0.0)
+    {
+        f += EvalDiffuse(mat, sheenCol, V, L, H, pdf);
+        bsdfPdf += pdf * diffuseWt;
+    }
+
+    // Specular Reflection
+    if (specReflectWt > 0.0 && L.z > 0.0 && V.z > 0.0)
+    {
+        f += EvalSpecReflection(mat, eta, specCol, V, L, H, pdf);
+        bsdfPdf += pdf * specReflectWt;
+    }
+
+    // Specular Refraction
+    if (specRefractWt > 0.0 && L.z < 0.0)
+    {
+        f += EvalSpecRefraction(mat, eta, V, L, H, pdf);
+        bsdfPdf += pdf * specRefractWt;
+    }
+
+    // Clearcoat
+    if (clearcoatWt > 0.0 && L.z > 0.0 && V.z > 0.0)
+    {
+        f += EvalClearcoat(mat, V, L, H, pdf);
+        bsdfPdf += pdf * clearcoatWt;
+    }
+
+    return f * abs(L.z);
+}
 
 void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
     ray.orig = hit.pos;
@@ -271,13 +331,6 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
         ray.attenuation *= f/pdf;
     } else{
         ray.ray_active = 0;
-        //ray.attenuation *= 0;
-        //ray.color = vec3(1., 0., 0.);
     }
-    
-    //ray.color = vec3(1., 0., 0.);
-    // DEBUG:
-    //ray.color = hit.albedo.xyz;
-    //ray.color = mat.albedo;
-    //ray.color = f;
 }
+
