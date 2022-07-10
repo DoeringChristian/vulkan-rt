@@ -323,6 +323,9 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
     float scatterDist = min(-log(randf(ray.seed)/med.density) * med.density, hit.dist);
     bool scattered = scatterDist < hit.dist;
 
+    // Absorbtion
+    ray.attenuation *= exp(-(1. - med.color) * hit.dist * med.density);
+
     if(scattered){
         // Set origin of scatterd ray
         ray.orig = ray.orig + scatterDist * ray.dir;
