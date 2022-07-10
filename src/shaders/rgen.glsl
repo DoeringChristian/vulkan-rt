@@ -40,8 +40,8 @@ void main() {
     payload.attenuation = vec3(1.);
     payload.ior = 1.;
 
-    payload.med.color = vec3(0.);
-    payload.med.anisotropic = 0.;
+    payload.med.color = vec3(1.);
+    payload.med.anisotropic = 0.000;
     payload.med.density = 0.;
     
     payload.seed = seed;

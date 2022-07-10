@@ -322,6 +322,7 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
     // Do medium scattering
     float scatterDist = min(-log(randf(ray.seed)/med.density) * med.density, hit.dist);
     bool scattered = scatterDist < hit.dist;
+    //scattered = false;
 
     // Absorbtion
     ray.attenuation *= exp(-(1. - med.color) * hit.dist * med.density);

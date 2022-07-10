@@ -667,7 +667,7 @@ impl RTRenderer {
                     medium: Medium {
                         color: Vec4::from(mr.base_color_factor()),
                         anisotropic: 0.,
-                        density: transmission,
+                        density: 1. - transmission,
                     },
                 });
                 material_entities.insert(material.index().unwrap(), material_entity);
