@@ -308,29 +308,61 @@ vec3 DisneyEval(MatInfo mat, float eta, vec3 V, vec3 N, vec3 L, out float bsdfPd
 }
 
 void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
-    ray.orig = hit.pos;
-    ray.color += ray.attenuation * mat.emission.rgb;
-    //mat.roughness = clamp(mat.roughness + 0.5, 0.001, 1);
+    bool inside = dot(hit.g, hit.wo) < 0.;
 
-    float eta;
-    vec3 ffnormal;
-    if (dot(hit.g, hit.wo) < 0.){
-        ffnormal = -hit.n;
-        eta = mat.ior/1.;
-    } else{
-        ffnormal = hit.n;
-        eta = 1. / mat.ior;
-    }
-
-    float pdf = 0;
-    vec3 L = vec3(ray.dir);
-    vec3 f = DisneySample(mat, eta, hit.wo, ffnormal, L, pdf, ray.seed);
+    Medium med;
     
-    ray.dir = normalize(L);
-    if (pdf != 0.){
-        ray.attenuation *= f/pdf;
+    // Select medium through which the ray has traveled.
+    if(inside){
+        med = mat.med;
     } else{
-        ray.ray_active = 0;
+        med = ray.med;
     }
+
+    // Do medium scattering
+    float scatterDist = min(-log(randf(ray.seed)/med.density) * med.density, hit.dist);
+    bool scattered = scatterDist < hit.dist;
+
+    if(scattered){
+        // Set origin of scatterd ray
+        ray.orig = ray.orig + scatterDist * ray.dir;
+        ray.attenuation *= ray.med.color;
+        
+        ray.dir = SampleHG(-ray.dir, med.anisotropic, randf(ray.seed), randf(ray.seed));
+        ray.attenuation /= PhaseHG(dot(hit.wo, ray.dir), med.anisotropic);
+    }else{
+        ray.orig = hit.pos;
+        ray.color += ray.attenuation * mat.emission.rgb;
+        
+        float eta;
+        vec3 ffnormal;
+        if (dot(hit.g, hit.wo) < 0.){
+            ffnormal = -hit.n;
+            eta = mat.ior/1.;
+        } else{
+            ffnormal = hit.n;
+            eta = 1. / mat.ior;
+        }
+
+        float pdf = 0;
+        vec3 L = vec3(ray.dir);
+        vec3 f = DisneySample(mat, eta, hit.wo, ffnormal, L, pdf, ray.seed);
+
+        ray.dir = normalize(L);
+        if (pdf != 0.){
+            ray.attenuation *= f/pdf;
+        } else{
+            ray.ray_active = 0;
+        }
+
+
+        // select medium through which the ray travels
+        inside = dot(ray.dir, hit.g) < 0.;
+        if (inside){
+            ray.med = mat.med;
+        }
+        
+    }
+
 }
 

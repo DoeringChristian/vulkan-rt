@@ -182,3 +182,32 @@ void Onb(in vec3 N, inout vec3 T, inout vec3 B)
     T = normalize(cross(up, N));
     B = cross(N, T);
 }
+
+vec3 SampleHG(vec3 V, float g, float r1, float r2)
+{
+    float cosTheta;
+
+    if (abs(g) < 0.001)
+        cosTheta = 1 - 2 * r2;
+    else 
+    {
+        float sqrTerm = (1 - g * g) / (1 + g - 2 * g * r2);
+        cosTheta = -(1 + g * g - sqrTerm * sqrTerm) / (2 * g);
+    }
+
+    float phi = r1 * TWO_PI;
+    float sinTheta = clamp(sqrt(1.0 - (cosTheta * cosTheta)), 0.0, 1.0);
+    float sinPhi = sin(phi);
+    float cosPhi = cos(phi);
+
+    vec3 v1, v2;
+    Onb(V, v1, v2);
+
+    return sinTheta * cosPhi * v1 + sinTheta * sinPhi * v2 + cosTheta * V;
+}
+
+float PhaseHG(float cosTheta, float g)
+{
+    float denom = 1 + g * g + 2 * g * cosTheta;
+    return INV_4_PI * (1 - g * g) / (denom * sqrt(denom));
+}
