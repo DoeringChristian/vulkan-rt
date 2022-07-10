@@ -105,6 +105,7 @@ void main() {
     vec3 wo = normalize(-prev_dir);
     float dist = length(prev_pos - pos);
     
+    // Initialize hit
     HitInfo hit;
     hit.pos = pos;
     hit.wo = wo;
@@ -112,6 +113,7 @@ void main() {
     hit.n = norm;
     hit.dist = dist;
     
+    // Initialize Material
     MatInfo matinfo;
     matinfo.albedo = mat.albedo.rgb;
     matinfo.emission = mat.emission.rgb;
@@ -130,6 +132,11 @@ void main() {
     //mat.ior = 1.4;
     matinfo.ax = 0.001;
     matinfo.ay = 0.001;
+
+    // Initialize medium of the material the ray hits.
+    matinfo.med.color = mat.med.color.rgb;
+    matinfo.med.anisotropic = mat.med.anisotropic;
+    matinfo.med.density = mat.med.density;
 
     // TODO: material interpolation and tangent space.
     vec2 uv0 = vert0.uv.xy;

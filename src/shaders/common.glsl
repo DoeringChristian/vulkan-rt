@@ -48,6 +48,8 @@ struct MatInfo{
     float ior;
     float ax;
     float ay;
+
+    Medium med;
 };
 
 struct HitInfo{
@@ -79,6 +81,8 @@ struct Payload{
     vec3 color;
     vec3 attenuation;
     float ior;
+
+    Medium med;
 
     uint seed;
     int depth;
