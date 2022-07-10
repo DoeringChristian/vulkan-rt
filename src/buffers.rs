@@ -40,7 +40,7 @@ impl<T: Copy + Sized> TypedBuffer<T> {
 }
 
 //
-// A buffer that prepends the size of the slice as a uvec4.
+// A buffer that prepends the size of the slice as the first element of a uvec4.
 // Not a safe way to do this but I have no other idea at the moment
 //
 pub struct SliceBuffer<T> {

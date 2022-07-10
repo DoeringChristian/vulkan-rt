@@ -4,8 +4,9 @@ use crate::dense_arena::{DenseArena, KeyData};
 use crate::gbuffer::GBuffer;
 use crate::glsl;
 use crate::model::{
-    GlslCamera, Index, InstanceKey, Light, LightKey, Material, MaterialKey, Mesh, MeshInstance,
-    MeshKey, PushConstant, ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey, Vertex,
+    GlslCamera, Index, InstanceKey, Light, LightKey, Material, MaterialKey, Medium, Mesh,
+    MeshInstance, MeshKey, PushConstant, ShaderGroup, ShaderGroupKey, ShaderKey, TextureKey,
+    Vertex,
 };
 use crate::render_world::RenderWorld;
 use crate::sbt::{SbtBuffer, SbtBufferInfo};
@@ -364,6 +365,16 @@ impl RTRenderer {
                         .map(|tex| self.world.textures.dense_index(tex) as _)
                         .unwrap_or(INDEX_UNDEF),
                 ),
+                med: glsl::MediumData {
+                    color: std140::vec4(
+                        m.medium.color.x,
+                        m.medium.color.y,
+                        m.medium.color.z,
+                        m.medium.color.w,
+                    ),
+                    anisotropic: std140::float(m.medium.anisotropic),
+                    density: std140::float(m.medium.density),
+                },
             })
             .collect::<Vec<_>>();
         self.material_buf = Some(TypedBuffer::create(
@@ -653,6 +664,11 @@ impl RTRenderer {
                     emission_tex,
                     normal_tex,
                     transmission_tex,
+                    medium: Medium {
+                        color: Vec4::from(mr.base_color_factor()),
+                        anisotropic: 0.,
+                        density: transmission,
+                    },
                 });
                 material_entities.insert(material.index().unwrap(), material_entity);
             }

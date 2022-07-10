@@ -49,6 +49,14 @@ pub struct Material {
     pub emission_tex: Option<TextureKey>,
     pub normal_tex: Option<TextureKey>,
     pub transmission_tex: Option<TextureKey>,
+
+    pub medium: Medium,
+}
+
+pub struct Medium {
+    pub color: Vec4,
+    pub anisotropic: f32,
+    pub density: f32,
 }
 
 #[repr(C)]

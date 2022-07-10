@@ -3,6 +3,18 @@
 
 #include "math.glsl"
 
+struct MediumData{
+    vec4 color;
+    float anisotropic;
+    float density;
+};
+
+struct Medium{
+    vec3 color;
+    float anisotropic;
+    float density;
+};
+
 struct MaterialData {
     vec4 albedo;
     vec4 emission;
@@ -15,6 +27,8 @@ struct MaterialData {
     uint mr_tex;
     uint emission_tex;
     uint normal_tex;
+
+    MediumData med;
 };
 
 struct MatInfo{
@@ -34,18 +48,6 @@ struct MatInfo{
     float ior;
     float ax;
     float ay;
-};
-
-struct MediumData{
-    vec4 color;
-    float anisotropic;
-    float density;
-};
-
-struct Medium{
-    vec3 color;
-    float anisotropic;
-    float density;
 };
 
 struct HitInfo{

@@ -33,6 +33,8 @@ pub struct MaterialData {
     pub mr_tex: uint,
     pub emission_tex: uint,
     pub normal_tex: uint,
+
+    pub med: MediumData,
 }
 
 #[repr_std140]
@@ -45,4 +47,12 @@ pub struct LightData {
 
 impl LightData {
     pub const TY_POINT: uint = uint(0);
+}
+
+#[repr_std140]
+#[derive(Clone, Copy)]
+pub struct MediumData {
+    pub color: vec4,
+    pub anisotropic: float,
+    pub density: float,
 }
