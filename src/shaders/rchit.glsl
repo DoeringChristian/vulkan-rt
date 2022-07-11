@@ -23,16 +23,17 @@ layout(std140, set = 0, binding = 1) buffer Instances{
 layout(std140, set = 0, binding = 2) buffer Materials{
     MaterialData materials[];
 };
+layout(set = 0, binding = 3) uniform sampler2D textures[];
+layout(set = 0, binding = 4) buffer Lights{
+    uvec4 count;
+    LightData l[];
+}lights;
+
 layout(buffer_reference, scalar) buffer Indices{
     uint i[];
 };
 layout(buffer_reference, scalar) buffer Vertices{
     Vertex v[];
-};
-layout(set = 0, binding = 3) uniform sampler2D textures[];
-layout(set = 0, binding = 4) buffer Lights{
-    uvec4 count;
-    LightData lights[];
 };
 
 mat3 compute_TBN(vec2 duv0, vec2 duv1, vec3 dpos0, vec3 dpos1, vec3 n){
@@ -179,17 +180,20 @@ void main() {
     //===========================================================
     // Call BRDF functions:
     //===========================================================
+
+    // Sample light
+    uint lightIndex = randu(lights.count.x);
     
     sample_shader(hit, matinfo, payload);
     
     // thrgouhput roussian roulette propability
     //p_{RR} = max_{RGB}\leftb( \prod_{d = 1}^{D-1} \left({f_r(x_d, w_d \rightarrow v_d) cos(\theta_d)) \over p(w_d)p_{RR_d}}\right)\right)
-    float p_rr = max(payload.attenuation.r, max(payload.attenuation.g, payload.attenuation.b));
+    float p_rr = max(payload.throughput.r, max(payload.throughput.g, payload.throughput.b));
     if (payload.depth < min_rr){
         p_rr = 1.;
     }
     
-    payload.attenuation *= 1. / p_rr;
+    payload.throughput *= 1. / p_rr;
     
     if (randf(payload.seed) >= p_rr){
         payload.ray_active = 0;

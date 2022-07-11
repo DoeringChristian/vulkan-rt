@@ -325,18 +325,18 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
     //scattered = false;
 
     // Absorbtion
-    ray.attenuation *= exp(-(1. - med.color) * hit.dist * med.density);
+    ray.throughput *= exp(-(1. - med.color) * hit.dist * med.density);
 
     if(scattered){
         // Set origin of scatterd ray
         ray.orig = ray.orig + scatterDist * ray.dir;
-        ray.attenuation *= ray.med.color;
+        ray.throughput *= ray.med.color;
         
         ray.dir = SampleHG(-ray.dir, med.anisotropic, randf(), randf());
-        ray.attenuation /= PhaseHG(dot(hit.wo, ray.dir), med.anisotropic);
+        ray.throughput /= PhaseHG(dot(hit.wo, ray.dir), med.anisotropic);
     }else{
         ray.orig = hit.pos;
-        ray.color += ray.attenuation * mat.emission.rgb;
+        ray.color += ray.throughput * mat.emission.rgb;
         
         float eta;
         vec3 ffnormal;
@@ -354,7 +354,7 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
 
         ray.dir = normalize(L);
         if (pdf != 0.){
-            ray.attenuation *= f/pdf;
+            ray.throughput *= f/pdf;
         } else{
             ray.ray_active = 0;
         }
@@ -370,3 +370,6 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
 
 }
 
+void eval_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
+    
+}

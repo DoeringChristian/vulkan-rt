@@ -38,7 +38,7 @@ void main() {
     payload.dir = normalize(up * uv.x + right * uv.y + forward);
 
     payload.color = vec3(0.);
-    payload.attenuation = vec3(1.);
+    payload.throughput = vec3(1.);
     payload.ior = 1.;
 
     payload.med.color = vec3(1.);

@@ -81,7 +81,7 @@ struct Payload{
     vec3 dir;
     
     vec3 color;
-    vec3 attenuation;
+    vec3 throughput;
     float ior;
 
     Medium med;
