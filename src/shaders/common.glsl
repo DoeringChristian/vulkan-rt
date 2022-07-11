@@ -70,7 +70,9 @@ struct InstanceData{
     vec4 trans2;
     vec4 trans3;
     uint mat_index;
-    uint mesh_index;
+    //uint mesh_index;
+    uint64_t indices;
+    uint64_t vertices;
 };
 
 #define RAY_TMIN 0.001

@@ -65,10 +65,10 @@ mod bindings {
     pub const TLAS: (u32, u32) = (0, 0);
     pub const INSTANCES: (u32, u32) = (0, 1);
     pub const MATERIALS: (u32, u32) = (0, 2);
-    pub const INDICES: (u32, u32) = (0, 3);
-    pub const VERTICES: (u32, u32) = (0, 4);
-    pub const TEXTURES: (u32, u32) = (0, 5);
-    pub const LIGHTS: (u32, u32) = (0, 6);
+    //pub const INDICES: (u32, u32) = (0, 3);
+    //pub const VERTICES: (u32, u32) = (0, 4);
+    pub const TEXTURES: (u32, u32) = (0, 3);
+    pub const LIGHTS: (u32, u32) = (0, 4);
     pub const COLOR: (u32, u32) = (1, 0);
 }
 
@@ -310,7 +310,13 @@ impl RTRenderer {
                 trans2: std140::vec4(mat[2][0], mat[2][1], mat[2][2], mat[2][3]),
                 trans3: std140::vec4(mat[3][0], mat[3][1], mat[3][2], mat[3][3]),
                 mat_index: std140::uint(self.world.materials.dense_index(instance.material) as _),
-                mesh_index: std140::uint(self.world.meshes.dense_index(instance.mesh) as _),
+                //mesh_index: std140::uint(self.world.meshes.dense_index(instance.mesh) as _),
+                indices: glsl::uint64_t(Buffer::device_address(
+                    &self.world.meshes[instance.mesh].indices.buf,
+                )),
+                vertices: glsl::uint64_t(Buffer::device_address(
+                    &self.world.meshes[instance.mesh].vertices.buf,
+                )),
             });
         }
         self.instancedata_buf = Some(TypedBuffer::create(
@@ -528,14 +534,8 @@ impl RTRenderer {
             .read_descriptor(bindings::MATERIALS, material_node);
 
         for (i, (indices, vertices)) in mesh_nodes.into_iter().enumerate() {
-            pass = pass.read_descriptor(
-                (bindings::INDICES.0, bindings::INDICES.1, [i as _]),
-                indices,
-            );
-            pass = pass.read_descriptor(
-                (bindings::VERTICES.0, bindings::VERTICES.1, [i as _]),
-                vertices,
-            );
+            pass = pass.read_node(indices);
+            pass = pass.read_node(vertices);
         }
         for (i, node) in texture_nodes.into_iter().enumerate() {
             pass =

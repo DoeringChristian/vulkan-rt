@@ -23,14 +23,14 @@ layout(std140, set = 0, binding = 1) buffer Instances{
 layout(std140, set = 0, binding = 2) buffer Materials{
     MaterialData materials[];
 };
-layout(set = 0, binding = 3) buffer Indices{
-    uint indices[];
-}model_indices[];
-layout(set = 0, binding = 4) buffer Vertices{
-    Vertex vertices[];
-}model_vertices[];
-layout(set = 0, binding = 5) uniform sampler2D textures[];
-layout(set = 0, binding = 6) buffer Lights{
+layout(buffer_reference, scalar) buffer Indices{
+    uint i[];
+};
+layout(buffer_reference, scalar) buffer Vertices{
+    Vertex v[];
+};
+layout(set = 0, binding = 3) uniform sampler2D textures[];
+layout(set = 0, binding = 4) buffer Lights{
     uvec4 count;
     LightData lights[];
 };
@@ -56,15 +56,18 @@ void main() {
     mat4 transform = mat4(inst.trans0, inst.trans1, inst.trans2, inst.trans3);
     MaterialData mat = materials[inst.mat_index];
 
-    ivec3 indices = ivec3(model_indices[inst.mesh_index].indices[3 * gl_PrimitiveID + 0],
-                          model_indices[inst.mesh_index].indices[3 * gl_PrimitiveID + 1],
-                          model_indices[inst.mesh_index].indices[3 * gl_PrimitiveID + 2]);
+    Indices indices = Indices(inst.indices);
+    Vertices vertices = Vertices(inst.vertices);
+
+    ivec3 tri = ivec3(indices.i[3 * gl_PrimitiveID + 0],
+                      indices.i[3 * gl_PrimitiveID + 1],
+                      indices.i[3 * gl_PrimitiveID + 2]);
 
     vec3 barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
 
-    Vertex vert0 = model_vertices[inst.mesh_index].vertices[indices.x];
-    Vertex vert1 = model_vertices[inst.mesh_index].vertices[indices.y];
-    Vertex vert2 = model_vertices[inst.mesh_index].vertices[indices.z];
+    Vertex vert0 = vertices.v[tri.x];
+    Vertex vert1 = vertices.v[tri.y];
+    Vertex vert2 = vertices.v[tri.z];
 
     vec3 pos0 = vert0.pos.xyz;
     vec3 pos1 = vert1.pos.xyz;

@@ -1,5 +1,20 @@
 use std140::*;
 
+/// A column vector of 2 [float] values.
+///
+/// # Example
+///
+/// ```
+/// let value = std140::vec2(0.0, 1.0);
+/// ```
+#[allow(non_camel_case_types)]
+#[repr(C, align(8))]
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct uint64_t(pub u64);
+
+unsafe impl ReprStd140 for uint64_t {}
+unsafe impl Std140ArrayElement for uint64_t {}
+
 ///
 /// Data relating to an instance used to acces materials etc. in the shader.
 ///
@@ -12,7 +27,8 @@ pub struct InstanceData {
     pub trans3: vec4,
 
     pub mat_index: uint,
-    pub mesh_index: uint,
+    pub indices: uint64_t,
+    pub vertices: uint64_t,
 }
 
 ///
