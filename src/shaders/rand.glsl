@@ -24,7 +24,7 @@ uint pcg(uint v)
 }
 
 // Rng state
-uvec4 seed;
+uint _seed;
 //RNG from code by Moroz Mykhailo (https://www.shadertoy.com/view/wltcRS)
 void pcg4d(inout uvec4 v)
 {
@@ -34,39 +34,33 @@ void pcg4d(inout uvec4 v)
     v.x += v.y * v.w; v.y += v.z * v.x; v.z += v.x * v.y; v.w += v.y * v.z;
 }
 
+void init_seed(uint seed){
+    _seed = seed;
+}
+
 float randf(inout uint seed){
     seed = pcg(seed);
     return uint_to_unit_float(seed);
 }
-float randf(){
-    pcg4d(seed);
-    return float(seed.x)/float(0xffffffffu);
+uint randu(){
+    _seed = pcg(_seed);
+    return _seed;
 }
-uint randu(inout uint seed){
-    seed = pcg(seed);
-    return seed;
+float randf(){
+    
+    return float(randu())/float(0xffffffffu);
 }
 
-vec2 rand2f(inout uint seed){
-    seed = pcg(seed);
-    float x = uint_to_unit_float(seed);
-    seed = pcg(seed);
-    float y = uint_to_unit_float(seed);
-    return vec2(x, y);
+vec2 rand2f(){
+    return vec2(randf(), randf());
 }
 vec3 rand3f(inout uint seed){
-    seed = pcg(seed);
-    float x = uint_to_unit_float(seed);
-    seed = pcg(seed);
-    float y = uint_to_unit_float(seed);
-    seed = pcg(seed);
-    float z = uint_to_unit_float(seed);
-    return vec3(x, y, z);
+    return vec3(randf(), randf(), randf());
 }
 
 
-vec3 uniform_sphere(inout uint seed){
-    vec2 uv = rand2f(seed);
+vec3 uniform_sphere(){
+    vec2 uv = rand2f();
     float theta = acos(1. - 2. * uv.x);
     float phi = 2 * M_PI *    uv.y;
     return vec3(
@@ -75,14 +69,14 @@ vec3 uniform_sphere(inout uint seed){
         cos(theta)
     );
 }
-vec2 uniform_sphere_uv(inout uint seed){
-    vec2 uv = rand2f(seed);
+vec2 uniform_sphere_uv(){
+    vec2 uv = rand2f();
     float theta = acos(1. - 2. * uv.x);
     float phi = 2 * M_PI *    uv.y;
     return vec2(theta, phi);
 }
-vec3 uniform_hemisphere(inout uint seed){
-    vec2 uv = rand2f(seed);
+vec3 uniform_hemisphere(){
+    vec2 uv = rand2f();
     float theta = acos(1. - uv.x);
     float phi = 2 * M_PI * uv.y;
     return vec3(
@@ -91,16 +85,16 @@ vec3 uniform_hemisphere(inout uint seed){
         cos(theta)
     );
 }
-vec3 uniform_hemisphere_alligned(vec3 normal, inout uint seed){
-    vec3 sphere = uniform_sphere(seed);
+vec3 uniform_hemisphere_alligned(vec3 normal){
+    vec3 sphere = uniform_sphere();
     if (dot(normal , sphere) <= 0.){
         return reflect(sphere, normal);
     }
     return sphere;
 }
-vec3 cosine_hemisphere(inout uint seed){
-    float r = sqrt(randf(seed));
-    float phi = randf(seed) * 2. * M_PI;
+vec3 cosine_hemisphere(){
+    float r = sqrt(randf());
+    float phi = randf() * 2. * M_PI;
 
     float x = r * cos(phi);
     float y = r * sin(phi);
@@ -108,8 +102,8 @@ vec3 cosine_hemisphere(inout uint seed){
     return vec3(x, y, sqrt(1. - x*x - y*y));
 }
 
-vec2 uniform_hemisphere_uv(inout uint seed){
-    vec2 uv = uniform_sphere_uv(seed);
+vec2 uniform_hemisphere_uv(){
+    vec2 uv = uniform_sphere_uv();
     if (uv.x > 0){
         return uv;
     }

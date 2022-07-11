@@ -164,8 +164,8 @@ vec3 DisneySample(MatInfo mat, float eta, vec3 V, vec3 N, out vec3 L, out float 
     pdf = 0.0;
     vec3 f = vec3(0.0);
 
-    float r1 = randf(seed);
-    float r2 = randf(seed);
+    float r1 = randf();
+    float r2 = randf();
 
     // TODO: Tangent and bitangent should be calculated from mesh (provided, the mesh has proper uvs)
     vec3 T, B;
@@ -225,7 +225,7 @@ vec3 DisneySample(MatInfo mat, float eta, vec3 V, vec3 N, out vec3 L, out float 
         float fresnel = DisneyFresnel(mat, eta, dot(L, H), dot(V, H));
         float F = 1.0 - ((1.0 - fresnel) * mat.transmission * (1.0 - mat.metallic));
 
-        if (randf(seed) < F)
+        if (randf() < F)
         {
             L = normalize(reflect(-V, H));
 
@@ -320,7 +320,7 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
     }
 
     // Do medium scattering
-    float scatterDist = min(-log(randf(ray.seed)/med.density) * med.density, hit.dist);
+    float scatterDist = min(-log(randf()/med.density) * med.density, hit.dist);
     bool scattered = scatterDist < hit.dist;
     //scattered = false;
 
@@ -332,7 +332,7 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
         ray.orig = ray.orig + scatterDist * ray.dir;
         ray.attenuation *= ray.med.color;
         
-        ray.dir = SampleHG(-ray.dir, med.anisotropic, randf(ray.seed), randf(ray.seed));
+        ray.dir = SampleHG(-ray.dir, med.anisotropic, randf(), randf());
         ray.attenuation /= PhaseHG(dot(hit.wo, ray.dir), med.anisotropic);
     }else{
         ray.orig = hit.pos;

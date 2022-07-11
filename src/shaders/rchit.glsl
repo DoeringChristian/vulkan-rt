@@ -43,6 +43,7 @@ mat3 compute_TBN(vec2 duv0, vec2 duv1, vec3 dpos0, vec3 dpos1, vec3 n){
 }
 
 void main() {
+    init_seed(payload.seed);
     if (payload.ray_active == 0) {
         return;
     }

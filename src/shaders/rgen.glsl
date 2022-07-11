@@ -18,13 +18,13 @@ void main() {
     uint N = camera.fc;
     vec2 uv = gl_LaunchIDEXT.xy;
 
-    uint seed = N;
-    seed = randu(seed) + gl_LaunchIDEXT.x;
-    seed = randu(seed) + gl_LaunchIDEXT.y;
-    seed = randu(seed);
+    init_seed(N);
+    init_seed(randu() + gl_LaunchIDEXT.x);
+    init_seed(randu() + gl_LaunchIDEXT.y);
+    randu();
     
     //vec2 roff = rand2(vec3(float(N), uv.x, uv.y));
-    vec2 roff = rand2f(seed);
+    vec2 roff = rand2f();
     uv += roff;
     uv /= vec2(gl_LaunchSizeEXT.xy);
     uv = (uv * 2. - 1.) * vec2(1., 1.);
@@ -42,10 +42,10 @@ void main() {
     payload.ior = 1.;
 
     payload.med.color = vec3(1.);
-    payload.med.anisotropic = 0.000;
+    payload.med.anisotropic = 0.;
     payload.med.density = 0.;
     
-    payload.seed = seed;
+    payload.seed = randu();
     payload.depth = 0;
     payload.ray_active = 1;
 
