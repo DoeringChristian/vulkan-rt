@@ -65,8 +65,6 @@ mod bindings {
     pub const TLAS: (u32, u32) = (0, 0);
     pub const INSTANCES: (u32, u32) = (0, 1);
     pub const MATERIALS: (u32, u32) = (0, 2);
-    //pub const INDICES: (u32, u32) = (0, 3);
-    //pub const VERTICES: (u32, u32) = (0, 4);
     pub const TEXTURES: (u32, u32) = (0, 3);
     pub const LIGHTS: (u32, u32) = (0, 4);
     pub const COLOR: (u32, u32) = (1, 0);
@@ -533,7 +531,7 @@ impl RTRenderer {
             .read_descriptor(bindings::INSTANCES, instancedata_node)
             .read_descriptor(bindings::MATERIALS, material_node);
 
-        for (i, (indices, vertices)) in mesh_nodes.into_iter().enumerate() {
+        for (_, (indices, vertices)) in mesh_nodes.into_iter().enumerate() {
             pass = pass.read_node(indices);
             pass = pass.read_node(vertices);
         }
