@@ -46,9 +46,21 @@ uint randu(){
     _seed = pcg(_seed);
     return _seed;
 }
+uint randu(uint max){
+    return randu() % max;
+}
+uint randu(uint min, uint max){
+    return randu(max) + min;
+}
 float randf(){
     
     return float(randu())/float(0xffffffffu);
+}
+float randf(float max){
+    return randf() / max;
+}
+float randf(float min, float max){
+    return randf(max) + min;
 }
 
 vec2 rand2f(){
