@@ -220,7 +220,7 @@ SampledLight sampleLight(in LightData light){
     SampledLight slight;
     if (light.light_type == LIGHT_POINT){
         slight.emission = light.emission.rgb;
-        slight.pos = light.pos.xyz + uniform_3sphere() * light.radius;
+        slight.pos = light.pos.xyz + uniform_3ball() * light.radius;
         
     } else{
         slight.emission = vec3(0.);

@@ -199,7 +199,7 @@ void main() {
         
     // Sample light
     vec3 g;
-    float pg = 0;
+    float pg = 0.;
 
     uint lightIndex = randu(lights.count.x);
     SampledLight light = sampleLight(lights.l[lightIndex]);
@@ -237,11 +237,18 @@ void main() {
     //pf = 0.;
     // TODO: Combine samples (light and  bsdf) using MIS
     payload.radiance += radiance * payload.throughput;
-    if((pf + pg) > 0. && pg > 0.){
-        payload.radiance += light.emission.rgb * payload.throughput * g / (pf + pg);
+    if(pg > 0. && !isShadow){
+        float misWeight = PowerHeuristic(pg, pf); // Calculate misWeight for light source sampling
+        payload.radiance += light.emission.rgb * payload.throughput * misWeight * g / pg;
     }
-    if((pf + pg) > 0. && pf > 0.){
-        payload.throughput *= f /(pf + pg);
+    if(pf > 0.){
+        float misWeight; // Calculate misWeight for bsdf sampling
+        if (isShadow){
+            misWeight = 1.;
+        } else{
+            misWeight = PowerHeuristic(pf, pg);
+        }
+        payload.throughput *= f / pf;
     }
     
     // thrgouhput roussian roulette propability

@@ -71,7 +71,7 @@ vec3 rand3f(inout uint seed){
 }
 
 
-vec3 uniform_sphere(){
+vec3 uniform_2sphere(){
     vec2 uv = rand2f();
     float theta = acos(1. - 2. * uv.x);
     float phi = 2 * M_PI *    uv.y;
@@ -98,7 +98,7 @@ vec3 uniform_hemisphere(){
     );
 }
 vec3 uniform_hemisphere_alligned(vec3 normal){
-    vec3 sphere = uniform_sphere();
+    vec3 sphere = uniform_2sphere();
     if (dot(normal , sphere) <= 0.){
         return reflect(sphere, normal);
     }
@@ -131,7 +131,7 @@ vec3 allign_hemisphere(vec3 hemisphere, vec3 up){
     return hemisphere.x * forward + hemisphere.y * right + hemisphere.z * up;
 }
 
-vec3 uniform_3sphere(){
+vec3 uniform_3ball(){
     float u = 2. * randf() - 1.;
     float phi = 2. * M_PI * randf();
     float r = pow(randf(), 1./3.);
