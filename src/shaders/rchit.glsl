@@ -226,7 +226,7 @@ void main() {
         eval_shader(
                 hit,
                 mat,
-                normalize(light.pos.xyz - pos),
+                light.pos.xyz,
                 g,
                 pg
             );
@@ -234,14 +234,14 @@ void main() {
         pg *= float(lights.count.x);
     }
 
+    //pf = 0.;
     // TODO: Combine samples (light and  bsdf) using MIS
     payload.radiance += radiance * payload.throughput;
-    if(pg != 0.){
+    if((pf + pg) > 0. && pg > 0.){
         payload.radiance += light.emission.rgb * payload.throughput * g / (pf + pg);
     }
-    
-    if(pf != 0.){
-        payload.throughput *= f/(pf + pg);
+    if((pf + pg) > 0. && pf > 0.){
+        payload.throughput *= f /(pf + pg);
     }
     
     // thrgouhput roussian roulette propability
