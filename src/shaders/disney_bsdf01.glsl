@@ -396,5 +396,5 @@ void eval_shader(in HitInfo hit, in Material mat, in vec3 lightPos, out vec3 f, 
     float dist = length(lightPos - hit.pos);
 
     f *= DisneyEval(mat, eta, hit.wo, ffnormal, normalize(lightPos - hit.pos), pdf);
-    //f /= dist * dist;
+    f /= dist * dist;
 }
