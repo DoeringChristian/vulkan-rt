@@ -234,7 +234,6 @@ void main() {
         pg *= float(lights.count.x);
     }
 
-    //pf = 0.;
     // TODO: Combine samples (light and  bsdf) using MIS
     payload.radiance += radiance * payload.throughput;
     if(pg > 0. && !isShadow){
@@ -248,7 +247,7 @@ void main() {
         } else{
             misWeight = PowerHeuristic(pf, pg);
         }
-        payload.throughput *= f / pf;
+        payload.throughput *= misWeight * f / pf;
     }
     
     // thrgouhput roussian roulette propability
