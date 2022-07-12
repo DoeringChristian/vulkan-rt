@@ -56,7 +56,7 @@ void main() {
     //===========================================================
     InstanceData inst = instances[gl_InstanceCustomIndexEXT];
     mat4 transform = mat4(inst.trans0, inst.trans1, inst.trans2, inst.trans3);
-    MaterialData mat = materials[inst.mat_index];
+    MaterialData materialData = materials[inst.mat_index];
 
     Indices indices = Indices(inst.indices);
     Vertices vertices = Vertices(inst.vertices);
@@ -122,13 +122,13 @@ void main() {
     hit.dist = dist;
     
     // Initialize Material
-    MatInfo matinfo;
-    matinfo.albedo = mat.albedo.rgb;
-    matinfo.emission = mat.emission.rgb;
-    matinfo.transmission = mat.transmission;
-    matinfo.metallic = mat.metallic;
-    matinfo.roughness = max(mat.roughness * mat.roughness, 0.001);
-    matinfo.ior = mat.ior;
+    Material matinfo;
+    matinfo.albedo = materialData.albedo.rgb;
+    matinfo.emission = materialData.emission.rgb;
+    matinfo.transmission = materialData.transmission;
+    matinfo.metallic = materialData.metallic;
+    matinfo.roughness = max(materialData.roughness * materialData.roughness, 0.001);
+    matinfo.ior = materialData.ior;
     
     matinfo.anisotropic = 0.00;
     matinfo.subsurface = 0;
@@ -142,28 +142,28 @@ void main() {
     matinfo.ay = 0.001;
 
     // Initialize medium of the material the ray hits.
-    matinfo.med.color = mat.med.color.rgb;
-    matinfo.med.anisotropic = mat.med.anisotropic;
-    matinfo.med.density = mat.med.density;
+    matinfo.med.color = materialData.med.color.rgb;
+    matinfo.med.anisotropic = materialData.med.anisotropic;
+    matinfo.med.density = materialData.med.density;
 
     // TODO: material interpolation and tangent space.
     vec2 uv0 = vert0.uv.xy;
     vec2 uv1 = vert1.uv.xy;
     vec2 uv2 = vert2.uv.xy;
     vec2 uv = uv0 * barycentric.x + uv1 * barycentric.y + uv2 * barycentric.z;
-    if (mat.albedo_tex != INDEX_UNDEF){
-        matinfo.albedo = texture(textures[mat.albedo_tex], uv).rgb;
+    if (materialData.albedo_tex != INDEX_UNDEF){
+        matinfo.albedo = texture(textures[materialData.albedo_tex], uv).rgb;
     }
-    if (mat.mr_tex != INDEX_UNDEF){
+    if (materialData.mr_tex != INDEX_UNDEF){
         // As specified by gltf specs the blue chanel stores metallness, the green chanel roughness.
-        vec2 mr = texture(textures[mat.mr_tex], uv).bg;
+        vec2 mr = texture(textures[materialData.mr_tex], uv).bg;
         matinfo.metallic = mr.x;
         matinfo.roughness = max(mr.y * mr.y, 0.001);
     }
-    if (mat.normal_tex != INDEX_UNDEF){
+    if (materialData.normal_tex != INDEX_UNDEF){
         mat3 TBN = compute_TBN(uv1 - uv0, uv2 - uv0, pos1 - pos0, pos2 - pos0, norm);
         
-        vec3 norm_tex = texture(textures[mat.normal_tex], uv).rgb;
+        vec3 norm_tex = texture(textures[materialData.normal_tex], uv).rgb;
         // need to invert the y component of the normal texture.
         norm_tex = vec3(norm_tex.x, 1. - norm_tex.y, norm_tex.z);
         norm_tex = normalize(norm_tex * 2. - 1.);

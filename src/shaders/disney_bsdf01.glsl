@@ -51,14 +51,14 @@ vec3 ToLocal(vec3 X, vec3 Y, vec3 Z, vec3 V)
     return vec3(dot(V, X), dot(V, Y), dot(V, Z));
 }
 
-float DisneyFresnel(MatInfo mat, float eta, float LDotH, float VDotH)
+float DisneyFresnel(Material mat, float eta, float LDotH, float VDotH)
 {
     float metallicFresnel = SchlickFresnel(LDotH);
     float dielectricFresnel = DielectricFresnel(abs(VDotH), eta);
     return mix(dielectricFresnel, metallicFresnel, mat.metallic);
 }
 
-vec3 EvalDiffuse(MatInfo mat, vec3 Csheen, vec3 V, vec3 L, vec3 H, out float pdf)
+vec3 EvalDiffuse(Material mat, vec3 Csheen, vec3 V, vec3 L, vec3 H, out float pdf)
 {
     pdf = 0.0;
     if (L.z <= 0.0)
@@ -83,7 +83,7 @@ vec3 EvalDiffuse(MatInfo mat, vec3 Csheen, vec3 V, vec3 L, vec3 H, out float pdf
     return (1.0 - mat.metallic) * (1.0 - mat.transmission) * (INV_PI * mix(Fd, ss, mat.subsurface) * mat.albedo + Fsheen);
 }
 
-vec3 EvalSpecReflection(MatInfo mat, float eta, vec3 specCol, vec3 V, vec3 L, vec3 H, out float pdf)
+vec3 EvalSpecReflection(Material mat, float eta, vec3 specCol, vec3 V, vec3 L, vec3 H, out float pdf)
 {
     pdf = 0.0;
     if (L.z <= 0.0)
@@ -99,7 +99,7 @@ vec3 EvalSpecReflection(MatInfo mat, float eta, vec3 specCol, vec3 V, vec3 L, ve
     return F * D * G2 / (4.0 * L.z * V.z);
 }
 
-vec3 EvalSpecRefraction(MatInfo mat, float eta, vec3 V, vec3 L, vec3 H, out float pdf)
+vec3 EvalSpecRefraction(Material mat, float eta, vec3 V, vec3 L, vec3 H, out float pdf)
 {
     pdf = 0.0;
     if (L.z >= 0.0)
@@ -119,7 +119,7 @@ vec3 EvalSpecRefraction(MatInfo mat, float eta, vec3 V, vec3 L, vec3 H, out floa
     return pow(mat.albedo, vec3(0.5)) * (1.0 - mat.metallic) * mat.transmission * (1.0 - F) * D * G2 * abs(dot(V, H)) * jacobian * eta2 / abs(L.z * V.z);
 }
 
-vec3 EvalClearcoat(MatInfo mat, vec3 V, vec3 L, vec3 H, out float pdf)
+vec3 EvalClearcoat(Material mat, vec3 V, vec3 L, vec3 H, out float pdf)
 {
     pdf = 0.0;
     if (L.z <= 0.0)
@@ -136,7 +136,7 @@ vec3 EvalClearcoat(MatInfo mat, vec3 V, vec3 L, vec3 H, out float pdf)
     return vec3(0.25) * mat.clearcoat * F * D * G / (4.0 * L.z * V.z);
 }
 
-void GetSpecColor(MatInfo mat, float eta, out vec3 specCol, out vec3 sheenCol)
+void GetSpecColor(Material mat, float eta, out vec3 specCol, out vec3 sheenCol)
 {
     float lum = Luminance(mat.albedo);
     vec3 ctint = lum > 0.0 ? mat.albedo / lum : vec3(1.0f);
@@ -145,7 +145,7 @@ void GetSpecColor(MatInfo mat, float eta, out vec3 specCol, out vec3 sheenCol)
     sheenCol = mix(vec3(1.0), ctint, mat.sheenTint);
 }
 
-void GetLobeProbabilities(MatInfo mat, float eta, vec3 specCol, float approxFresnel, out float diffuseWt, out float specReflectWt, out float specRefractWt, out float clearcoatWt)
+void GetLobeProbabilities(Material mat, float eta, vec3 specCol, float approxFresnel, out float diffuseWt, out float specReflectWt, out float specRefractWt, out float clearcoatWt)
 {
     diffuseWt = Luminance(mat.albedo) * (1.0 - mat.metallic) * (1.0 - mat.transmission);
     specReflectWt = Luminance(mix(specCol, vec3(1.0), approxFresnel));
@@ -159,7 +159,7 @@ void GetLobeProbabilities(MatInfo mat, float eta, vec3 specCol, float approxFres
     clearcoatWt /= totalWt;
 }
 
-vec3 DisneySample(MatInfo mat, float eta, vec3 V, vec3 N, out vec3 L, out float pdf)
+vec3 DisneySample(Material mat, float eta, vec3 V, vec3 N, out vec3 L, out float pdf)
 {
     pdf = 0.0;
     vec3 f = vec3(0.0);
@@ -246,7 +246,7 @@ vec3 DisneySample(MatInfo mat, float eta, vec3 V, vec3 N, out vec3 L, out float 
     L = ToWorld(T, B, N, L);
     return f * abs(dot(N, L));
 }
-vec3 DisneyEval(MatInfo mat, float eta, vec3 V, vec3 N, vec3 L, out float bsdfPdf){
+vec3 DisneyEval(Material mat, float eta, vec3 V, vec3 N, vec3 L, out float bsdfPdf){
     bsdfPdf = 0.0;
     vec3 f = vec3(0.0);
 
@@ -310,7 +310,7 @@ vec3 DisneyEval(MatInfo mat, float eta, vec3 V, vec3 N, vec3 L, out float bsdfPd
 // Do not modify throughput or radiance of the ray
 void sample_shader(
     in HitInfo hit, 
-    in MatInfo mat, 
+    in Material mat, 
     // Medium from the ray
     inout Medium rmed,
     inout vec3 orig,
@@ -379,6 +379,6 @@ void sample_shader(
     }
 }
 
-void eval_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
+void eval_shader(in HitInfo hit, in Material mat){
     
 }

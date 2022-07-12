@@ -31,7 +31,7 @@ struct MaterialData {
     MediumData med;
 };
 
-struct MatInfo{
+struct Material{
     vec3 albedo;
     vec3 emission;
     
