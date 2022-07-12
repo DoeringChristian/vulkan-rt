@@ -309,9 +309,9 @@ vec3 DisneyEval(MatInfo mat, float eta, vec3 V, vec3 N, vec3 L, out float bsdfPd
 
 // Do not modify throughput or radiance of the ray
 void sample_shader(
-    HitInfo hit, 
+    in HitInfo hit, 
     in MatInfo mat, 
-    //inout Payload ray, 
+    // Medium from the ray
     inout Medium rmed,
     inout vec3 orig,
     inout vec3 dir,
@@ -338,7 +338,6 @@ void sample_shader(
     // Do medium scattering
     float scatterDist = min(-log(randf()/med.density) * med.density, hit.dist);
     bool scattered = scatterDist < hit.dist;
-    //scattered = false;
 
     // Absorbtion
     f *= exp(-(1. - med.color) * hit.dist * med.density);
