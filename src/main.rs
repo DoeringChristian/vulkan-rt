@@ -61,6 +61,13 @@ fn main() -> anyhow::Result<()> {
         )
         .build(),
     );
+    let miss_shadow_shader = rt_renderer.insert_shader(
+        Shader::new_miss(
+            inline_spirv::include_spirv!("src/shaders/miss_shadow.glsl", rmiss, vulkan1_2)
+                .as_slice(),
+        )
+        .build(),
+    );
     let rgen_group = rt_renderer.insert_shader_group(ShaderGroup::General {
         general: rgen_shader,
     });
@@ -71,7 +78,10 @@ fn main() -> anyhow::Result<()> {
     let miss_group = rt_renderer.insert_shader_group(ShaderGroup::General {
         general: miss_shader,
     });
-    rt_renderer.set_miss_groups(vec![miss_group]);
+    let miss_shadow_group = rt_renderer.insert_shader_group(ShaderGroup::General {
+        general: miss_shadow_shader,
+    });
+    rt_renderer.set_miss_groups(vec![miss_group, miss_shadow_group]);
     rt_renderer.set_rgen_group(rgen_group);
     rt_renderer.append_gltf(
         "./src/res/cube_scene.gltf",

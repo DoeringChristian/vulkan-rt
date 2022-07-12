@@ -14,6 +14,7 @@
 hitAttributeEXT vec2 hit_co;
 
 layout(location = 0) rayPayloadInEXT Payload payload;
+layout(location = 1) rayPayloadEXT bool isShadow;
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT tlas;
 //layout(set = 0, binding = 1, rgba32f) uniform image2D image;
@@ -198,21 +199,40 @@ void main() {
         
     // Sample light
     vec3 g;
-    float pg;
+    float pg = 0;
 
     uint lightIndex = randu(lights.count.x);
     LightData light = lights.l[lightIndex];
 
-    eval_shader(
-            hit,
-            mat,
-            light.pos.xyz,
-            g,
-            pg
+    isShadow = true;
+    uint shadowRayFlags = gl_RayFlagsTerminateOnFirstHitEXT
+        | gl_RayFlagsOpaqueEXT
+        | gl_RayFlagsSkipClosestHitShaderEXT;
+    traceRayEXT(
+            tlas,
+            shadowRayFlags,
+            0xFF, 
+            0, 
+            0, 
+            1, 
+            pos, 
+            0.001,
+            normalize(light.pos.xyz - pos), 
+            length(light.pos.xyz - pos),
+            1
         );
-    
-    pg *= float(lights.count.x);
-    pg = 0.;
+
+    if (!isShadow){
+        eval_shader(
+                hit,
+                mat,
+                normalize(light.pos.xyz - pos),
+                g,
+                pg
+            );
+
+        pg *= float(lights.count.x);
+    }
 
     // TODO: Combine samples (light and  bsdf) using MIS
     payload.radiance += radiance * payload.throughput;

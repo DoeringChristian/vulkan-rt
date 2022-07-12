@@ -379,7 +379,7 @@ void sample_shader(
     }
 }
 
-void eval_shader(in HitInfo hit, in Material mat, in vec3 lightPos, out vec3 f, out float pdf){
+void eval_shader(in HitInfo hit, in Material mat, in vec3 L, out vec3 f, out float pdf){
 
     pdf = 1.;
     f = vec3(1.);
@@ -394,5 +394,5 @@ void eval_shader(in HitInfo hit, in Material mat, in vec3 lightPos, out vec3 f, 
         eta = 1. / mat.ior;
     }
 
-    f *= DisneyEval(mat, eta, hit.wo, ffnormal, normalize(hit.pos - lightPos), pdf);
+    f *= DisneyEval(mat, eta, hit.wo, ffnormal, L, pdf);
 }

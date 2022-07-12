@@ -82,25 +82,26 @@ impl SbtBuffer {
             )
             .unwrap();
 
+            let rgen_offset: usize = 0;
+            let mut hit_offset: usize = sbt_rgen_size as usize;
+            let mut miss_offset: usize = sbt_rgen_size as usize + sbt_hit_size as usize;
+
             let mut data = Buffer::mapped_slice_mut(&mut buf);
             data.fill(0);
 
             let rgen_handle = pipeline.group_handle(info.rgen_index)?;
-            data[0..rgen_handle.len()].copy_from_slice(rgen_handle);
-            data = &mut data[sbt_rgen_size as _..];
+            data[rgen_offset..(rgen_offset + rgen_handle.len())].copy_from_slice(rgen_handle);
 
-            for idx in info.hit_indices {
+            for (i, idx) in info.hit_indices.iter().enumerate() {
                 let handle = pipeline.group_handle(*idx)?;
-                data[0..handle.len()].copy_from_slice(handle);
-                data = &mut data[sbt_hit_size as _..];
+                data[hit_offset..(hit_offset + handle.len())].copy_from_slice(handle);
+                hit_offset += sbt_handle_size as usize;
             }
 
-            //trace!("info.miss_indices: {}", info.miss_indices.len());
             for idx in info.miss_indices {
                 let handle = pipeline.group_handle(*idx)?;
-                data[0..handle.len()].copy_from_slice(handle);
-                //trace!("miss_sbt: {:#?}", data);
-                data = &mut data[sbt_hit_size as _..];
+                data[miss_offset..(miss_offset + handle.len())].copy_from_slice(handle);
+                miss_offset += sbt_handle_size as usize;
             }
             buf
         });
