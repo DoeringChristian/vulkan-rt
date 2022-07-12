@@ -307,7 +307,16 @@ vec3 DisneyEval(MatInfo mat, float eta, vec3 V, vec3 N, vec3 L, out float bsdfPd
     return f * abs(L.z);
 }
 
-void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
+// Do not modify throughput or radiance of the ray
+void sample_shader(
+    HitInfo hit, 
+    in MatInfo mat, 
+    inout Payload ray, 
+    out vec3 radiance, 
+    out vec3 throughput
+){
+    throughput = vec3(1.);
+    radiance = vec3(0.);
     bool inside = dot(hit.g, hit.wo) < 0.;
 
     Medium med;
@@ -325,18 +334,20 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
     //scattered = false;
 
     // Absorbtion
-    ray.throughput *= exp(-(1. - med.color) * hit.dist * med.density);
+    throughput *= exp(-(1. - med.color) * hit.dist * med.density);
 
     if(scattered){
         // Set origin of scatterd ray
         ray.orig = ray.orig + scatterDist * ray.dir;
-        ray.throughput *= ray.med.color;
+        //ray.throughput *= ray.med.color;
+        throughput *= ray.med.color;
         
         ray.dir = SampleHG(-ray.dir, med.anisotropic, randf(), randf());
-        ray.throughput /= PhaseHG(dot(hit.wo, ray.dir), med.anisotropic);
+        throughput /= PhaseHG(dot(hit.wo, ray.dir), med.anisotropic);
     }else{
         ray.orig = hit.pos;
-        ray.color += ray.throughput * mat.emission.rgb;
+        //ray.color += ray.throughput * mat.emission.rgb;
+        radiance += mat.emission.rgb;
         
         float eta;
         vec3 ffnormal;
@@ -354,7 +365,8 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
 
         ray.dir = normalize(L);
         if (pdf != 0.){
-            ray.throughput *= f/pdf;
+            //ray.throughput *= f/pdf;
+            throughput *= f / pdf;
         } else{
             ray.ray_active = 0;
         }

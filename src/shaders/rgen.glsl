@@ -37,7 +37,7 @@ void main() {
     payload.orig = camera.pos.xyz;
     payload.dir = normalize(up * uv.x + right * uv.y + forward);
 
-    payload.color = vec3(0.);
+    payload.radiance = vec3(0.);
     payload.throughput = vec3(1.);
     payload.ior = 1.;
 
@@ -69,10 +69,10 @@ void main() {
     //payload.color = payload.color/(payload.color + vec3(1.));
     //payload.color = pow(payload.color, vec3(1.0/2.2));
     if (N == 0){
-        color = payload.color;
+        color = payload.radiance;
     }
     else{
-        color = 1/float((N + 1)) * payload.color + float(N)/float(N + 1)*color; 
+        color = 1/float((N + 1)) * payload.radiance + float(N)/float(N + 1)*color; 
     }
 
     //vec4 color = vec4(payload.color, 1.0);

@@ -80,7 +80,7 @@ struct Payload{
     vec3 orig;
     vec3 dir;
     
-    vec3 color;
+    vec3 radiance;
     vec3 throughput;
     float ior;
 

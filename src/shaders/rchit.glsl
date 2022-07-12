@@ -184,7 +184,12 @@ void main() {
     // Sample light
     uint lightIndex = randu(lights.count.x);
     
-    sample_shader(hit, matinfo, payload);
+    vec3 radiance = vec3(0.);
+    vec3 throughput = vec3(0.);
+    sample_shader(hit, matinfo, payload, radiance, throughput);
+
+    payload.radiance += radiance * payload.throughput;
+    payload.throughput *= throughput;
     
     // thrgouhput roussian roulette propability
     //p_{RR} = max_{RGB}\leftb( \prod_{d = 1}^{D-1} \left({f_r(x_d, w_d \rightarrow v_d) cos(\theta_d)) \over p(w_d)p_{RR_d}}\right)\right)
