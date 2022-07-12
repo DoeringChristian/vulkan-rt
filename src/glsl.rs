@@ -58,6 +58,7 @@ pub struct MaterialData {
 pub struct LightData {
     pub emission: vec4,
     pub position: vec4,
+    pub radius: float,
     pub light_type: uint,
 }
 

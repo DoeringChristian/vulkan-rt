@@ -720,6 +720,7 @@ impl RTRenderer {
                     self.insert_light(Light::Point {
                         emission: Vec3::from(light.color()),
                         position: pos.xyz(),
+                        radius: 0.01,
                         strength: light.intensity(),
                     });
                 }

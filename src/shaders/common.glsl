@@ -112,7 +112,13 @@ struct Vertex{
 struct LightData{
     vec4 emission;
     vec4 pos;
+    float radius;
     uint light_type;
+};
+
+struct SampledLight{
+    vec3 emission;
+    vec3 pos;
 };
 
 #endif //COMMON_GLSL

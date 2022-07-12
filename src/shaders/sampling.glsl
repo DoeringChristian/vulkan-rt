@@ -22,6 +22,9 @@
  * SOFTWARE.
  */
 
+#include "rand.glsl"
+#include "common.glsl"
+
 float GTR1(float NDotH, float a)
 {
     if (a >= 1.0)
@@ -210,4 +213,18 @@ float PhaseHG(float cosTheta, float g)
 {
     float denom = 1 + g * g + 2 * g * cosTheta;
     return INV_4_PI * (1 - g * g) / (denom * sqrt(denom));
+}
+
+
+SampledLight sampleLight(in LightData light){
+    SampledLight slight;
+    if (light.light_type == LIGHT_POINT){
+        slight.emission = light.emission.rgb;
+        slight.pos = light.pos.xyz + uniform_3sphere() * light.radius;
+        
+    } else{
+        slight.emission = vec3(0.);
+        slight.pos = vec3(0.);
+    }
+    return slight;
 }

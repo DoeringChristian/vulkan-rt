@@ -102,6 +102,7 @@ pub enum Light {
     Point {
         position: Vec3,
         emission: Vec3,
+        radius: f32,
         strength: f32,
     },
 }
@@ -111,6 +112,7 @@ impl Default for Light {
         Self::Point {
             position: Vec3::ZERO,
             emission: Vec3::ZERO,
+            radius: 0.01,
             strength: 0.,
         }
     }
@@ -122,10 +124,12 @@ impl From<Light> for glsl::LightData {
             Light::Point {
                 position,
                 emission,
+                radius,
                 strength,
             } => Self {
                 emission: std140::vec4(emission.x, emission.y, emission.z, strength),
                 position: std140::vec4(position.x, position.y, position.z, 1.),
+                radius: std140::float(radius),
                 light_type: glsl::LightData::TY_POINT,
             },
         }

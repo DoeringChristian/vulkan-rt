@@ -202,7 +202,7 @@ void main() {
     float pg = 0;
 
     uint lightIndex = randu(lights.count.x);
-    LightData light = lights.l[lightIndex];
+    SampledLight light = sampleLight(lights.l[lightIndex]);
 
     isShadow = true;
     uint shadowRayFlags = gl_RayFlagsTerminateOnFirstHitEXT

@@ -131,4 +131,14 @@ vec3 allign_hemisphere(vec3 hemisphere, vec3 up){
     return hemisphere.x * forward + hemisphere.y * right + hemisphere.z * up;
 }
 
+vec3 uniform_3sphere(){
+    float u = 2. * randf() - 1.;
+    float phi = 2. * M_PI * randf();
+    float r = pow(randf(), 1./3.);
+    float x = r * cos(phi) * sqrt(1. - u * u);
+    float y = r * sin(phi) * sqrt(1. - u * u);
+    float z = r * u;
+    return vec3(x, y, z);
+}
+
 #endif //RAND_GLSL
