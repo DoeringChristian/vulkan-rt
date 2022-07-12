@@ -346,7 +346,6 @@ void sample_shader(
         throughput /= PhaseHG(dot(hit.wo, ray.dir), med.anisotropic);
     }else{
         ray.orig = hit.pos;
-        //ray.color += ray.throughput * mat.emission.rgb;
         radiance += mat.emission.rgb;
         
         float eta;
@@ -365,7 +364,6 @@ void sample_shader(
 
         ray.dir = normalize(L);
         if (pdf != 0.){
-            //ray.throughput *= f/pdf;
             throughput *= f / pdf;
         } else{
             ray.ray_active = 0;
