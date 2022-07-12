@@ -122,29 +122,29 @@ void main() {
     hit.dist = dist;
     
     // Initialize Material
-    Material matinfo;
-    matinfo.albedo = materialData.albedo.rgb;
-    matinfo.emission = materialData.emission.rgb;
-    matinfo.transmission = materialData.transmission;
-    matinfo.metallic = materialData.metallic;
-    matinfo.roughness = max(materialData.roughness * materialData.roughness, 0.001);
-    matinfo.ior = materialData.ior;
+    Material mat;
+    mat.albedo = materialData.albedo.rgb;
+    mat.emission = materialData.emission.rgb;
+    mat.transmission = materialData.transmission;
+    mat.metallic = materialData.metallic;
+    mat.roughness = max(materialData.roughness * materialData.roughness, 0.001);
+    mat.ior = materialData.ior;
     
-    matinfo.anisotropic = 0.00;
-    matinfo.subsurface = 0;
-    matinfo.specularTint = 0;
-    matinfo.sheen = 0;
-    matinfo.sheenTint = 0;
-    matinfo.clearcoat = 0;
-    matinfo.clearcoatRoughness = 0.;
+    mat.anisotropic = 0.00;
+    mat.subsurface = 0;
+    mat.specularTint = 0;
+    mat.sheen = 0;
+    mat.sheenTint = 0;
+    mat.clearcoat = 0;
+    mat.clearcoatRoughness = 0.;
     //mat.ior = 1.4;
-    matinfo.ax = 0.001;
-    matinfo.ay = 0.001;
+    mat.ax = 0.001;
+    mat.ay = 0.001;
 
     // Initialize medium of the material the ray hits.
-    matinfo.med.color = materialData.med.color.rgb;
-    matinfo.med.anisotropic = materialData.med.anisotropic;
-    matinfo.med.density = materialData.med.density;
+    mat.med.color = materialData.med.color.rgb;
+    mat.med.anisotropic = materialData.med.anisotropic;
+    mat.med.density = materialData.med.density;
 
     // TODO: material interpolation and tangent space.
     vec2 uv0 = vert0.uv.xy;
@@ -152,13 +152,13 @@ void main() {
     vec2 uv2 = vert2.uv.xy;
     vec2 uv = uv0 * barycentric.x + uv1 * barycentric.y + uv2 * barycentric.z;
     if (materialData.albedo_tex != INDEX_UNDEF){
-        matinfo.albedo = texture(textures[materialData.albedo_tex], uv).rgb;
+        mat.albedo = texture(textures[materialData.albedo_tex], uv).rgb;
     }
     if (materialData.mr_tex != INDEX_UNDEF){
         // As specified by gltf specs the blue chanel stores metallness, the green chanel roughness.
         vec2 mr = texture(textures[materialData.mr_tex], uv).bg;
-        matinfo.metallic = mr.x;
-        matinfo.roughness = max(mr.y * mr.y, 0.001);
+        mat.metallic = mr.x;
+        mat.roughness = max(mr.y * mr.y, 0.001);
     }
     if (materialData.normal_tex != INDEX_UNDEF){
         mat3 TBN = compute_TBN(uv1 - uv0, uv2 - uv0, pos1 - pos0, pos2 - pos0, norm);
@@ -171,11 +171,11 @@ void main() {
         hit.n = norm;
     }
     // DEBUG:
-    //matinfo.roughness = 0.1;
+    //material.roughness = 0.1;
 
-    float aspect = sqrt(1. - matinfo.anisotropic * 0.9);
-    matinfo.ax = max(0.001, matinfo.roughness / aspect);
-    matinfo.ay = max(0.001, matinfo.roughness / aspect);
+    float aspect = sqrt(1. - mat.anisotropic * 0.9);
+    mat.ax = max(0.001, mat.roughness / aspect);
+    mat.ay = max(0.001, mat.roughness / aspect);
 
     //===========================================================
     // Call BRDF functions:
@@ -189,7 +189,7 @@ void main() {
     vec3 f;
     sample_shader(
             hit, 
-            matinfo, 
+            mat, 
             payload.med, 
             payload.orig, 
             payload.dir, 
