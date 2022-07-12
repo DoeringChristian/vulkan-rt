@@ -4,8 +4,28 @@
         "version" : "2.0"
     },
     "extensionsUsed" : [
-        "KHR_materials_transmission"
+        "KHR_materials_transmission",
+        "KHR_lights_punctual"
     ],
+    "extensionsRequired" : [
+        "KHR_lights_punctual"
+    ],
+    "extensions" : {
+        "KHR_lights_punctual" : {
+            "lights" : [
+                {
+                    "color" : [
+                        1,
+                        1,
+                        1
+                    ],
+                    "intensity" : 10,
+                    "type" : "point",
+                    "name" : "Point"
+                }
+            ]
+        }
+    },
     "scene" : 0,
     "scenes" : [
         {
@@ -34,7 +54,8 @@
                 9,
                 10,
                 11,
-                12
+                12,
+                13
             ]
         }
     ],
@@ -151,6 +172,25 @@
                 -0.7663620114326477,
                 0.21133384108543396,
                 -0.33896949887275696
+            ]
+        },
+        {
+            "extensions" : {
+                "KHR_lights_punctual" : {
+                    "light" : 0
+                }
+            },
+            "name" : "Point",
+            "rotation" : [
+                -0.7071068286895752,
+                0,
+                0,
+                0.7071068286895752
+            ],
+            "translation" : [
+                -0.5691090822219849,
+                -0.052959784865379333,
+                0.088375985622406
             ]
         }
     ],

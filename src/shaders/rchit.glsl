@@ -181,11 +181,10 @@ void main() {
     // Call BRDF functions:
     //===========================================================
 
-    // Sample light
-    uint lightIndex = randu(lights.count.x);
     
+    // Sample bsdf
     vec3 radiance;
-    float pdf;
+    float pf;
     vec3 f;
     sample_shader(
             hit, 
@@ -195,13 +194,34 @@ void main() {
             payload.dir, 
             radiance, 
             f, 
-            pdf);
+            pf);
         
+    // Sample light
+    vec3 g;
+    float pg;
 
-    payload.radiance += radiance * payload.throughput;
+    uint lightIndex = randu(lights.count.x);
+    LightData light = lights.l[lightIndex];
+
+    eval_shader(
+            hit,
+            mat,
+            light.pos.xyz,
+            g,
+            pg
+        );
     
-    if(pdf != 0.){
-        payload.throughput *= f/pdf;
+    pg *= float(lights.count.x);
+    pg = 0.;
+
+    // TODO: Combine samples (light and  bsdf) using MIS
+    payload.radiance += radiance * payload.throughput;
+    if(pg != 0.){
+        payload.radiance += light.emission.rgb * payload.throughput * g / (pf + pg);
+    }
+    
+    if(pf != 0.){
+        payload.throughput *= f/(pf + pg);
     }
     
     // thrgouhput roussian roulette propability

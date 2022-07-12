@@ -311,7 +311,7 @@ vec3 DisneyEval(Material mat, float eta, vec3 V, vec3 N, vec3 L, out float bsdfP
 void sample_shader(
     in HitInfo hit, 
     in Material mat, 
-    // Medium from the ray
+    // Medium from the ray TODO: rename
     inout Medium rmed,
     inout vec3 orig,
     inout vec3 dir,
@@ -379,6 +379,20 @@ void sample_shader(
     }
 }
 
-void eval_shader(in HitInfo hit, in Material mat){
+void eval_shader(in HitInfo hit, in Material mat, in vec3 lightPos, out vec3 f, out float pdf){
+
+    pdf = 1.;
+    f = vec3(1.);
     
+    float eta;
+    vec3 ffnormal;
+    if (dot(hit.g, hit.wo) < 0.){
+        ffnormal = -hit.n;
+        eta = mat.ior/1.;
+    } else{
+        ffnormal = hit.n;
+        eta = 1. / mat.ior;
+    }
+
+    f *= DisneyEval(mat, eta, hit.wo, ffnormal, normalize(hit.pos - lightPos), pdf);
 }

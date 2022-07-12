@@ -111,7 +111,7 @@ struct Vertex{
 #define LIGHT_POINT 0
 struct LightData{
     vec4 emission;
-    vec4 position;
+    vec4 pos;
     uint light_type;
 };
 
