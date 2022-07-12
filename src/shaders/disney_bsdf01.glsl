@@ -308,16 +308,19 @@ vec3 DisneyEval(MatInfo mat, float eta, vec3 V, vec3 N, vec3 L, out float bsdfPd
 }
 
 // Do not modify throughput or radiance of the ray
-vec3 sample_shader(
+void sample_shader(
     HitInfo hit, 
     in MatInfo mat, 
     inout Payload ray, 
     out vec3 radiance, 
+    out vec3 f,
     out float pdf
 ){
-    pdf = 1.;
-    vec3 f = vec3(1.);
+    // Initialisation of out variables
     radiance = vec3(0.);
+    f = vec3(1.);
+    pdf = 1.;
+    
     bool inside = dot(hit.g, hit.wo) < 0.;
 
     Medium med;
@@ -371,7 +374,6 @@ vec3 sample_shader(
         }
         
     }
-    return f;
 }
 
 void eval_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
