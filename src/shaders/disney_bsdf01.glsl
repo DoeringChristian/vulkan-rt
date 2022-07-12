@@ -159,7 +159,7 @@ void GetLobeProbabilities(MatInfo mat, float eta, vec3 specCol, float approxFres
     clearcoatWt /= totalWt;
 }
 
-vec3 DisneySample(MatInfo mat, float eta, vec3 V, vec3 N, out vec3 L, out float pdf, inout uint seed)
+vec3 DisneySample(MatInfo mat, float eta, vec3 V, vec3 N, out vec3 L, out float pdf)
 {
     pdf = 0.0;
     vec3 f = vec3(0.0);
@@ -350,7 +350,7 @@ void sample_shader(HitInfo hit, in MatInfo mat, inout Payload ray){
 
         float pdf = 0;
         vec3 L = vec3(ray.dir);
-        vec3 f = DisneySample(mat, eta, hit.wo, ffnormal, L, pdf, ray.seed);
+        vec3 f = DisneySample(mat, eta, hit.wo, ffnormal, L, pdf);
 
         ray.dir = normalize(L);
         if (pdf != 0.){
