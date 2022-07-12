@@ -218,7 +218,7 @@ void main() {
             pos, 
             0.001,
             normalize(light.pos.xyz - pos), 
-            length(light.pos.xyz - pos),
+            length(light.pos.xyz - pos) - 0.001,
             1
         );
 
