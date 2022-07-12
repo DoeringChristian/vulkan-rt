@@ -311,7 +311,10 @@ vec3 DisneyEval(MatInfo mat, float eta, vec3 V, vec3 N, vec3 L, out float bsdfPd
 void sample_shader(
     HitInfo hit, 
     in MatInfo mat, 
-    inout Payload ray, 
+    //inout Payload ray, 
+    inout Medium rmed,
+    inout vec3 orig,
+    inout vec3 dir,
     out vec3 radiance, 
     out vec3 f,
     out float pdf
@@ -329,7 +332,7 @@ void sample_shader(
     if(inside){
         med = mat.med;
     } else{
-        med = ray.med;
+        med = rmed;
     }
 
     // Do medium scattering
@@ -342,13 +345,14 @@ void sample_shader(
 
     if(scattered){
         // Set origin of scatterd ray
-        ray.orig = ray.orig + scatterDist * ray.dir;
-        f *= ray.med.color;
+        orig = orig + scatterDist * dir;
+        f *= med.color;
         
-        ray.dir = SampleHG(-ray.dir, med.anisotropic, randf(), randf());
-        pdf *= PhaseHG(dot(hit.wo, ray.dir), med.anisotropic);
+        vec3 L = SampleHG(-dir, med.anisotropic, randf(), randf());
+        pdf *= PhaseHG(dot(hit.wo, L), med.anisotropic);
+        dir = L;
     }else{
-        ray.orig = hit.pos;
+        orig = hit.pos;
         radiance += mat.emission.rgb;
         
         float eta;
@@ -361,16 +365,16 @@ void sample_shader(
             eta = 1. / mat.ior;
         }
 
-        vec3 L = vec3(ray.dir);
+        vec3 L = vec3(dir);
         f *= DisneySample(mat, eta, hit.wo, ffnormal, L, pdf);
 
-        ray.dir = normalize(L);
+        dir = normalize(L);
 
 
         // select medium through which the ray travels
-        inside = dot(ray.dir, hit.g) < 0.;
+        inside = dot(dir, hit.g) < 0.;
         if (inside){
-            ray.med = mat.med;
+            rmed = mat.med;
         }
         
     }

@@ -187,7 +187,16 @@ void main() {
     vec3 radiance;
     float pdf;
     vec3 f;
-    sample_shader(hit, matinfo, payload, radiance, f, pdf);
+    sample_shader(
+            hit, 
+            matinfo, 
+            payload.med, 
+            payload.orig, 
+            payload.dir, 
+            radiance, 
+            f, 
+            pdf);
+        
 
     payload.radiance += radiance * payload.throughput;
     
