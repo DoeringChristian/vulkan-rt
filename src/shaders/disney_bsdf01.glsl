@@ -315,6 +315,7 @@ vec3 sample_shader(
     out vec3 radiance, 
     out float pdf
 ){
+    pdf = 1.;
     vec3 f = vec3(1.);
     radiance = vec3(0.);
     bool inside = dot(hit.g, hit.wo) < 0.;
@@ -342,7 +343,7 @@ vec3 sample_shader(
         f *= ray.med.color;
         
         ray.dir = SampleHG(-ray.dir, med.anisotropic, randf(), randf());
-        pdf = PhaseHG(dot(hit.wo, ray.dir), med.anisotropic);
+        pdf *= PhaseHG(dot(hit.wo, ray.dir), med.anisotropic);
     }else{
         ray.orig = hit.pos;
         radiance += mat.emission.rgb;
@@ -361,7 +362,6 @@ vec3 sample_shader(
         f *= DisneySample(mat, eta, hit.wo, ffnormal, L, pdf);
 
         ray.dir = normalize(L);
-        //pdf = pdfd;
 
 
         // select medium through which the ray travels
