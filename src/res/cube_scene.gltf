@@ -1,6 +1,6 @@
 {
     "asset" : {
-        "generator" : "Khronos glTF Blender I/O v3.2.40",
+        "generator" : "Khronos glTF Blender I/O v3.2.43",
         "version" : "2.0"
     },
     "extensionsUsed" : [
@@ -15,11 +15,11 @@
             "lights" : [
                 {
                     "color" : [
-                        0.4200248420238495,
-                        0.4200248420238495,
-                        0.4200248420238495
+                        1,
+                        1,
+                        1
                     ],
-                    "intensity" : 10,
+                    "intensity" : 0.10000000149011612,
                     "type" : "point",
                     "name" : "Point"
                 }
@@ -190,7 +190,7 @@
             "translation" : [
                 -0.3704735338687897,
                 -0.3645032048225403,
-                -0.09345698356628418
+                -0.23586712777614594
             ]
         }
     ],

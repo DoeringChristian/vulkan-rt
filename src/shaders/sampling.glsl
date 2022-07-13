@@ -219,7 +219,7 @@ float PhaseHG(float cosTheta, float g)
 SampledLight sampleLight(in LightData light){
     SampledLight slight;
     if (light.light_type == LIGHT_POINT){
-        slight.emission = light.emission.rgb;
+        slight.emission = light.emission.rgb * light.emission.a;
         slight.pos = light.pos.xyz + uniform_3ball() * light.radius;
         
     } else{
