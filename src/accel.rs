@@ -164,7 +164,7 @@ impl Tlas {
             pass = pass.access_node(*blas_node, AccessType::AccelerationStructureBuildRead);
         }
         //pass.read_node(instance_node)
-        pass.access_node(instance_node, AccessType::AccelerationStructureBuildRead)
+        pass.read_node(instance_node)
             .write_node(scratch_buf)
             .write_node(tlas_node)
             .record_acceleration(move |accel| {

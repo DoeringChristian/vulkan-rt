@@ -98,12 +98,7 @@ fn main() -> anyhow::Result<()> {
     let mut camera = rt_renderer.get_camera();
 
     event_loop.run(|mut frame| {
-        if fc == 0 {
-            frame.render_graph.clear_color_image(frame.swapchain_image);
-            fc += 1;
-            return;
-        }
-        if false {
+        if fc == 3 {
             rt_renderer.blases.iter().for_each(|(key, _)| {
                 rt_renderer.emit(Signal::MeshChanged(*key));
             });
