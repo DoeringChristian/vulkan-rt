@@ -1653,6 +1653,7 @@ dependencies = [
  "slotmap",
  "std140",
  "tobj",
+ "winit",
 ]
 
 [[package]]

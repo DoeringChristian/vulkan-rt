@@ -2,6 +2,7 @@ use std::ops::Deref;
 
 use bevy_ecs::prelude::*;
 use bevy_math::*;
+use winit::event::{DeviceEvent, WindowEvent};
 use {
     bytemuck::cast_slice,
     screen_13::prelude::*,
@@ -97,6 +98,11 @@ fn main() -> anyhow::Result<()> {
     let mut camera = rt_renderer.get_camera();
 
     event_loop.run(|mut frame| {
+        if fc == 0 {
+            frame.render_graph.clear_color_image(frame.swapchain_image);
+            fc += 1;
+            return;
+        }
         if false {
             rt_renderer.blases.iter().for_each(|(key, _)| {
                 rt_renderer.emit(Signal::MeshChanged(*key));
@@ -166,9 +172,18 @@ fn main() -> anyhow::Result<()> {
                 });
             },
         );
-        if camera_changed {
-            let v = Vec3::new(angle.sin(), 0., angle.cos());
-            camera.up = [v.x, v.y, v.z, 1.];
+        let delta = frame.events.iter().find_map(|e| match e {
+            Event::DeviceEvent { device_id, event } => match event {
+                DeviceEvent::MouseMotion { delta } => Some(delta),
+                _ => None,
+            },
+            _ => None,
+        });
+        if let Some(delta) = delta {
+            let mut up = Vec4::from(camera.up).xyz();
+            let quat = Quat::from_axis_angle(vec3(0., 1., 0.), delta.0 as f32 / 1000.);
+            up = quat * up;
+            camera.up = [up.x, up.y, up.z, 1.];
             rt_renderer.set_camera(camera);
         }
 

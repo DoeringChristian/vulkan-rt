@@ -28,3 +28,4 @@ bitflags = "*"
 glam = "*"
 std140 = "*"
 macros = { path = "./macros" }
+winit = { version = "0.26" }
