@@ -97,7 +97,10 @@ fn main() -> anyhow::Result<()> {
     let mut camera = rt_renderer.get_camera();
 
     event_loop.run(|mut frame| {
-        if fc == 3 {
+        if false {
+            rt_renderer.blases.iter().for_each(|(key, _)| {
+                rt_renderer.emit(Signal::MeshChanged(*key));
+            });
             rt_renderer.emit(Signal::TlasRecreated);
         }
         rt_renderer.recreate_stage(frame.device);

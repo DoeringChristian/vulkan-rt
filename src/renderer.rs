@@ -19,7 +19,7 @@ use crate::dense_arena::*;
 use glam::*;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 const INDEX_UNDEF: u32 = 0xffffffff;
 
@@ -59,7 +59,7 @@ pub struct RTRenderer {
     pub sbt: Option<SbtBuffer>,
 
     pub world: RenderWorld,
-    pub signals: HashSet<Signal>,
+    pub signals: Mutex<HashSet<Signal>>,
 }
 mod bindings {
     pub const TLAS: (u32, u32) = (0, 0);
@@ -71,15 +71,15 @@ mod bindings {
 }
 
 impl RTRenderer {
-    pub fn emit(&mut self, signal: Signal) {
-        self.signals.insert(signal);
+    pub fn emit(&self, signal: Signal) {
+        self.signals.lock().unwrap().insert(signal);
     }
     #[inline]
     fn signaled(&self, signal: &Signal) -> bool {
-        self.signals.contains(signal)
+        self.signals.lock().unwrap().contains(signal)
     }
-    fn clear_signals(&mut self) {
-        self.signals.clear();
+    fn clear_signals(&self) {
+        self.signals.lock().unwrap().clear();
     }
     pub fn recreate_stage(&mut self, device: &Arc<Device>) {
         if self.signaled(&Signal::LightChanged)
@@ -453,7 +453,7 @@ impl RTRenderer {
             miss_groups: Vec::new(),
             pipeline: None,
             sbt: None,
-            signals: HashSet::new(),
+            signals: Mutex::new(HashSet::new()),
             world: RenderWorld::default(),
         }
     }
