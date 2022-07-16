@@ -13,12 +13,14 @@ use crate::renderer::RTRenderer;
 
 use super::Loader;
 
+#[derive(Default)]
 pub struct GltfLoader {}
 
 impl Loader<Mutex<RTRenderer>> for GltfLoader {
     type Ctx = Arc<Device>;
 
     fn load_to(
+        &self,
         path: impl AsRef<std::path::Path>,
         ctx: &Self::Ctx,
         dst: &Mutex<RTRenderer>,

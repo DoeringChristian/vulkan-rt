@@ -18,6 +18,7 @@ mod render_world;
 mod renderer;
 mod sbt;
 use gbuffer::GBuffer;
+use loaders::Loader;
 use model::*;
 use post::*;
 use renderer::*;
@@ -90,9 +91,11 @@ fn main() -> anyhow::Result<()> {
         .unwrap()
         .set_miss_groups(vec![miss_group, miss_shadow_group]);
     rt_renderer.lock().unwrap().set_rgen_group(rgen_group);
-    rt_renderer.lock().unwrap().append_gltf(
+    let loader = loaders::GltfLoader::default();
+    loader.load_to(
         "./src/res/cube_scene.gltf",
         &event_loop.device,
+        &rt_renderer,
         vec![hit_group],
     );
     //gpu_scene.upload_data(&event_loop.device);
