@@ -50,7 +50,7 @@ void main() {
         return;
     }
 
-    const uint min_rr = 2;
+    const uint min_rr = 16;
 
     //===========================================================
     // Extract geometry information:
@@ -233,6 +233,8 @@ void main() {
 
         pg *= float(lights.count.x);
     }
+    // DEBUG:
+    //isShadow = true;
 
     // TODO: Combine samples (light and  bsdf) using MIS
     payload.radiance += radiance * payload.throughput;

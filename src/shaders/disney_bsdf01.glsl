@@ -342,6 +342,8 @@ void sample_shader(
     // Absorbtion
     f *= exp(-(1. - med.color) * hit.dist * med.density);
 
+    // DEBUG:
+    //scattered = false;
     if(scattered){
         // Set origin of scatterd ray
         orig = orig + scatterDist * dir;
