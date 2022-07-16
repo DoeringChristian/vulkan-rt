@@ -98,7 +98,6 @@ fn main() -> anyhow::Result<()> {
         &rt_renderer,
         vec![hit_group],
     );
-    //gpu_scene.upload_data(&event_loop.device);
 
     let gbuffer = GBuffer::new(&event_loop.device, [1000, 1000]);
 

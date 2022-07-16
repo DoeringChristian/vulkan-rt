@@ -465,7 +465,7 @@ impl RTRenderer {
         gbuffer: &GBuffer,
         _cache: &mut HashPool,
         rgraph: &mut RenderGraph,
-    ) {
+    ) -> Option<()> {
         //let image_node = dst_img.into();
         //let image_info = rgraph.node_info(image_node);
         let color_image_node = rgraph.bind_node(&gbuffer.color);
@@ -476,11 +476,11 @@ impl RTRenderer {
             .iter()
             .map(|(_, b)| rgraph.bind_node(&b.accel))
             .collect::<Vec<_>>();
-        let material_node = rgraph.bind_node(&self.material_buf.as_ref().unwrap().buf);
-        let lights_node = rgraph.bind_node(&self.lightdata_buf.as_ref().unwrap().buf);
-        let instancedata_node = rgraph.bind_node(&self.instancedata_buf.as_ref().unwrap().buf);
-        let tlas_node = rgraph.bind_node(&self.tlas.as_ref().unwrap().accel);
-        let sbt_node = rgraph.bind_node(self.sbt.as_ref().unwrap().buffer());
+        let material_node = rgraph.bind_node(&self.material_buf.as_ref()?.buf);
+        let lights_node = rgraph.bind_node(&self.lightdata_buf.as_ref()?.buf);
+        let instancedata_node = rgraph.bind_node(&self.instancedata_buf.as_ref()?.buf);
+        let tlas_node = rgraph.bind_node(&self.tlas.as_ref()?.accel);
+        let sbt_node = rgraph.bind_node(self.sbt.as_ref()?.buffer());
         let texture_nodes = self
             .world
             .textures
@@ -505,14 +505,14 @@ impl RTRenderer {
         };
         self.world.camera.fc += 1;
 
-        let sbt_rgen = self.sbt.as_ref().unwrap().rgen();
-        let sbt_miss = self.sbt.as_ref().unwrap().miss();
-        let sbt_hit = self.sbt.as_ref().unwrap().hit();
-        let sbt_callable = self.sbt.as_ref().unwrap().callable();
+        let sbt_rgen = self.sbt.as_ref()?.rgen();
+        let sbt_miss = self.sbt.as_ref()?.miss();
+        let sbt_hit = self.sbt.as_ref()?.hit();
+        let sbt_callable = self.sbt.as_ref()?.callable();
 
         let mut pass: PipelinePassRef<RayTracePipeline> = rgraph
             .begin_pass("RT pass")
-            .bind_pipeline(self.pipeline.as_ref().unwrap());
+            .bind_pipeline(self.pipeline.as_ref()?);
         for blas_node in blas_nodes {
             pass = pass.access_node(
                 blas_node,
@@ -551,184 +551,6 @@ impl RTRenderer {
                 1,
             );
         });
-    }
-    pub fn append_gltf(
-        &mut self,
-        path: impl AsRef<Path>,
-        device: &Arc<Device>,
-        default_hit_groups: Vec<ShaderGroupKey>,
-    ) -> Vec<InstanceKey> {
-        //let path = "./src/res/cube_scene.gltf";
-        let path = path.as_ref();
-        let mut instances = vec![];
-        let (gltf, buffers, _) = gltf::import(path).unwrap();
-        {
-            // Texture loading
-            let mut texture_entities = HashMap::new();
-            for texture in gltf.textures() {
-                let image = match texture.source().source() {
-                    gltf::image::Source::Uri { uri, mime_type } => {
-                        let parent = Path::new(path).parent().unwrap();
-                        let image_path = parent.join(uri);
-                        let img = image::io::Reader::open(image_path)
-                            .unwrap()
-                            .decode()
-                            .unwrap()
-                            .into_rgba8();
-                        image::DynamicImage::ImageRgba8(img)
-                    }
-                    _ => panic!("not supported"),
-                };
-                let entity = self.insert_texture(device, &image);
-                texture_entities.insert(texture.index(), entity);
-            }
-            // Mesh loading
-            let mut mesh_entities = HashMap::new();
-            for mesh in gltf.meshes() {
-                let primitive = mesh.primitives().next().unwrap();
-                let mut indices = vec![];
-                let mut vertices = vec![];
-                let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
-
-                let mut normal_iter = reader.read_normals();
-                let mut uv0_iter = reader.read_tex_coords(0).map(|i| i.into_f32());
-                let mut uv1_iter = reader.read_tex_coords(0).map(|i| i.into_f32());
-                for pos in reader.read_positions().unwrap() {
-                    let normal = normal_iter.as_mut().unwrap().next().unwrap_or([0., 0., 0.]);
-                    let mut uv0 = [0., 0.];
-                    let mut uv1 = [0., 0.];
-                    if let Some(uv_iter) = uv0_iter.as_mut() {
-                        uv0 = uv_iter.next().unwrap_or([0., 0.]);
-                    }
-                    if let Some(uv_iter) = uv1_iter.as_mut() {
-                        uv1 = uv_iter.next().unwrap_or([0., 0.]);
-                    }
-                    vertices.push(Vertex {
-                        pos: [pos[0], pos[1], pos[2], 1.],
-                        normal: [normal[0], normal[1], normal[2], 0.],
-                        uv01: [uv0[0], uv0[1], uv1[0], uv1[0]],
-                    });
-                }
-
-                if let Some(iter) = reader.read_indices() {
-                    for index in iter.into_u32() {
-                        indices.push(Index(index));
-                    }
-                }
-                let entity = self.insert_mesh(device, &indices, &vertices);
-                mesh_entities.insert(mesh.index(), entity);
-            }
-            // Material loading
-            let mut material_entities = HashMap::new();
-            for material in gltf.materials() {
-                let mr = material.pbr_metallic_roughness();
-                let emission = material.emissive_factor();
-                let albedo_tex = material
-                    .pbr_metallic_roughness()
-                    .base_color_texture()
-                    .map(|b| texture_entities[&b.texture().index()]);
-                let mr_tex = material
-                    .pbr_metallic_roughness()
-                    .metallic_roughness_texture()
-                    .map(|b| texture_entities[&b.texture().index()]);
-                let emission_tex = material
-                    .emissive_texture()
-                    .map(|b| texture_entities[&b.texture().index()]);
-                let normal_tex = material
-                    .normal_texture()
-                    .map(|b| texture_entities[&b.texture().index()]);
-                let transmission = material
-                    .transmission()
-                    .map(|t| t.transmission_factor())
-                    .unwrap_or(0.);
-                let transmission_tex = material
-                    .transmission()
-                    .map(|t| {
-                        t.transmission_texture()
-                            .map(|t| texture_entities[&t.texture().index()])
-                    })
-                    .flatten();
-                let ior = material.ior().unwrap_or(1.4);
-                let material_entity = self.insert_material(Material {
-                    albedo: Vec4::from(mr.base_color_factor()),
-                    metallic: mr.metallic_factor(),
-                    roughness: mr.roughness_factor(),
-                    emission: Vec3::from(emission),
-                    transmission,
-                    transmission_roughness: 0.,
-                    ior,
-                    albedo_tex,
-                    mr_tex,
-                    emission_tex,
-                    normal_tex,
-                    transmission_tex,
-                    medium: Medium {
-                        color: Vec4::from(mr.base_color_factor()),
-                        anisotropic: 0.,
-                        density: 1. - transmission,
-                    },
-                });
-                material_entities.insert(material.index().unwrap(), material_entity);
-            }
-            // Instance/Node and Camera loading
-            for node in gltf.nodes() {
-                if let Some(camera) = node.camera() {
-                    if let gltf::camera::Projection::Perspective(proj) = camera.projection() {
-                        let transform = Mat4::from_cols_array_2d(&node.transform().matrix());
-                        let rot = Mat3::from_mat4(transform);
-                        // Not quite sure about the default vectors.
-                        let up = rot * Vec3::new(1., 0., 0.);
-                        let right = rot * Vec3::new(0., -1., 0.);
-                        let pos = transform * Vec4::new(0., 0., 0., 1.);
-
-                        //self.world.insert_resource(camera);
-                        let up = up.to_array();
-                        let right = right.to_array();
-                        let pos = pos.to_array();
-                        self.set_camera(GlslCamera {
-                            up: [up[0], up[1], up[2], 1.],
-                            right: [right[0], right[1], right[2], 1.],
-                            pos: [pos[0], pos[1], pos[2], 1.],
-                            focus: 1.,
-                            diameter: 0.1,
-                            fov: proj.yfov(),
-                            fc: 0,
-                            depth: 16,
-                        });
-                    }
-                }
-                if let Some(mesh) = node.mesh() {
-                    let matrix = node.transform().matrix();
-                    instances.push(
-                        self.insert_instance(MeshInstance {
-                            transform: Mat4::from_cols_array_2d(&matrix),
-                            material: material_entities[&mesh
-                                .primitives()
-                                .next()
-                                .unwrap()
-                                .material()
-                                .index()
-                                .unwrap()],
-                            mesh: mesh_entities[&mesh.index()],
-                            shader_groups: default_hit_groups.clone(),
-                        }),
-                    );
-                }
-                if let Some(light) = node.light() {
-                    let transform = node.transform().matrix();
-                    let pos = Mat4::from_cols_array_2d(&transform) * vec4(0., 0., 0., 1.);
-                    self.insert_light(Light::Point {
-                        emission: Vec3::from(light.color()),
-                        position: pos.xyz(),
-                        radius: 0.2,
-                        strength: light.intensity(),
-                    });
-                    println!("intensity: {}", light.intensity());
-                }
-            }
-        }
-        // Dummy light
-        //self.insert_light(Light::default());
-        instances
+        Some(())
     }
 }
