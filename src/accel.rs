@@ -187,7 +187,10 @@ impl Tlas {
         //instances_data: &[GlslInstanceData],
         instances: &[vk::AccelerationStructureInstanceKHR],
         //materials: &[GlslMaterial],
-    ) -> Self {
+    ) -> Option<Self> {
+        if (instances.len() == 0) {
+            return None;
+        }
         // gl_CustomIndexEXT should index into attributes.
         let instance_buf = TypedBuffer::create(
             device,
@@ -219,13 +222,13 @@ impl Tlas {
 
         let accel = Arc::new(AccelerationStructure::create(device, info).unwrap());
 
-        Self {
+        Some(Self {
             //instancedata_buf,
             instance_buf,
             //material_buf,
             size,
             geometry_info,
             accel,
-        }
+        })
     }
 }

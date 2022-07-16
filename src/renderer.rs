@@ -152,10 +152,10 @@ impl RTRenderer {
             })
             .collect::<Vec<_>>();
         if build_tlas || self.signaled(&Signal::TlasRecreated) {
-            self.tlas
-                .as_ref()
-                .unwrap()
-                .build(cache, rgraph, &blas_nodes);
+            self.tlas.as_ref().and_then(|tlas| {
+                tlas.build(cache, rgraph, &blas_nodes);
+                Some(())
+            });
             self.world.camera.fc = 0;
             //println!("Rebuild TLAS");
         }
@@ -296,7 +296,7 @@ impl RTRenderer {
         }
         //println!("Instances: {}", instances.len());
         //trace!("Instances: {}\n\n\n\n\n\n", instances.len());
-        self.tlas = Some(Tlas::create(device, &instances));
+        self.tlas = Tlas::create(device, &instances);
     }
     fn recreate_instancedata_buf(&mut self, device: &Arc<Device>) {
         let mut instancedata = vec![];

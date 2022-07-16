@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use bevy_math::*;
+use std::sync::Arc;
 use std::sync::Mutex;
 use winit::event::DeviceEvent;
 use {screen_13::prelude::*, screen_13_egui::Egui};
@@ -35,7 +36,7 @@ fn main() -> anyhow::Result<()> {
     let lts = LinearToSrgb::new(&event_loop.device);
     let mut egui = Egui::new(&event_loop.device, event_loop.window());
 
-    let mut rt_renderer = Mutex::new(RTRenderer::new());
+    let mut rt_renderer = Arc::new(Mutex::new(RTRenderer::new()));
     let rgen_shader = rt_renderer.lock().unwrap().insert_shader(
         Shader::new_ray_gen(
             inline_spirv::include_spirv!("src/shaders/rgen.glsl", rgen, vulkan1_2).as_slice(),
@@ -92,12 +93,16 @@ fn main() -> anyhow::Result<()> {
         .set_miss_groups(vec![miss_group, miss_shadow_group]);
     rt_renderer.lock().unwrap().set_rgen_group(rgen_group);
     let loader = loaders::GltfLoader::default();
-    loader.load_to(
-        "./src/res/cube_scene.gltf",
-        &event_loop.device,
-        &rt_renderer,
-        vec![hit_group],
-    );
+    let device = event_loop.device.clone();
+    let loader_dst = rt_renderer.clone();
+    std::thread::spawn(move || {
+        loader.load_to(
+            "./src/res/cube_scene.gltf",
+            &device,
+            &loader_dst,
+            vec![hit_group],
+        );
+    });
 
     let gbuffer = GBuffer::new(&event_loop.device, [1000, 1000]);
 
