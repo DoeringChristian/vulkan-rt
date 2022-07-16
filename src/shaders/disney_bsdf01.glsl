@@ -323,7 +323,7 @@ void sample_shader(
     radiance = vec3(0.);
     f = vec3(1.);
     pdf = 1.;
-    
+
     bool inside = dot(hit.g, hit.wo) < 0.;
 
     Medium med;
@@ -335,6 +335,9 @@ void sample_shader(
         med = rmed;
     }
 
+    // DEBUG:
+    med.density = 0.000;
+
     // Do medium scattering
     float scatterDist = min(-log(randf()/med.density) * med.density, hit.dist);
     bool scattered = scatterDist < hit.dist;
@@ -343,14 +346,14 @@ void sample_shader(
     f *= exp(-(1. - med.color) * hit.dist * med.density);
 
     // DEBUG:
-    //scattered = false;
+    scattered = false;
     if(scattered){
         // Set origin of scatterd ray
         orig = orig + scatterDist * dir;
         f *= med.color;
         
-        vec3 L = SampleHG(-dir, med.anisotropic, randf(), randf());
-        pdf *= PhaseHG(dot(hit.wo, L), med.anisotropic);
+        vec3 L = SampleHG(hit.wo, med.anisotropic, randf(), randf());
+        pdf = PhaseHG(dot(hit.wo, L), med.anisotropic);
         dir = L;
     }else{
         orig = hit.pos;

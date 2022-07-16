@@ -144,7 +144,7 @@ void main() {
 
     // Initialize medium of the material the ray hits.
     mat.med.color = materialData.med.color.rgb;
-    mat.med.anisotropic = materialData.med.anisotropic;
+    mat.med.anisotropic = clamp(materialData.med.anisotropic, -0.9, 0.9);
     mat.med.density = materialData.med.density;
 
     // TODO: material interpolation and tangent space.
