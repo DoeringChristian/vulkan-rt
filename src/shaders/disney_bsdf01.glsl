@@ -341,7 +341,7 @@ void sample_shader(
     // Do medium scattering
     //float scatterDist = clamp(-log(randf()/med.density), 0., hit.dist);
     float scatterDist = min(-log(randf())/med.density, hit.dist);
-    bool scattered = scatterDist < hit.dist - 0.001;
+    bool scattered = scatterDist < hit.dist - RAY_TMIN;
 
     // Absorbtion
     f *= exp(-(1. - med.color) * hit.dist * med.density);
