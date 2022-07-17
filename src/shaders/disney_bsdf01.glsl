@@ -336,25 +336,27 @@ void sample_shader(
     }
 
     // DEBUG:
-    med.density = 0.000;
+    //med.density = 0.000;
 
     // Do medium scattering
-    float scatterDist = min(-log(randf()/med.density) * med.density, hit.dist);
-    bool scattered = scatterDist < hit.dist;
+    //float scatterDist = clamp(-log(randf()/med.density), 0., hit.dist);
+    float scatterDist = min(-log(randf())/med.density, hit.dist);
+    bool scattered = scatterDist < hit.dist - 0.001;
 
     // Absorbtion
     f *= exp(-(1. - med.color) * hit.dist * med.density);
 
     // DEBUG:
-    scattered = false;
+    //scattered = false;
     if(scattered){
         // Set origin of scatterd ray
         orig = orig + scatterDist * dir;
         f *= med.color;
         
-        vec3 L = SampleHG(hit.wo, med.anisotropic, randf(), randf());
-        pdf = PhaseHG(dot(hit.wo, L), med.anisotropic);
-        dir = L;
+        vec3 L = SampleHG(-dir, med.anisotropic, randf(), randf());
+        pdf = PhaseHG(dot(-dir, L), med.anisotropic);
+        dir = normalize(L);
+        //dir = dir;
     }else{
         orig = hit.pos;
         radiance += mat.emission.rgb;
