@@ -43,7 +43,7 @@ void main() {
 
     payload.med.color = vec3(1.);
     payload.med.anisotropic = 0.;
-    payload.med.density = 0.00;
+    payload.med.density = 0.0;
     
     payload.seed = randu();
     payload.depth = 0;
