@@ -44,18 +44,14 @@ mat3 compute_TBN(vec2 duv0, vec2 duv1, vec3 dpos0, vec3 dpos1, vec3 n){
     return mat3(t, b, n);
 }
 
-void main() {
-    init_seed(payload.seed);
-    if (payload.ray_active == 0) {
-        return;
-    }
-
-    const uint min_rr = 2;
-
+void info(
+    out InstanceData inst, 
+    out HitInfo hit,
+    out Material mat){
     //===========================================================
     // Extract geometry information:
     //===========================================================
-    InstanceData inst = instances[gl_InstanceCustomIndexEXT];
+    inst = instances[gl_InstanceCustomIndexEXT];
     mat4 transform = mat4(inst.trans0, inst.trans1, inst.trans2, inst.trans3);
     MaterialData materialData = materials[inst.mat_index];
 
@@ -115,7 +111,7 @@ void main() {
     float dist = length(prev_pos - pos);
     
     // Initialize hit
-    HitInfo hit;
+    //HitInfo hit;
     hit.pos = pos;
     hit.wo = wo;
     hit.g = gnorm;
@@ -123,7 +119,7 @@ void main() {
     hit.dist = dist;
     
     // Initialize Material
-    Material mat;
+    //Material mat;
     mat.albedo = materialData.albedo.rgb;
     mat.emission = materialData.emission.rgb;
     mat.transmission = materialData.transmission;
@@ -177,6 +173,23 @@ void main() {
     float aspect = sqrt(1. - mat.anisotropic * 0.9);
     mat.ax = max(0.001, mat.roughness / aspect);
     mat.ay = max(0.001, mat.roughness / aspect);
+    
+}
+
+void main() {
+    init_seed(payload.seed);
+    if (payload.ray_active == 0) {
+        return;
+    }
+
+    const uint min_rr = 2;
+
+    InstanceData inst;
+    HitInfo hit;
+    Material mat;
+    
+    info(inst, hit, mat);
+
 
     //===========================================================
     // Call BRDF functions:
@@ -215,10 +228,10 @@ void main() {
             0, 
             0, 
             1, 
-            pos, 
+            hit.pos, 
             0.001,
-            normalize(light.pos.xyz - pos), 
-            length(light.pos.xyz - pos) - 0.001,
+            normalize(light.pos.xyz - hit.pos), 
+            length(light.pos.xyz - hit.pos) - 0.001,
             1
         );
 
