@@ -339,7 +339,6 @@ void sample_shader(
     //med.density = 0.000;
 
     // Do medium scattering
-    //float scatterDist = clamp(-log(randf()/med.density), 0., hit.dist);
     float scatterDist = min(-log(randf())/med.density, hit.dist);
     bool scattered = scatterDist < hit.dist - RAY_TMIN;
 
