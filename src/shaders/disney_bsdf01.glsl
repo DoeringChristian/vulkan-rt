@@ -312,28 +312,21 @@ void sample_shader(
     in HitInfo hit, 
     in Material mat, 
     // Medium from the ray TODO: rename
-    inout Medium rmed,
+    inout Medium med,
     inout vec3 orig,
     inout vec3 dir,
+    out bool rayEntered,
     out vec3 radiance, 
     out vec3 f,
     out float pdf
 ){
     // Initialisation of out variables
+    rayEntered = false;
     radiance = vec3(0.);
     f = vec3(1.);
     pdf = 1.;
 
     bool inside = dot(hit.g, hit.wo) < 0.;
-
-    Medium med;
-    
-    // Select medium through which the ray has traveled.
-    if(inside){
-        med = mat.med;
-    } else{
-        med = rmed;
-    }
 
     // DEBUG:
     //med.density = 0.000;
@@ -379,7 +372,8 @@ void sample_shader(
         // select medium through which the ray travels
         inside = dot(dir, hit.g) < 0.;
         if (inside){
-            rmed = mat.med;
+            //rmed = mat.med;
+            rayEntered = true;
         }
         
     }

@@ -44,14 +44,14 @@ mat3 compute_TBN(vec2 duv0, vec2 duv1, vec3 dpos0, vec3 dpos1, vec3 n){
     return mat3(t, b, n);
 }
 
-void info(
-    out InstanceData inst, 
+void hitInfo(
     out HitInfo hit,
-    out Material mat){
+    out Material mat,
+    out Medium med){
     //===========================================================
     // Extract geometry information:
     //===========================================================
-    inst = instances[gl_InstanceCustomIndexEXT];
+    InstanceData inst = instances[gl_InstanceCustomIndexEXT];
     mat4 transform = mat4(inst.trans0, inst.trans1, inst.trans2, inst.trans3);
     MaterialData materialData = materials[inst.mat_index];
 
@@ -173,7 +173,12 @@ void info(
     float aspect = sqrt(1. - mat.anisotropic * 0.9);
     mat.ax = max(0.001, mat.roughness / aspect);
     mat.ay = max(0.001, mat.roughness / aspect);
-    
+
+    if (dot(hit.g, hit.wo) < 0.){
+        med = mat.med;
+    }else{
+        med = payload.med;
+    }
 }
 
 void main() {
@@ -184,11 +189,11 @@ void main() {
 
     const uint min_rr = 2;
 
-    InstanceData inst;
     HitInfo hit;
     Material mat;
+    Medium med;
     
-    info(inst, hit, mat);
+    hitInfo(hit, mat, med);
 
 
     //===========================================================
@@ -200,15 +205,20 @@ void main() {
     vec3 radiance;
     float pf;
     vec3 f;
+    bool rayEntered;
     sample_shader(
             hit, 
             mat, 
             payload.med, 
             payload.orig, 
             payload.dir, 
+            rayEntered,
             radiance, 
             f, 
             pf);
+    if(rayEntered){
+        payload.med = mat.med;
+    }
         
     // Sample light
     vec3 g;
