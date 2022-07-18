@@ -259,7 +259,7 @@ void main() {
     // DEBUG:
     //isShadow = true;
 
-    // TODO: Combine samples (light and  bsdf) using MIS
+    // Combine samples (light and  bsdf) using MIS
     payload.radiance += radiance * payload.throughput;
     if(pg > 0. && !isShadow){
         float misWeight = PowerHeuristic(pg, pf); // Calculate misWeight for light source sampling
