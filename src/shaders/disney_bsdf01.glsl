@@ -311,17 +311,17 @@ vec3 DisneyEval(Material mat, float eta, vec3 V, vec3 N, vec3 L, out float bsdfP
 void sample_shader(
     in HitInfo hit, 
     in Material mat, 
-    // Medium from the ray TODO: rename
-    inout Medium med,
+    // Medium through which the ray has traveled
+    in Medium med,
     inout vec3 orig,
     inout vec3 dir,
-    out bool rayEntered,
+    out bool mediumEntered,
     out vec3 radiance, 
     out vec3 f,
     out float pdf
 ){
     // Initialisation of out variables
-    rayEntered = false;
+    mediumEntered = false;
     radiance = vec3(0.);
     f = vec3(1.);
     pdf = 1.;
@@ -373,7 +373,7 @@ void sample_shader(
         inside = dot(dir, hit.g) < 0.;
         if (inside){
             //rmed = mat.med;
-            rayEntered = true;
+            mediumEntered = true;
         }
         
     }

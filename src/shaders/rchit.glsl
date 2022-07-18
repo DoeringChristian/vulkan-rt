@@ -205,18 +205,18 @@ void main() {
     vec3 radiance;
     float pf;
     vec3 f;
-    bool rayEntered;
+    bool mediumEntered;
     sample_shader(
             hit, 
             mat, 
             payload.med, 
             payload.orig, 
             payload.dir, 
-            rayEntered,
+            mediumEntered,
             radiance, 
             f, 
             pf);
-    if(rayEntered){
+    if(mediumEntered){
         payload.med = mat.med;
     }
         
