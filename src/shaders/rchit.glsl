@@ -143,7 +143,9 @@ void hitInfo(
     mat.med.anisotropic = clamp(materialData.med.anisotropic, -0.9, 0.9);
     mat.med.density = materialData.med.density;
 
-    // TODO: material interpolation and tangent space.
+    //===========================================================
+    // Get Textures of Material:
+    //===========================================================
     vec2 uv0 = vert0.uv.xy;
     vec2 uv1 = vert1.uv.xy;
     vec2 uv2 = vert2.uv.xy;
