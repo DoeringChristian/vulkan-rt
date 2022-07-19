@@ -11,7 +11,7 @@
 #include "utils.glsl"
 #include "disney_bsdf01.glsl"
 
-const uint min_rr = 16;
+const uint min_rr = 2;
 
 void main() {
     uint N = camera.fc;
@@ -133,7 +133,7 @@ void main() {
         }
 
         // DEBUG:
-        isShadow = true;
+        //isShadow = true;
 
         // Combine samples (light and bsdf) using MIS
         ray.radiance += radiance * ray.throughput;

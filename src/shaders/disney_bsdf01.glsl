@@ -339,7 +339,7 @@ void sample_shader(
     f *= exp(-(1. - med.color) * dist * med.density);
 
     // DEBUG:
-    scattered = false;
+    //scattered = false;
     if(scattered){
         // Set origin of scatterd ray
         orig = orig + scatterDist * dir;
