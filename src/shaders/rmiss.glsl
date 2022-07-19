@@ -9,8 +9,8 @@
 layout(location = 0) rayPayloadInEXT Payload payload;
 
 void main() {
-    init_seed(payload.seed);
-    payload.radiance += vec3(0.) * payload.throughput;
-    payload.ray_active = 0;
+    //payload.radiance += vec3(0.) * payload.throughput;
+    payload.terminated = 1;
+    //payload.ray_active = 0;
     //payload.color *= payload.dir * 100.;
 }

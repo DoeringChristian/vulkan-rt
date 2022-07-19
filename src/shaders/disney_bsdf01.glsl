@@ -326,7 +326,7 @@ void sample_shader(
     f = vec3(1.);
     pdf = 1.;
 
-    bool inside = dot(hit.g, hit.wo) < 0.;
+    //bool inside = dot(hit.g, hit.wo) < 0.;
 
     // DEBUG:
     //med.density = 0.000;
@@ -355,7 +355,7 @@ void sample_shader(
         
         float eta;
         vec3 ffnormal;
-        if (dot(hit.g, hit.wo) < 0.){
+        if (dot(hit.g, -dir) < 0.){
             ffnormal = -hit.n;
             eta = mat.ior/1.;
         } else{
@@ -364,13 +364,13 @@ void sample_shader(
         }
 
         vec3 L = vec3(dir);
-        f *= DisneySample(mat, eta, hit.wo, ffnormal, L, pdf);
+        f *= DisneySample(mat, eta, -dir, ffnormal, L, pdf);
 
         dir = normalize(L);
 
 
         // select medium through which the ray travels
-        inside = dot(dir, hit.g) < 0.;
+        bool inside = dot(dir, hit.g) < 0.;
         if (inside){
             //rmed = mat.med;
             mediumEntered = true;
@@ -379,14 +379,14 @@ void sample_shader(
     }
 }
 
-void eval_shader(in HitInfo hit, in Material mat, in vec3 lightPos, out vec3 f, out float pdf){
+void eval_shader(in HitInfo hit, in Material mat, in vec3 V, in vec3 lightPos, out vec3 f, out float pdf){
 
     pdf = 1.;
     f = vec3(1.);
     
     float eta;
     vec3 ffnormal;
-    if (dot(hit.g, hit.wo) < 0.){
+    if (dot(hit.g, V) < 0.){
         ffnormal = -hit.n;
         eta = mat.ior/1.;
     } else{
@@ -395,6 +395,6 @@ void eval_shader(in HitInfo hit, in Material mat, in vec3 lightPos, out vec3 f, 
     }
     float dist = length(lightPos - hit.pos);
 
-    f *= DisneyEval(mat, eta, hit.wo, ffnormal, normalize(lightPos - hit.pos), pdf);
+    f *= DisneyEval(mat, eta, V, ffnormal, normalize(lightPos - hit.pos), pdf);
     f /= dist * dist;
 }

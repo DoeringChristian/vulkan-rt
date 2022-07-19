@@ -54,7 +54,7 @@ struct Material{
 
 struct HitInfo{
     vec3 pos;
-    vec3 wo;
+    //vec3 wo;
     // Geometry Normal
     vec3 g;
     // Texture Normal
@@ -77,6 +77,25 @@ struct InstanceData{
 
 #define RAY_TMIN 0.001
 struct Payload{
+    vec2 hit_co;
+    uint instanceIndex;
+    uint primitiveID;
+    uint terminated;
+};
+struct Ray{
+    vec3 orig;
+    vec3 dir;
+    
+    vec3 radiance;
+    vec3 throughput;
+
+    Medium med;
+    float ior;
+
+    uint depth;
+};
+/*
+struct Payload{
     vec3 orig;
     vec3 dir;
     
@@ -90,6 +109,7 @@ struct Payload{
     int depth;
     int ray_active;
 };
+*/
 
 struct Camera{
     vec4 up;
