@@ -51,23 +51,10 @@ void main() {
 
     vec3 color = imageLoad(image, ivec2(gl_LaunchIDEXT.xy)).xyz;
     
-    /*
-    vec2 uv = gl_LaunchIDEXT.xy;
-    vec2 roff = rand2(vec3(float(N), uv.x, uv.y));
-    uv += roff;
-    uv /= vec2(gl_LaunchSizeEXT.xy);
-    uv = (uv * 2. - 1.) * vec2(1., -1.);
-    uv *= 0.7;
-    */
     for (int x = 0; x < camera.depth; x++) {
-    //for (int x = 0; x < 1; x++) {
         traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
                     payload.orig, RAY_TMIN, payload.dir, 10000.0, 0);
     }
-    // DEBUG: boost light:
-    //payload.color *= 10.;
-    //payload.color = payload.color/(payload.color + vec3(1.));
-    //payload.color = pow(payload.color, vec3(1.0/2.2));
     if (N == 0){
         color = payload.radiance;
     }
