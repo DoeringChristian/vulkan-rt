@@ -157,6 +157,7 @@ void hitInfo(
         // As specified by gltf specs the blue chanel stores metallness, the green chanel roughness.
         vec2 mr = texture(textures[materialData.mr_tex], uv).bg;
         mat.metallic = mr.x;
+        // TODO: maybe mat.roughness should not be a but roughness
         mat.roughness = max(mr.y * mr.y, 0.001);
     }
     if (materialData.normal_tex != INDEX_UNDEF){
@@ -183,13 +184,13 @@ void hitInfo(
     }
 }
 
+    const uint min_rr = 2;
+
 void main() {
-    init_seed(payload.seed);
     if (payload.ray_active == 0) {
         return;
     }
-
-    const uint min_rr = 2;
+    init_seed(payload.seed);
 
     HitInfo hit;
     Material mat;
@@ -203,7 +204,7 @@ void main() {
     //===========================================================
 
     
-    // Sample bsdf
+    // Sample bsdf and scattering function
     vec3 radiance;
     float pf;
     vec3 f;
@@ -277,7 +278,9 @@ void main() {
         payload.throughput *= misWeight * f / pf;
     }
     
-    // thrgouhput roussian roulette propability
+    //===========================================================
+    // Throughput Russian Roulette:
+    //===========================================================
     //p_{RR} = max_{RGB}\leftb( \prod_{d = 1}^{D-1} \left({f_r(x_d, w_d \rightarrow v_d) cos(\theta_d)) \over p(w_d)p_{RR_d}}\right)\right)
     float p_rr = max(payload.throughput.r, max(payload.throughput.g, payload.throughput.b));
     if (payload.depth < min_rr){
