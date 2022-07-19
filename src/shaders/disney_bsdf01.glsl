@@ -320,6 +320,7 @@ void sample_shader(
     out vec3 f,
     out float pdf
 ){
+    vec3 V = normalize(-dir);
     // Initialisation of out variables
     mediumEntered = false;
     radiance = vec3(0.);
@@ -339,7 +340,7 @@ void sample_shader(
     f *= exp(-(1. - med.color) * hit.dist * med.density);
 
     // DEBUG:
-    //scattered = false;
+    scattered = false;
     if(scattered){
         // Set origin of scatterd ray
         orig = orig + scatterDist * dir;
@@ -355,7 +356,7 @@ void sample_shader(
         
         float eta;
         vec3 ffnormal;
-        if (dot(hit.g, -dir) < 0.){
+        if (dot(hit.g, V) < 0.){
             ffnormal = -hit.n;
             eta = mat.ior/1.;
         } else{
@@ -364,7 +365,7 @@ void sample_shader(
         }
 
         vec3 L = vec3(dir);
-        f *= DisneySample(mat, eta, -dir, ffnormal, L, pdf);
+        f *= DisneySample(mat, eta, V, ffnormal, L, pdf);
 
         dir = normalize(L);
 

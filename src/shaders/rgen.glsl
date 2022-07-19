@@ -11,7 +11,7 @@
 #include "utils.glsl"
 #include "disney_bsdf01.glsl"
 
-const uint min_rr = 2;
+const uint min_rr = 16;
 
 void main() {
     uint N = camera.fc;
@@ -132,6 +132,9 @@ void main() {
             pg *= float(lights.count.x);
         }
 
+        // DEBUG:
+        isShadow = true;
+
         // Combine samples (light and bsdf) using MIS
         ray.radiance += radiance * ray.throughput;
         if(pg > 0. && !isShadow){
@@ -145,7 +148,8 @@ void main() {
             } else{
                 misWeight = PowerHeuristic(pf, pg);
             }
-            ray.throughput *= misWeight * f / pf;
+            //ray.throughput *= misWeight * f / pf;
+            //ray.throughput *= mat.albedo.rgb;
         }
         
         //===========================================================
