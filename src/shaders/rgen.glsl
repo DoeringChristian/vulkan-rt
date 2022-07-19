@@ -148,8 +148,7 @@ void main() {
             } else{
                 misWeight = PowerHeuristic(pf, pg);
             }
-            //ray.throughput *= misWeight * f / pf;
-            //ray.throughput *= mat.albedo.rgb;
+            ray.throughput *= misWeight * f / pf;
         }
         
         //===========================================================

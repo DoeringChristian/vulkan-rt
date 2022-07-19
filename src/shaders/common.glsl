@@ -86,8 +86,8 @@ struct Ray{
     vec3 orig;
     vec3 dir;
     
-    vec3 radiance;
     vec3 throughput;
+    vec3 radiance;
 
     Medium med;
     float ior;

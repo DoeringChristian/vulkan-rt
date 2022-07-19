@@ -337,7 +337,7 @@ void sample_shader(
     bool scattered = scatterDist < hit.dist - RAY_TMIN;
 
     // Absorbtion
-    f *= exp(-(1. - med.color) * hit.dist * med.density);
+    //f *= exp(-(1. - med.color) * hit.dist * med.density);
 
     // DEBUG:
     scattered = false;
