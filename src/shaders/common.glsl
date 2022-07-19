@@ -59,7 +59,6 @@ struct HitInfo{
     vec3 g;
     // Texture Normal
     vec3 n;
-    float dist;
 };
 
 #define INDEX_UNDEF 0xffffffff

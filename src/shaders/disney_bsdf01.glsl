@@ -320,24 +320,23 @@ void sample_shader(
     out vec3 f,
     out float pdf
 ){
-    vec3 V = normalize(-dir);
     // Initialisation of out variables
     mediumEntered = false;
     radiance = vec3(0.);
     f = vec3(1.);
     pdf = 1.;
 
-    //bool inside = dot(hit.g, hit.wo) < 0.;
+    float dist = length(hit.pos - orig);
 
     // DEBUG:
     //med.density = 0.000;
 
     // Do medium scattering
-    float scatterDist = min(-log(randf())/med.density, hit.dist);
-    bool scattered = scatterDist < hit.dist - RAY_TMIN;
+    float scatterDist = min(-log(randf())/med.density, dist);
+    bool scattered = scatterDist < dist - RAY_TMIN;
 
     // Absorbtion
-    //f *= exp(-(1. - med.color) * hit.dist * med.density);
+    f *= exp(-(1. - med.color) * dist * med.density);
 
     // DEBUG:
     scattered = false;
@@ -356,7 +355,7 @@ void sample_shader(
         
         float eta;
         vec3 ffnormal;
-        if (dot(hit.g, V) < 0.){
+        if (dot(hit.g, -dir) < 0.){
             ffnormal = -hit.n;
             eta = mat.ior/1.;
         } else{
@@ -365,7 +364,7 @@ void sample_shader(
         }
 
         vec3 L = vec3(dir);
-        f *= DisneySample(mat, eta, V, ffnormal, L, pdf);
+        f *= DisneySample(mat, eta, -dir, ffnormal, L, pdf);
 
         dir = normalize(L);
 
