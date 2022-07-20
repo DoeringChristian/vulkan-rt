@@ -82,6 +82,9 @@ impl RTRenderer {
         self.signals.lock().unwrap().clear();
     }
     pub fn recreate_stage(&mut self, device: &Arc<Device>) {
+        if self.signaled(&Signal::CameraChanged) {
+            self.world.camera.fc = 0;
+        }
         if self.signaled(&Signal::LightChanged)
             || self.signaled(&Signal::LightResized)
             || self.lightdata_buf.is_none()

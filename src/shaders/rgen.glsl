@@ -35,7 +35,7 @@ void main() {
     //payload.orig = vec3(1., 0., 0.);
     Ray ray;
     ray.orig = camera.pos.xyz;
-    ray.dir = normalize(up * uv.y + right * uv.x + forward);
+    ray.dir = normalize(-up * uv.y + right * uv.x + forward);
 
     ray.radiance = vec3(0.);
     ray.throughput = vec3(1.);

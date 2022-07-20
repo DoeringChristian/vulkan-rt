@@ -108,7 +108,6 @@ fn main() -> anyhow::Result<()> {
 
     let mut fc = 0;
     let mut angle: f32 = std::f32::consts::PI;
-    let mut camera = rt_renderer.lock().unwrap().get_camera();
 
     event_loop.run(|mut frame| {
         if false {
@@ -161,21 +160,6 @@ fn main() -> anyhow::Result<()> {
             &mut frame.render_graph,
             |ctx| {
                 egui::Window::new("Test").show(&ctx, |ui| {
-                    camera_changed |= ui
-                        .add(egui::Slider::new(&mut camera.pos[0], -10.0..=10.))
-                        .changed();
-                    camera_changed |= ui
-                        .add(egui::Slider::new(&mut camera.pos[1], -10.0..=10.))
-                        .changed();
-                    camera_changed |= ui
-                        .add(egui::Slider::new(&mut camera.pos[2], -10.0..=10.))
-                        .changed();
-                    camera_changed |= ui
-                        .add(egui::Slider::new(&mut angle, -10.0..=10.0))
-                        .changed();
-                    camera_changed |= ui
-                        .add(egui::Slider::new(&mut camera.depth, 0..=16))
-                        .changed();
                     if ui.button("Add instance").clicked() {
                         let mut inst = rt_renderer
                             .lock()
@@ -201,6 +185,7 @@ fn main() -> anyhow::Result<()> {
             _ => None,
         });
         if let Some(delta) = delta {
+            let mut camera = rt_renderer.lock().unwrap().get_camera();
             let mut right = Vec4::from(camera.right).xyz();
             let quat = Quat::from_axis_angle(vec3(0., 1., 0.), delta.0 as f32 / 1000.);
             right = quat * right;
