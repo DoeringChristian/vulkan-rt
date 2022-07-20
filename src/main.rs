@@ -201,10 +201,10 @@ fn main() -> anyhow::Result<()> {
             _ => None,
         });
         if let Some(delta) = delta {
-            let mut up = Vec4::from(camera.up).xyz();
+            let mut right = Vec4::from(camera.right).xyz();
             let quat = Quat::from_axis_angle(vec3(0., 1., 0.), delta.0 as f32 / 1000.);
-            up = quat * up;
-            camera.up = [up.x, up.y, up.z, 1.];
+            right = quat * right;
+            camera.right = [right.x, right.y, right.z, 1.];
             rt_renderer.lock().unwrap().set_camera(camera);
         }
 

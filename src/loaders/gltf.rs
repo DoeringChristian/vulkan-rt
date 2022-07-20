@@ -142,8 +142,8 @@ impl Loader<Mutex<RTRenderer>> for GltfLoader {
                 if let gltf::camera::Projection::Perspective(proj) = camera.projection() {
                     let transform = Mat4::from_cols_array_2d(&node.transform().matrix());
                     let rot = Mat3::from_mat4(transform);
-                    let up = rot * Vec3::new(1., 0., 0.);
-                    let right = rot * Vec3::new(0., -1., 0.);
+                    let up = rot * Vec3::new(0., 1., 0.);
+                    let right = rot * Vec3::new(1., 0., 0.);
                     let pos = transform * Vec4::new(0., 0., 0., 1.);
 
                     let up = up.to_array();
