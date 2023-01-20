@@ -57,7 +57,7 @@ impl Texture {
             texture: 0,
         }
     }
-    pub fn varying(texture: u32) -> Self {
+    pub fn image(texture: u32) -> Self {
         Self {
             ty: 1,
             val: Vec3::ZERO,

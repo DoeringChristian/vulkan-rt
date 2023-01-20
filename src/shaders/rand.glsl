@@ -1,7 +1,7 @@
 #ifndef RAND_GLSL
 #define RAND_GLSL
 
-#include "math.glsl"
+#define INCREMENTOR 6364136223846793005ul
 
 float uint_to_unit_float(uint u){
     const uint mantissaMask = 0x007FFFFFu;
@@ -11,6 +11,24 @@ float uint_to_unit_float(uint u){
     float  r2 = uintBitsToFloat(u);
     return r2 - 1.0;
 }
+
+uvec2 sample_tea_32(uint v0, uint v1, uint rounds) {
+    uint sum = 0;
+    for (uint i = 0; i < rounds; ++i) {
+        sum += 0x9e3779b9;
+        v0 += ((v1 << 4) + 0xa341316c) ^ (v1 + sum) ^ ((v1 >> 5) + 0xc8013ea4);
+        v1 += ((v0 << 4) + 0xad90777d) ^ (v0 + sum) ^ ((v0 >> 5) + 0x7e95761e);
+    }
+    return uvec2(v0, v1);
+}
+
+uvec2 sample_tea_32(uint v0, uint v1) {
+    return sample_tea_32(v0, v1, 4);
+}
+
+// PCG PRNG
+uint64_t _state;
+uint64_t _inc;
 
 /*
 Pcg Hashing algorithm copied from https://www.shadertoy.com/view/XlGcRh.
@@ -23,122 +41,38 @@ uint pcg(uint v)
 	return (word >> 22u) ^ word;
 }
 
-// Rng state
-uint _seed;
-//RNG from code by Moroz Mykhailo (https://www.shadertoy.com/view/wltcRS)
-void pcg4d(inout uvec4 v)
-{
-    v = v * 1664525u + 1013904223u;
-    v.x += v.y * v.w; v.y += v.z * v.x; v.z += v.x * v.y; v.w += v.y * v.z;
-    v = v ^ (v >> 16u);
-    v.x += v.y * v.w; v.y += v.z * v.x; v.z += v.x * v.y; v.w += v.y * v.z;
+void pcg_init(uint64_t seed, uint64_t seq){
+    _state = seed;
+    _inc = (seq << 1) | 1;
 }
 
-void init_seed(uint seed){
-    _seed = seed;
+void pcg_init(uvec2 seed_seq){
+    pcg_init(uint64_t(seed_seq.x), uint64_t(seed_seq.y));
 }
 
-float randf(inout uint seed){
-    seed = pcg(seed);
-    return uint_to_unit_float(seed);
-}
-uint randu(){
-    _seed = pcg(_seed);
-    return _seed;
-}
-uint randu(uint max){
-    return randu() % max;
-}
-uint randu(uint min, uint max){
-    return randu(max) + min;
-}
-float randf(){
-    
-    return float(randu())/float(0xffffffffu);
-}
-float randf(float max){
-    return randf() / max;
-}
-float randf(float min, float max){
-    return randf(max) + min;
+uint64_t next_u64(){
+    uint64_t old_state = _state;
+    _state = old_state * INCREMENTOR + _inc;
+
+    uint64_t xor_shifted = (old_state >> 18) ^ old_state >> 27;
+
+    uint64_t rot = old_state >> 59;
+    return (xor_shifted >> rot) | (xor_shifted << ((-rot) & 31));
 }
 
-vec2 rand2f(){
-    return vec2(randf(), randf());
+uint next_u32(){
+    return uint(next_u64());
 }
-vec3 rand3f(inout uint seed){
-    return vec3(randf(), randf(), randf());
-}
-
-
-vec3 uniform_2sphere(){
-    vec2 uv = rand2f();
-    float theta = acos(1. - 2. * uv.x);
-    float phi = 2 * M_PI *    uv.y;
-    return vec3(
-        cos(phi) * sin(theta),
-        sin(phi) * sin(theta),
-        cos(theta)
-    );
-}
-vec2 uniform_sphere_uv(){
-    vec2 uv = rand2f();
-    float theta = acos(1. - 2. * uv.x);
-    float phi = 2 * M_PI *    uv.y;
-    return vec2(theta, phi);
-}
-vec3 uniform_hemisphere(){
-    vec2 uv = rand2f();
-    float theta = acos(1. - uv.x);
-    float phi = 2 * M_PI * uv.y;
-    return vec3(
-        cos(phi) * sin(theta),
-        sin(phi) * sin(theta),
-        cos(theta)
-    );
-}
-vec3 uniform_hemisphere_alligned(vec3 normal){
-    vec3 sphere = uniform_2sphere();
-    if (dot(normal , sphere) <= 0.){
-        return reflect(sphere, normal);
-    }
-    return sphere;
-}
-vec3 cosine_hemisphere(){
-    float r = sqrt(randf());
-    float phi = randf() * 2. * M_PI;
-
-    float x = r * cos(phi);
-    float y = r * sin(phi);
-
-    return vec3(x, y, sqrt(1. - x*x - y*y));
+float next_float(){
+    return float(next_u32())/float(0xffffffffu);
 }
 
-vec2 uniform_hemisphere_uv(){
-    vec2 uv = uniform_sphere_uv();
-    if (uv.x > 0){
-        return uv;
-    }
-    else{
-        return vec2(-uv.x, uv.y);
-    }
+float next_1d(){
+    return next_float();
+}
+vec2 next_2d(){
+    return vec2(next_1d(), next_1d());
 }
 
-vec3 allign_hemisphere(vec3 hemisphere, vec3 up){
-    vec3 right = normalize(cross(up, vec3(0.0072, 1., 0.0034)));
-    vec3 forward = cross(right, up);
-
-    return hemisphere.x * forward + hemisphere.y * right + hemisphere.z * up;
-}
-
-vec3 uniform_3ball(){
-    float u = 2. * randf() - 1.;
-    float phi = 2. * M_PI * randf();
-    float r = pow(randf(), 1./3.);
-    float x = r * cos(phi) * sqrt(1. - u * u);
-    float y = r * sin(phi) * sqrt(1. - u * u);
-    float z = r * u;
-    return vec3(x, y, z);
-}
 
 #endif //RAND_GLSL

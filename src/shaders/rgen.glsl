@@ -9,173 +9,87 @@
 #include "bindings.glsl"
 #include "common.glsl"
 #include "utils.glsl"
-#include "disney_bsdf01.glsl"
+#include "diffuse_bsdf.glsl"
 
 const uint min_rr = 2;
 
 void main() {
-    uint N = camera.fc;
-    vec2 uv = gl_LaunchIDEXT.xy;
 
-    init_seed(N);
-    init_seed(randu() + gl_LaunchIDEXT.x);
-    init_seed(randu() + gl_LaunchIDEXT.y);
-    randu();
+    uint idx = uint(gl_LaunchSizeEXT.x * gl_LaunchIDEXT.y + gl_LaunchIDEXT.x);
+
+    pcg_init(sample_tea_32(push_constant.seed, idx));
+
+    vec2 pos = gl_LaunchIDEXT.xy;
+    vec2 sample_pos = pos + next_2d();
+    vec2 adjusted_pos = sample_pos / gl_LaunchSizeEXT.xy;
+
+    Camera camera = cameras[push_constant.camera];
+
+    mat4 view_to_camera = inverse(camera.to_view);
+
+    vec3 near_p = (view_to_camera * vec4(adjusted_pos.xy, 0., 1.)).xyz;
+
     
-    //vec2 roff = rand2(vec3(float(N), uv.x, uv.y));
-    vec2 roff = rand2f();
-    uv += roff;
-    uv /= vec2(gl_LaunchSizeEXT.xy);
-    uv = (uv * 2. - 1.) * vec2(1., 1.);
-    uv *= tan(camera.fov/2.);
-    vec3 up = camera.up.xyz;
-    vec3 right = camera.right.xyz;
-    vec3 forward = normalize(cross(up, right));
-
-    //payload.orig = vec3(1., 0., 0.);
+    vec3 o = camera.to_world[3].xyz;
+    vec3 d = normalize(near_p);
+    
     Ray ray;
-    ray.orig = camera.pos.xyz;
-    ray.dir = normalize(-up * uv.y + right * uv.x + forward);
+    
+    ray.o = o;
+    ray.d = normalize((camera.to_world * vec4(d, 0.))).xyz;
+    
+    float near_t = camera.near_clip / -d.z;
+    float far_t = camera.far_clip / -d.z;
 
-    ray.radiance = vec3(0.);
-    ray.throughput = vec3(1.);
+    ray.tmin = near_t;
+    ray.tmax = far_t;
+    
+    
+    
+    vec3 L = vec3(0.);
+    vec3 f = vec3(1.);
+    uint depth = 0;
+    
+    Payload payload;
+    payload.valid = 1;
+    SurfaceInteraction si;
 
-    ray.med.color = vec3(1.);
-    ray.med.anisotropic = 0.;
-    ray.med.density = 0.0;
-    
-    ray.ior = 1.;
-    
-    //payload.seed = randu();
-    ray.depth = 0;
-    
-    payload.terminated = 0;
+    bool ray_active = true;
 
-    vec3 color = imageLoad(image, ivec2(gl_LaunchIDEXT.xy)).xyz;
-    
-    for (ray.depth = 0; ray.depth < camera.depth && payload.terminated != 1; ray.depth++) {
-        traceRayEXT(tlas, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
-                    ray.orig, RAY_TMIN, ray.dir, 10000.0, 0);
-        if(payload.terminated == 1){
+    while (depth < push_constant.max_depth && ray_active){
+        traceRayEXT(accel, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
+                    ray.o, 0.001, ray.d, 10000.0, 0);
+
+        if (si.valid == 0){
+            ray_active = false;
             break;
         }
-        HitInfo hit;
-        Material mat;
-        Medium med;
-        hitInfo(payload.instanceIndex, payload.primitiveID, payload.hit_co, hit, mat);
-
-        vec3 V = -ray.dir;
         
-        // Select Medium through which the ray has traveled
-        if (dot(hit.g, V) < 0.){
-            med = mat.med;
-        } else{
-            med = ray.med;
-        }
-
-        //===========================================================
-        // Call BRDF functions:
-        //===========================================================
-
-        // Sample bsdf and scattering functions
-        vec3 radiance;
-        float pf;
-        vec3 f;
-        bool mediumEntered;
-        sample_shader(
-                hit,
-                mat,
-                med,
-                ray.orig,
-                ray.dir,
-                mediumEntered,
-                radiance,
-                f,
-                pf);
-        if(mediumEntered){
-            ray.med = mat.med;
-        }
-
-        // Sample Light
-        vec3 g;
-        float pg = 0.;
-        uint lightIndex = randu(lights.count.x);
-        SampledLight light = sampleLight(lights.l[lightIndex]);
-
-        isShadow = true;
-        uint shadowRayFlags = gl_RayFlagsTerminateOnFirstHitEXT
-            | gl_RayFlagsOpaqueEXT
-            | gl_RayFlagsSkipClosestHitShaderEXT;
-        traceRayEXT(
-                tlas,
-                shadowRayFlags,
-                0xFF, 
-                0, 
-                0, 
-                1, 
-                hit.pos, 
-                0.001,
-                normalize(light.pos.xyz - hit.pos), 
-                length(light.pos.xyz - hit.pos) - 0.001,
-                1
-            );
-        if (!isShadow){
-            eval_shader(
-                    hit,
-                    mat,
-                    V,
-                    light.pos.xyz,
-                    g,
-                    pg
-                );
-
-            pg *= float(lights.count.x);
-        }
-
-        // DEBUG:
-        //isShadow = true;
-
-        // Combine samples (light and bsdf) using MIS
-        ray.radiance += radiance * ray.throughput;
-        if(pg > 0. && !isShadow){
-            float misWeight = PowerHeuristic(pg, pf); // Calculate misWeight for light source sampling
-            ray.radiance += light.emission.rgb * ray.throughput * misWeight * g / pg;
-        }
-        if(pf > 0.){
-            float misWeight; // Calculate misWeight for bsdf sampling
-            if (isShadow){
-                misWeight = 1.;
-            } else{
-                misWeight = PowerHeuristic(pf, pg);
-            }
-            ray.throughput *= misWeight * f / pf;
-        }
+        si.instance = payload.instance;
+        si.primitive = payload.primitive;
+        si.valid = payload.valid;
+        si.barycentric = payload.barycentric;
+        
+        finalize_surface_interaction(si, ray);
         
         //===========================================================
         // Throughput Russian Roulette:
         //===========================================================
-        //p_{RR} = max_{RGB}\leftb( \prod_{d = 1}^{D-1} \left({f_r(x_d, w_d \rightarrow v_d) cos(\theta_d)) \over p(w_d)p_{RR_d}}\right)\right)
-        float p_rr = max(ray.throughput.r, max(ray.throughput.g, ray.throughput.b));
-        if (ray.depth < min_rr){
-            p_rr = 1.;
+        float f_max = max(f.r, max(f.g, f.b));
+        float rr_prop = f_max;
+        
+        if (depth < push_constant.rr_depth){
+            rr_prop = 1.;
         }
-
-        ray.throughput *= 1. / p_rr;
-
-        if (randf() >= p_rr){
-            payload.terminated = 1;
+        f *= 1. / rr_prop;
+        bool rr_continue = next_float() < rr_prop;
+        if (!rr_continue){
+            ray_active = false;
             break;
         }
 
-    }
-    if (N == 0){
-        color = ray.radiance;
-    }
-    else{
-        color = 1/float((N + 1)) * ray.radiance + float(N)/float(N + 1)*color; 
+        depth += 1;
     }
 
-    //vec4 color = vec4(payload.color, 1.0);
-
-    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(color, 0.));
+    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(L, 0.));
 }

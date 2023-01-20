@@ -34,7 +34,7 @@ fn main() {
     sc13.run(|frame| {
         if i == 0 {
             scene.update(frame.device, &mut cache, frame.render_graph);
-            println!("{:#?}", scene.instances);
+            println!("{:#?}", scene.cameras);
         }
         frame.render_graph.clear_color_image(frame.swapchain_image);
         i += 1;

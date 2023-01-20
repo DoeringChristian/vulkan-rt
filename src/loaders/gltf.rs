@@ -72,13 +72,13 @@ impl Loader<Scene> for GltfLoader {
 
             let base_color = mr_model
                 .base_color_texture()
-                .map(|t| Texture::varying(texture_offset as u32 + t.texture().index() as u32))
+                .map(|t| Texture::image(texture_offset as u32 + t.texture().index() as u32))
                 .unwrap_or(Texture::constant(
                     Vec4::from(mr_model.base_color_factor()).xyz(),
                 ));
             let metallic_roughness = mr_model
                 .metallic_roughness_texture()
-                .map(|t| Texture::varying(texture_offset as u32 + t.texture().index() as u32))
+                .map(|t| Texture::image(texture_offset as u32 + t.texture().index() as u32))
                 .unwrap_or(Texture::constant(vec3(
                     mr_model.metallic_factor(),
                     mr_model.roughness_factor(),
@@ -86,19 +86,17 @@ impl Loader<Scene> for GltfLoader {
                 )));
             let emission = material
                 .emissive_texture()
-                .map(|t| Texture::varying(texture_offset as u32 + t.texture().index() as u32))
+                .map(|t| Texture::image(texture_offset as u32 + t.texture().index() as u32))
                 .unwrap_or(Texture::constant(Vec3::from(material.emissive_factor())));
             let normal = material
                 .normal_texture()
-                .map(|t| Texture::varying(texture_offset as u32 + t.texture().index() as u32))
+                .map(|t| Texture::image(texture_offset as u32 + t.texture().index() as u32))
                 .unwrap_or(Texture::constant(vec3(0., 0., 1.)));
             let transmission = material
                 .transmission()
                 .map(|t| {
                     t.transmission_texture()
-                        .map(|t| {
-                            Texture::varying(texture_offset as u32 + t.texture().index() as u32)
-                        })
+                        .map(|t| Texture::image(texture_offset as u32 + t.texture().index() as u32))
                         .unwrap_or(Texture::constant(vec3(t.transmission_factor(), 0., 0.)))
                 })
                 .unwrap_or(Texture::constant(vec3(0., 0., 0.)));
@@ -137,9 +135,7 @@ impl Loader<Scene> for GltfLoader {
                     emitter = dst.emitters.len() as _;
                     let emission = material
                         .emissive_texture()
-                        .map(|t| {
-                            Texture::varying(texture_offset as u32 + t.texture().index() as u32)
-                        })
+                        .map(|t| Texture::image(texture_offset as u32 + t.texture().index() as u32))
                         .unwrap_or(Texture::constant(Vec3::from(material.emissive_factor())));
                     dst.emitters.push(Emitter::area(emission, 0));
                 }

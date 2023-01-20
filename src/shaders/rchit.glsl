@@ -8,18 +8,18 @@
 
 #include "rand.glsl"
 #include "common.glsl"
-#include "disney_bsdf01.glsl"
 
 
 hitAttributeEXT vec2 hit_co;
 
-layout(location = 0) rayPayloadInEXT Payload payload;
+layout(location = 0) rayPayloadInEXT SurfaceInteraction si;
 layout(location = 1) rayPayloadEXT bool isShadow;
 
-layout(set = 0, binding = 0) uniform accelerationStructureEXT tlas;
+layout(set = 0, binding = 0) uniform accelerationStructureEXT accel;
 
 void main() {
-    payload.hit_co = hit_co;
-    payload.instanceIndex = gl_InstanceCustomIndexEXT;
-    payload.primitiveID = gl_PrimitiveID;
+    si.barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
+    si.instance = gl_InstanceID;
+    si.primitive = gl_PrimitiveID;
+    si.valid = 1;
 }
