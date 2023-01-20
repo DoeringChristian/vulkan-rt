@@ -58,6 +58,7 @@ struct SurfaceInteraction{
 
     vec3 wi;
 
+    //Mesh mesh;
     Material material;
 };
 

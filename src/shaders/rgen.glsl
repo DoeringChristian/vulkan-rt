@@ -109,7 +109,8 @@ void main() {
         depth += 1;
 
         // DEBUG:
-        //break;
+        L = si.p;
+        break;
     }
 
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(L, 1.));

@@ -49,6 +49,9 @@ void finalize_surface_interaction(inout SurfaceInteraction si, in Ray ray){
     Material material = materials[instance.material];
     Mesh mesh = meshes[instance.mesh];
 
+    //si.mesh = mesh;
+    si.material = material;
+
     uvec3 triangle = uvec3(indices[mesh.indices + 3 * si.primitive + 0],
                            indices[mesh.indices + 3 * si.primitive + 1],
                            indices[mesh.indices + 3 * si.primitive + 2]);
@@ -77,8 +80,6 @@ void finalize_surface_interaction(inout SurfaceInteraction si, in Ray ray){
         
     mat3 tbn = compute_TBN(uv1 - uv0, uv2 - uv0, p1 - p0, p2 - p0, si.n);
     si.tbn = tbn;
-
-    si.material = material;
 
     si.wi = to_local(si, -ray.d);
 }
