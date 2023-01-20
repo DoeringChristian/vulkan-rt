@@ -1,75 +1,114 @@
-use std140::*;
+use crevice::std140::AsStd140;
+use glam::*;
 
-/// A column vector of 2 [float] values.
-///
-/// # Example
-///
-/// ```
-/// let value = std140::vec2(0.0, 1.0);
-/// ```
-#[allow(non_camel_case_types)]
-#[repr(C, align(8))]
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub struct uint64_t(pub u64);
-
-unsafe impl ReprStd140 for uint64_t {}
-unsafe impl Std140ArrayElement for uint64_t {}
-
-///
-/// Data relating to an instance used to acces materials etc. in the shader.
-///
-#[repr_std140]
-#[derive(Clone, Copy)]
-pub struct InstanceData {
-    pub trans0: vec4,
-    pub trans1: vec4,
-    pub trans2: vec4,
-    pub trans3: vec4,
-
-    pub mat_index: uint,
-    pub indices: uint64_t,
-    pub vertices: uint64_t,
+#[derive(AsStd140)]
+pub struct Mesh {
+    pub indices: u32,
+    pub indices_count: u32,
+    pub positions: u32,
+    pub normals: u32,
+    pub uvs: u32,
 }
 
-///
-/// Material to use in the shader.
-///
-#[repr_std140]
-#[derive(Clone, Copy)]
-pub struct MaterialData {
-    pub albedo: vec4,
-    pub emission: vec4,
-    pub metallic: float,
-    pub roughness: float,
-    pub transmission: float,
-    pub transmission_roughness: float,
-
-    pub ior: float,
-    pub albedo_tex: uint,
-    pub mr_tex: uint,
-    pub emission_tex: uint,
-    pub normal_tex: uint,
-
-    pub med: MediumData,
+#[derive(AsStd140)]
+pub struct Instance {
+    pub to_world: Mat4,
+    pub mesh: u32,
+    pub material: u32,
+    pub emitter: i32,
 }
 
-#[repr_std140]
-#[derive(Clone, Copy)]
-pub struct LightData {
-    pub emission: vec4,
-    pub position: vec4,
-    pub radius: float,
-    pub light_type: uint,
+#[derive(AsStd140)]
+pub struct Emitter {
+    pub irradiance: Texture,
+    pub instance: u32,
+    pub ty: u32,
 }
 
-impl LightData {
-    pub const TY_POINT: uint = uint(0);
+impl Emitter {
+    pub fn env(irradiance: Texture) -> Self {
+        Self {
+            irradiance,
+            instance: 0,
+            ty: 0,
+        }
+    }
+    pub fn area(irradiance: Texture, instance: u32) -> Self {
+        Self {
+            irradiance,
+            instance,
+            ty: 1,
+        }
+    }
 }
 
-#[repr_std140]
-#[derive(Clone, Copy)]
-pub struct MediumData {
-    pub color: vec4,
-    pub anisotropic: float,
-    pub density: float,
+#[derive(AsStd140)]
+pub struct Texture {
+    pub val: Vec3,
+    pub texture: u32,
+    pub ty: u32,
+}
+
+impl Texture {
+    pub fn constant(val: Vec3) -> Self {
+        Self {
+            ty: 0,
+            val,
+            texture: 0,
+        }
+    }
+    pub fn varying(texture: u32) -> Self {
+        Self {
+            ty: 1,
+            val: Vec3::ZERO,
+            texture,
+        }
+    }
+}
+
+#[derive(AsStd140)]
+pub struct Material {
+    pub base_color: Texture,
+    pub emission: Texture,
+    pub normal: Texture,
+    pub metallic_roughness: Texture,
+    pub transmission: Texture,
+}
+
+#[derive(AsStd140)]
+pub struct Camera {
+    pub to_world: Mat4,
+    pub to_view: Mat4,
+    pub near_clip: f32,
+    pub far_clip: f32,
+}
+
+impl Camera {
+    pub fn perspective(
+        to_world: Mat4,
+        fov_y: f32,
+        aspect_ratio: f32,
+        near_clip: f32,
+        far_clip: f32,
+    ) -> Self {
+        let to_view = Mat4::perspective_lh(fov_y, aspect_ratio, near_clip, far_clip);
+        let to_view = Mat4::from_translation(vec3(1., 1., 0.)) * to_view;
+        let to_view = Mat4::from_scale(vec3(0.5, 0.5, 1.)) * to_view;
+        #[cfg(not(target_arch = "spirv"))]
+        {
+            //println!("{:#?}", to_view);
+        }
+        Self {
+            to_world,
+            to_view,
+            near_clip,
+            far_clip,
+            //size: glam::uvec2(width, height),
+        }
+    }
+}
+
+#[derive(AsStd140)]
+pub struct PushConstant {
+    pub camera: u32,
 }

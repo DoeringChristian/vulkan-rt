@@ -1,5 +1,5 @@
 use crate::{
-    buffers::TypedBuffer,
+    array::Array,
     dense_arena::DenseArena,
     model::{
         GlslCamera, Index, InstanceKey, Light, LightKey, Material, MaterialKey, Mesh, MeshInstance,
@@ -78,14 +78,14 @@ impl RenderWorld {
         vertices: &[Vertex],
     ) -> MeshKey {
         let key = self.meshes.insert(Mesh {
-            indices: Arc::new(TypedBuffer::create(
+            indices: Arc::new(Array::from_slice(
                 device,
                 indices,
                 vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
                     | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                     | vk::BufferUsageFlags::STORAGE_BUFFER,
             )),
-            vertices: Arc::new(TypedBuffer::create(
+            vertices: Arc::new(Array::from_slice(
                 device,
                 vertices,
                 vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR

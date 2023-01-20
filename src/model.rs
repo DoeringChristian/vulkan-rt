@@ -1,7 +1,7 @@
 use std::hash::Hash;
 use std::sync::Arc;
 
-use crate::{buffers::TypedBuffer, dense_arena::*, glsl};
+use crate::{array::Array, dense_arena::*, glsl};
 use glam::*;
 
 new_key_type! {
@@ -24,8 +24,8 @@ pub struct Vertex {
 }
 
 pub struct Mesh {
-    pub indices: Arc<TypedBuffer<Index>>,
-    pub vertices: Arc<TypedBuffer<Vertex>>,
+    pub indices: Arc<Array<Index>>,
+    pub vertices: Arc<Array<Vertex>>,
 }
 
 #[derive(Clone)]

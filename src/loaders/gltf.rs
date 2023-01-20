@@ -1,43 +1,27 @@
-use crate::model::{
-    GlslCamera, Index, InstanceKey, Light, Material, Medium, MeshInstance, ShaderGroupKey, Vertex,
-};
+use crate::glsl::*;
 use glam::*;
-use screen_13::prelude::Device;
-use std::{
-    collections::HashMap,
-    path::Path,
-    sync::{Arc, Mutex},
-};
+use screen_13_fx::ImageLoader;
+use std::path::Path;
 
-use crate::renderer::RTRenderer;
+use crate::scene::Scene;
 
 use super::Loader;
 
 #[derive(Default)]
 pub struct GltfLoader {}
 
-impl Loader<Mutex<RTRenderer>> for GltfLoader {
-    type Ctx = Arc<Device>;
-
-    fn load_to(
-        &self,
-        path: impl AsRef<std::path::Path>,
-        ctx: &Self::Ctx,
-        dst: &Mutex<RTRenderer>,
-        default_hit_groups: Vec<ShaderGroupKey>,
-    ) -> Vec<InstanceKey> {
+impl Loader<Scene> for GltfLoader {
+    fn load(&self, path: impl AsRef<Path>, dst: &mut Scene) {
         let path = path.as_ref();
-        let mut instances = vec![];
         let (gltf, buffers, _) = gltf::import(path).unwrap();
 
-        // Texture loading
-        let mut texture_entities = HashMap::new();
+        let texture_offset = dst.textures.len();
         for texture in gltf.textures() {
-            let image = match texture.source().source() {
+            let img = match texture.source().source() {
                 gltf::image::Source::Uri { uri, mime_type } => {
                     let parent = Path::new(path).parent().unwrap();
-                    let image_path = parent.join(uri);
-                    let img = image::io::Reader::open(image_path)
+                    let img_path = parent.join(uri);
+                    let img = image::io::Reader::open(img_path)
                         .unwrap()
                         .decode()
                         .unwrap()
@@ -46,150 +30,142 @@ impl Loader<Mutex<RTRenderer>> for GltfLoader {
                 }
                 _ => unimplemented!(),
             };
-            let entity = dst.lock().unwrap().insert_texture(ctx, &image);
-            texture_entities.insert(texture.index(), entity);
+            let mut img_loader = ImageLoader::new(&dst.device).unwrap();
+            let img = img.as_rgba8().unwrap();
+            let img = img_loader
+                .decode_linear(
+                    0,
+                    img,
+                    screen_13_fx::ImageFormat::R8G8B8A8,
+                    img.width(),
+                    img.height(),
+                )
+                .unwrap();
+            dst.textures.push(img);
         }
-        // Mesh loading
-        let mut mesh_entities = HashMap::new();
+
+        let mesh_offset = dst.meshes.len();
         for mesh in gltf.meshes() {
+            let indices_offset = dst.indices.len();
+            let positions_offset = dst.positions.len();
+            let normals_offset = dst.normals.len();
+            let uvs_offset = dst.uvs.len();
+
             let primitive = mesh.primitives().next().unwrap();
-            let mut indices = vec![];
-            let mut vertices = vec![];
             let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
 
-            let mut normal_iter = reader.read_normals();
-            let mut uv0_iter = reader.read_tex_coords(0).map(|i| i.into_f32());
-            let mut uv1_iter = reader.read_tex_coords(1).map(|i| i.into_f32());
             for pos in reader.read_positions().unwrap() {
-                let normal = normal_iter.as_mut().unwrap().next().unwrap_or([0., 0., 0.]);
-                let mut uv0 = [0., 0.];
-                let mut uv1 = [0., 0.];
-                if let Some(uv_iter) = uv0_iter.as_mut() {
-                    uv0 = uv_iter.next().unwrap_or([0., 0.]);
-                }
-                if let Some(uv_iter) = uv1_iter.as_mut() {
-                    uv1 = uv_iter.next().unwrap_or([0., 0.]);
-                }
-                vertices.push(Vertex {
-                    pos: [pos[0], pos[1], pos[2], 1.],
-                    normal: [normal[0], normal[1], normal[2], 0.],
-                    uv01: [uv0[0], uv0[1], uv1[0], uv1[1]],
-                });
+                dst.positions.push(vec3(pos[0], pos[1], pos[2]));
             }
-            if let Some(iter) = reader.read_indices() {
-                for index in iter.into_u32() {
-                    indices.push(Index(index));
-                }
+            for index in reader.read_indices().unwrap().into_u32() {
+                dst.indices.push(index);
             }
-            let entity = dst.lock().unwrap().insert_mesh(ctx, &indices, &vertices);
-            mesh_entities.insert(mesh.index(), entity);
+            for normal in reader.read_normals().unwrap() {
+                dst.normals.push(vec3(normal[0], normal[1], normal[2]));
+            }
+            for uv in reader.read_tex_coords(0).unwrap().into_f32() {
+                dst.uvs.push(vec2(uv[0], uv[1]));
+            }
+
+            dst.meshes.push(Mesh {
+                indices: indices_offset as u32,
+                indices_count: dst.indices.len() as u32 - indices_offset as u32,
+                positions: positions_offset as u32,
+                normals: normals_offset as u32,
+                uvs: uvs_offset as u32,
+            })
         }
-        // Material loading
-        let mut material_entities = HashMap::new();
+
+        let material_offset = dst.materials.len();
         for material in gltf.materials() {
-            let mr = material.pbr_metallic_roughness();
             let emission = material.emissive_factor();
-            let albedo_tex = material
-                .pbr_metallic_roughness()
+            let mr_model = material.pbr_metallic_roughness();
+
+            let base_color = mr_model
                 .base_color_texture()
-                .map(|b| texture_entities[&b.texture().index()]);
-            let mr_tex = material
-                .pbr_metallic_roughness()
+                .map(|t| Texture::varying(texture_offset as u32 + t.texture().index() as u32))
+                .unwrap_or(Texture::constant(
+                    Vec4::from(mr_model.base_color_factor()).xyz(),
+                ));
+            let metallic_roughness = mr_model
                 .metallic_roughness_texture()
-                .map(|b| texture_entities[&b.texture().index()]);
-            let emission_tex = material
+                .map(|t| Texture::varying(texture_offset as u32 + t.texture().index() as u32))
+                .unwrap_or(Texture::constant(vec3(
+                    mr_model.metallic_factor(),
+                    mr_model.roughness_factor(),
+                    0.,
+                )));
+            let emission = material
                 .emissive_texture()
-                .map(|b| texture_entities[&b.texture().index()]);
-            let normal_tex = material
+                .map(|t| Texture::varying(texture_offset as u32 + t.texture().index() as u32))
+                .unwrap_or(Texture::constant(Vec3::from(material.emissive_factor())));
+            let normal = material
                 .normal_texture()
-                .map(|b| texture_entities[&b.texture().index()]);
+                .map(|t| Texture::varying(texture_offset as u32 + t.texture().index() as u32))
+                .unwrap_or(Texture::constant(vec3(0., 0., 1.)));
             let transmission = material
-                .transmission()
-                .map(|t| t.transmission_factor())
-                .unwrap_or(0.);
-            let transmission_tex = material
                 .transmission()
                 .map(|t| {
                     t.transmission_texture()
-                        .map(|t| texture_entities[&t.texture().index()])
+                        .map(|t| {
+                            Texture::varying(texture_offset as u32 + t.texture().index() as u32)
+                        })
+                        .unwrap_or(Texture::constant(vec3(t.transmission_factor(), 0., 0.)))
                 })
-                .flatten();
-            let ior = material.ior().unwrap_or(1.4);
-            let material_entity = dst.lock().unwrap().insert_material(Material {
-                albedo: Vec4::from(mr.base_color_factor()),
-                metallic: mr.metallic_factor(),
-                roughness: mr.roughness_factor(),
-                emission: Vec3::from(emission),
+                .unwrap_or(Texture::constant(vec3(0., 0., 0.)));
+
+            dst.materials.push(Material {
+                base_color,
+                metallic_roughness,
+                emission,
+                normal,
                 transmission,
-                transmission_roughness: 0.,
-                ior,
-                albedo_tex,
-                mr_tex,
-                emission_tex,
-                normal_tex,
-                transmission_tex,
-                medium: Medium {
-                    color: Vec4::from(mr.base_color_factor()),
-                    anisotropic: 0.,
-                    density: 1. - transmission,
-                },
-            });
-            material_entities.insert(material.index().unwrap(), material_entity);
+            })
         }
-        // Loading Nodes: Instances, Cameras, Lights
+
+        let instance_offset = dst.instances.len();
         for node in gltf.nodes() {
             if let Some(camera) = node.camera() {
                 if let gltf::camera::Projection::Perspective(proj) = camera.projection() {
-                    let transform = Mat4::from_cols_array_2d(&node.transform().matrix());
-                    let rot = Mat3::from_mat4(transform);
-                    let up = rot * Vec3::new(0., 1., 0.);
-                    let right = rot * Vec3::new(1., 0., 0.);
-                    let pos = transform * Vec4::new(0., 0., 0., 1.);
-
-                    let up = up.to_array();
-                    let right = right.to_array();
-                    let pos = pos.to_array();
-                    dst.lock().unwrap().set_camera(GlslCamera {
-                        up: [up[0], up[1], up[2], 1.],
-                        right: [right[0], right[1], right[2], 1.],
-                        pos: [pos[0], pos[1], pos[2], 1.],
-                        focus: 1.,
-                        diameter: 0.1,
-                        fov: proj.yfov(),
-                        fc: 0,
-                        depth: 16,
-                    });
+                    let to_world = Mat4::from_cols_array_2d(&node.transform().matrix());
+                    dst.cameras.push(Camera::perspective(
+                        to_world,
+                        proj.yfov(),
+                        proj.aspect_ratio().unwrap_or(1.),
+                        0.001,
+                        10000.,
+                    ));
                 }
             }
             if let Some(mesh) = node.mesh() {
                 let matrix = node.transform().matrix();
-                instances.push(
-                    dst.lock().unwrap().insert_instance(MeshInstance {
-                        transform: Mat4::from_cols_array_2d(&matrix),
-                        material: material_entities[&mesh
-                            .primitives()
-                            .next()
-                            .unwrap()
-                            .material()
-                            .index()
-                            .unwrap()],
-                        mesh: mesh_entities[&mesh.index()],
-                        shader_groups: default_hit_groups.clone(),
-                    }),
-                );
-            }
-            if let Some(light) = node.light() {
-                let transform = node.transform().matrix();
-                let pos = Mat4::from_cols_array_2d(&transform) * vec4(0., 0., 0., 1.);
-                dst.lock().unwrap().insert_light(Light::Point {
-                    emission: Vec3::from(light.color()),
-                    position: pos.xyz(),
-                    radius: 0.2,
-                    strength: light.intensity(),
+                let mut emitter = -1;
+                let material = mesh.primitives().next().unwrap().material();
+
+                if material.emissive_texture().is_some()
+                    || material.emissive_factor() != [0., 0., 0.]
+                {
+                    emitter = dst.emitters.len() as _;
+                    let emission = material
+                        .emissive_texture()
+                        .map(|t| {
+                            Texture::varying(texture_offset as u32 + t.texture().index() as u32)
+                        })
+                        .unwrap_or(Texture::constant(Vec3::from(material.emissive_factor())));
+                    dst.emitters.push(Emitter::area(emission, 0));
+                }
+
+                let instance = dst.instances.len();
+                dst.instances.push(Instance {
+                    to_world: Mat4::from_cols_array_2d(&matrix),
+                    mesh: mesh_offset as u32 + mesh.index() as u32,
+                    material: material_offset as u32 + material.index().unwrap() as u32,
+                    emitter,
                 });
-                println!("intensity: {}", light.intensity());
+                if emitter >= 0 {
+                    dst.emitters[emitter as usize].instance = instance as u32;
+                }
             }
         }
-        instances
     }
 }

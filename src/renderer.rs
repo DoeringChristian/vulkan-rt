@@ -1,5 +1,5 @@
 use crate::accel::{Blas, BlasInfo, Tlas};
-use crate::buffers::{SliceBuffer, TypedBuffer};
+use crate::array::{Array, SliceBuffer};
 use crate::dense_arena::{DenseArena, KeyData};
 use crate::gbuffer::GBuffer;
 use crate::glsl;
@@ -48,8 +48,8 @@ pub struct RTRenderer {
     pub blases: HashMap<MeshKey, Blas>,
     pub tlas: Option<Tlas>,
 
-    pub material_buf: Option<TypedBuffer<glsl::MaterialData>>,
-    pub instancedata_buf: Option<TypedBuffer<glsl::InstanceData>>,
+    pub material_buf: Option<Array<glsl::MaterialData>>,
+    pub instancedata_buf: Option<Array<glsl::InstanceData>>,
     pub lightdata_buf: Option<SliceBuffer<glsl::LightData>>,
 
     pub pipeline: Option<Arc<RayTracePipeline>>,
@@ -320,7 +320,7 @@ impl RTRenderer {
                 )),
             });
         }
-        self.instancedata_buf = Some(TypedBuffer::create(
+        self.instancedata_buf = Some(Array::from_slice(
             device,
             &instancedata,
             vk::BufferUsageFlags::STORAGE_BUFFER,
@@ -384,7 +384,7 @@ impl RTRenderer {
                 },
             })
             .collect::<Vec<_>>();
-        self.material_buf = Some(TypedBuffer::create(
+        self.material_buf = Some(Array::from_slice(
             device,
             &materials,
             vk::BufferUsageFlags::STORAGE_BUFFER,
