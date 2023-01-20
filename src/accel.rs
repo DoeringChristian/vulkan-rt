@@ -83,14 +83,14 @@ impl<T> Blas<T> {
                 flags: vk::GeometryFlagsKHR::OPAQUE,
                 geometry: AccelerationStructureGeometryData::Triangles {
                     index_data: DeviceOrHostAddress::DeviceAddress(
-                        screen_13::prelude::Buffer::device_address(&indices)
+                        screen_13::prelude::Buffer::device_address(&indices.buf)
                             + (indices_offset * std::mem::size_of::<u32>()) as u64,
                     ),
                     index_type: vk::IndexType::UINT32,
                     transform_data: None,
                     max_vertex: vertex_count as _,
                     vertex_data: DeviceOrHostAddress::DeviceAddress(
-                        screen_13::prelude::Buffer::device_address(&vertices)
+                        screen_13::prelude::Buffer::device_address(&vertices.buf)
                             + (vertices_offset * std::mem::size_of::<T>()) as u64,
                     ),
                     vertex_format: vk::Format::R32G32B32_SFLOAT,
@@ -148,7 +148,7 @@ impl Tlas {
                 .unwrap(),
         );
         let accel_node = rgraph.bind_node(&self.accel);
-        let instance_node = rgraph.bind_node(&**self.instance_buf);
+        let instance_node = rgraph.bind_node(&self.instance_buf.buf);
         let tlas_node = rgraph.bind_node(&self.accel);
         let geometry_info = self.geometry_info.clone();
         //let primitive_count = scene.blases.len();
@@ -188,7 +188,7 @@ impl Tlas {
             return None;
         }
         // gl_CustomIndexEXT should index into attributes.
-        let instance_buf = Arc::new(Array::from_slice(
+        let instance_buf = Arc::new(Array::from_slice_u8(
             device,
             vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
                 | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS,
@@ -202,7 +202,9 @@ impl Tlas {
                 flags: vk::GeometryFlagsKHR::OPAQUE,
                 geometry: AccelerationStructureGeometryData::Instances {
                     array_of_pointers: false,
-                    data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(&instance_buf)),
+                    data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(
+                        &instance_buf.buf,
+                    )),
                 },
             }],
         };

@@ -41,7 +41,7 @@ impl LinearToSrgb {
             .bind_pipeline(&self.ppl)
             .read_descriptor((0, 0), src)
             .store_color(0, dst)
-            .record_subpass(move |subpass| {
+            .record_subpass(move |subpass, _| {
                 subpass.draw(6, 1, 0, 0);
             });
     }

@@ -1,26 +1,39 @@
 use crevice::std140::WriteStd140;
 use screen_13::prelude::*;
 use std::marker::PhantomData;
+use std::mem::size_of;
 use std::sync::Arc;
 
 pub struct Array<T> {
     pub buf: Arc<Buffer>,
     count: usize,
+    stride: usize,
     _ty: PhantomData<T>,
+}
+impl<T> Array<T> {
+    #[inline]
+    pub fn count(&self) -> usize {
+        self.count
+    }
+    #[inline]
+    pub fn stride(&self) -> usize {
+        self.stride
+    }
 }
 
 impl Array<u8> {
-    pub fn from_slice_u8(device: &Arc<Device>, data: &[u8], usage: vk::BufferUsageFlags) -> Self {
+    pub fn from_slice_u8(device: &Arc<Device>, usage: vk::BufferUsageFlags, data: &[u8]) -> Self {
         let buf = Arc::new(Buffer::create_from_slice(device, usage, &data).unwrap());
         Self {
             buf,
+            stride: size_of::<u8>(),
             count: data.len(),
             _ty: PhantomData,
         }
     }
 }
 
-impl<T: crevice::std140::WriteStd140 + Sized> Array<T> {
+impl<T: crevice::std140::WriteStd140 + Sized + crevice::std140::AsStd140> Array<T> {
     pub fn storage(device: &Arc<Device>, data: &[T]) -> Self {
         Self::from_slice(device, vk::BufferUsageFlags::STORAGE_BUFFER, data)
     }
@@ -36,13 +49,10 @@ impl<T: crevice::std140::WriteStd140 + Sized> Array<T> {
 
         Self {
             buf,
+            stride: T::std140_size_static(),
             count: data.len(),
             _ty: PhantomData,
         }
-    }
-    #[inline]
-    pub fn count(&self) -> usize {
-        self.count
     }
 }
 

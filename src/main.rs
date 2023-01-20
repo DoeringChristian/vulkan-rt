@@ -8,6 +8,9 @@ mod scene;
 
 use screen_13::prelude::*;
 
+use self::loaders::Loader;
+use self::scene::Scene;
+
 fn main() {
     pretty_env_logger::init();
     let sc13 = EventLoop::new()
@@ -16,11 +19,22 @@ fn main() {
         .build()
         .unwrap();
     let device = &sc13.device;
+    let mut cache = HashPool::new(device);
 
     let presenter = screen_13_fx::GraphicPresenter::new(device).unwrap();
 
+    let mut scene = Scene::new(device);
+    let loader = loaders::GltfLoader::default();
+    loader.append("assets/cornell-box.gltf", &mut scene);
+
+    let mut i = 0;
+
     sc13.run(|frame| {
+        if i == 0 {
+            scene.update(&mut cache, frame.render_graph);
+        }
         frame.render_graph.clear_color_image(frame.swapchain_image);
+        i += 1;
     })
     .unwrap();
 

@@ -68,12 +68,14 @@ impl Scene {
         self.index_data = Some(Array::from_slice(
             &self.device,
             vk::BufferUsageFlags::STORAGE_BUFFER
+                | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                 | vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR,
             &self.indices,
         ));
         self.position_data = Some(Array::from_slice(
             &self.device,
             vk::BufferUsageFlags::STORAGE_BUFFER
+                | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                 | vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR,
             &self.positions,
         ));
