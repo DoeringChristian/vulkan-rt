@@ -1,7 +1,7 @@
 use crevice::std140::AsStd140;
 use glam::*;
 
-#[derive(AsStd140)]
+#[derive(AsStd140, Debug)]
 pub struct Mesh {
     pub indices: u32,
     pub indices_count: u32,
@@ -10,7 +10,7 @@ pub struct Mesh {
     pub uvs: u32,
 }
 
-#[derive(AsStd140)]
+#[derive(AsStd140, Debug)]
 pub struct Instance {
     pub to_world: Mat4,
     pub mesh: u32,
@@ -18,7 +18,7 @@ pub struct Instance {
     pub emitter: i32,
 }
 
-#[derive(AsStd140)]
+#[derive(AsStd140, Debug)]
 pub struct Emitter {
     pub irradiance: Texture,
     pub instance: u32,
@@ -42,7 +42,7 @@ impl Emitter {
     }
 }
 
-#[derive(AsStd140)]
+#[derive(AsStd140, Debug)]
 pub struct Texture {
     pub val: Vec3,
     pub texture: u32,
@@ -66,7 +66,7 @@ impl Texture {
     }
 }
 
-#[derive(AsStd140)]
+#[derive(AsStd140, Debug)]
 pub struct Material {
     pub base_color: Texture,
     pub emission: Texture,
@@ -75,7 +75,7 @@ pub struct Material {
     pub transmission: Texture,
 }
 
-#[derive(AsStd140)]
+#[derive(AsStd140, Debug)]
 pub struct Camera {
     pub to_world: Mat4,
     pub to_view: Mat4,
@@ -108,7 +108,7 @@ impl Camera {
     }
 }
 
-#[derive(AsStd140)]
+#[derive(AsStd140, Debug)]
 pub struct PushConstant {
     pub camera: u32,
 }
