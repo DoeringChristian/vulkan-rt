@@ -1,4 +1,4 @@
-use crevice::std140::WriteStd140;
+use crevice::std140::{Std140, WriteStd140};
 use screen_13::prelude::*;
 use std::marker::PhantomData;
 use std::mem::size_of;
@@ -38,18 +38,20 @@ impl<T: crevice::std140::WriteStd140 + Sized + crevice::std140::AsStd140> Array<
         Self::from_slice(device, vk::BufferUsageFlags::STORAGE_BUFFER, data)
     }
     pub fn from_slice(device: &Arc<Device>, usage: vk::BufferUsageFlags, data: &[T]) -> Self {
-        let buf = Arc::new({
-            let mut v = Vec::with_capacity(data.std140_size());
-            let mut writer = crevice::std140::Writer::new(&mut v);
-            writer.write(data).unwrap();
+        let size = data.std140_size();
 
+        let mut v = Vec::with_capacity(size);
+        let mut writer = crevice::std140::Writer::new(&mut v);
+        writer.write(data).unwrap();
+
+        let buf = Arc::new({
             let buf = Buffer::create_from_slice(device, usage, &v).unwrap();
             buf
         });
 
         Self {
             buf,
-            stride: T::std140_size_static(),
+            stride: T::Output::ALIGNMENT,
             count: data.len(),
             _ty: PhantomData,
         }

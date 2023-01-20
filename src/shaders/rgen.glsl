@@ -50,6 +50,8 @@ void main() {
     vec3 f = vec3(1.);
     uint depth = 0;
     
+    // DEBUG:
+    
     Payload payload;
     payload.valid = 1;
     SurfaceInteraction si;
@@ -71,6 +73,14 @@ void main() {
         si.barycentric = payload.barycentric;
         
         finalize_surface_interaction(si, ray);
+
+        BSDFSample bs;
+        vec3 bsdf_value;
+        sample_bsdf(si, next_1d(), next_2d(), bs, bsdf_value);
+        
+
+        L += eval_texture(si.material.emission, si);
+        f *= bsdf_value;
         
         //===========================================================
         // Throughput Russian Roulette:
@@ -89,7 +99,9 @@ void main() {
         }
 
         depth += 1;
+
+        // DEBUG:
     }
 
-    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(L, 0.));
+    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(L, 1.));
 }

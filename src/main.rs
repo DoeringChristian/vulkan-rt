@@ -34,7 +34,6 @@ fn main() {
     sc13.run(|frame| {
         if i == 0 {
             scene.update(frame.device, &mut cache, frame.render_graph);
-            println!("{:#?}", scene.cameras);
         }
         let img = cache
             .lease(ImageInfo::new_2d(
@@ -46,7 +45,16 @@ fn main() {
             .unwrap();
         let img_node = frame.render_graph.bind_node(img);
 
-        pt_renderer.bind_and_render(&scene, img_node, i, 0, &mut cache, frame.render_graph);
+        pt_renderer.bind_and_render(
+            &scene,
+            img_node,
+            i,
+            1024,
+            1024,
+            0,
+            &mut cache,
+            frame.render_graph,
+        );
 
         presenter.present_image(frame.render_graph, img_node, frame.swapchain_image);
         //frame.render_graph.clear_color_image(frame.swapchain_image);

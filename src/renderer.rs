@@ -69,6 +69,8 @@ impl PTRenderer {
         scene: &Scene,
         image: impl Into<AnyImageNode>,
         seed: u32,
+        width: u32,
+        height: u32,
         camera: u32,
         cache: &mut HashPool,
         rgraph: &mut RenderGraph,
@@ -122,8 +124,24 @@ impl PTRenderer {
 
         pass = pass.write_descriptor((1, 0), image);
 
+        let sbt_rgen = self.sbt.rgen();
+        let sbt_miss = self.sbt.miss();
+        let sbt_hit = self.sbt.hit();
+        let sbt_callable = self.sbt.callable();
+
         pass.record_ray_trace(move |ray_trace, _| {
             ray_trace.push_constants(push_constant.as_std140().as_bytes());
+            ray_trace.trace_rays(
+                &sbt_rgen,
+                &sbt_miss,
+                &sbt_hit,
+                &sbt_callable,
+                width,
+                height,
+                1,
+            );
         });
+
+        //pass.submit_pass();
     }
 }
