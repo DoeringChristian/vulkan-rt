@@ -10,6 +10,11 @@ vec3 to_world(in SurfaceInteraction si, vec3 v){
     return si.tbn * v;
 }
 
+// Return cosinus theta in surface alligned coordinate frame
+float cos_theta(vec3 v){
+    return v.z;
+}
+
 float mis_weight(float pdf_a, float pdf_b){
     float a2 = pdf_a * pdf_a;
     if (pdf_a > 0){
@@ -33,6 +38,10 @@ vec3 eval_texture(in Texture tex, in SurfaceInteraction si){
         return texture(textures[tex.texture], si.uv).rgb;
     }
     return vec3(0.);
+}
+
+Ray spawn_ray(in SurfaceInteraction si, vec3 wo){
+    return Ray(si.p, wo, 0.001, 10000.);
 }
 
 void finalize_surface_interaction(inout SurfaceInteraction si, in Ray ray){
@@ -69,9 +78,9 @@ void finalize_surface_interaction(inout SurfaceInteraction si, in Ray ray){
     mat3 tbn = compute_TBN(uv1 - uv0, uv2 - uv0, p1 - p0, p2 - p0, si.n);
     si.tbn = tbn;
 
-    si.wi = -ray.d;
-
     si.material = material;
+
+    si.wi = to_local(si, -ray.d);
 }
 
 #endif //UTILS_GLSL

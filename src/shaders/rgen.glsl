@@ -36,7 +36,7 @@ void main() {
     Ray ray;
     
     ray.o = o;
-    ray.d = normalize((camera.to_world * vec4(d, 0.))).xyz;
+    ray.d = -normalize((camera.to_world * vec4(d, 0.))).xyz;
     
     float near_t = camera.near_clip / -d.z;
     float far_t = camera.far_clip / -d.z;
@@ -45,15 +45,13 @@ void main() {
     ray.tmax = far_t;
     
     
-    
     vec3 L = vec3(0.);
     vec3 f = vec3(1.);
     uint depth = 0;
     
     // DEBUG:
     
-    Payload payload;
-    payload.valid = 1;
+    payload.valid = 0;
     SurfaceInteraction si;
 
     bool ray_active = true;
@@ -62,10 +60,15 @@ void main() {
         traceRayEXT(accel, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
                     ray.o, 0.001, ray.d, 10000.0, 0);
 
-        if (si.valid == 0){
+
+        if (payload.valid == 0){
             ray_active = false;
             break;
         }
+        
+        // DEBUG:
+        // L = ray.d;
+        // break;
         
         si.instance = payload.instance;
         si.primitive = payload.primitive;
@@ -73,6 +76,9 @@ void main() {
         si.barycentric = payload.barycentric;
         
         finalize_surface_interaction(si, ray);
+        
+        // DEBUG:
+
 
         BSDFSample bs;
         vec3 bsdf_value;
@@ -81,6 +87,8 @@ void main() {
 
         L += f * eval_texture(si.material.emission, si);
         f *= bsdf_value;
+
+        ray = spawn_ray(si, bs.wo);
         
         //===========================================================
         // Throughput Russian Roulette:
@@ -101,8 +109,7 @@ void main() {
         depth += 1;
 
         // DEBUG:
-        L = vec3(1., 0., 0.);
-        break;
+        //break;
     }
 
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(L, 1.));

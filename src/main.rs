@@ -8,8 +8,10 @@ mod sbt;
 mod scene;
 
 use screen_13::prelude::*;
+use std::sync::Arc;
 
 use self::loaders::Loader;
+use self::post::Denoiser;
 use self::scene::Scene;
 
 fn main() {
@@ -24,6 +26,7 @@ fn main() {
 
     let presenter = screen_13_fx::GraphicPresenter::new(device).unwrap();
     let pt_renderer = renderer::PTRenderer::create(device);
+    let denoiser = Denoiser::new(device, 1000, 1000);
 
     let mut scene = Scene::default();
     let loader = loaders::GltfLoader::default();
@@ -44,11 +47,11 @@ fn main() {
                 vk::ImageUsageFlags::STORAGE | vk::ImageUsageFlags::SAMPLED,
             ))
             .unwrap();
-        let img_node = frame.render_graph.bind_node(img);
+        let img = frame.render_graph.bind_node(img);
 
         pt_renderer.bind_and_render(
             &scene,
-            img_node,
+            img,
             i,
             1024,
             1024,
@@ -57,7 +60,9 @@ fn main() {
             frame.render_graph,
         );
 
-        presenter.present_image(frame.render_graph, img_node, frame.swapchain_image);
+        let denoised = denoiser.denoise(img, i, frame.render_graph);
+
+        presenter.present_image(frame.render_graph, denoised, frame.swapchain_image);
         //frame.render_graph.clear_color_image(frame.swapchain_image);
         i += 1;
     })

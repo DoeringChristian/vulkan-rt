@@ -45,7 +45,7 @@ impl PTRenderer {
                     RayTraceShaderGroup::new_general(0),
                     RayTraceShaderGroup::new_triangles(1, None),
                     RayTraceShaderGroup::new_general(2),
-                    RayTraceShaderGroup::new_general(3),
+                    //RayTraceShaderGroup::new_general(3),
                 ],
             )
             .unwrap(),

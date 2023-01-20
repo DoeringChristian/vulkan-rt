@@ -12,14 +12,15 @@
 
 hitAttributeEXT vec2 hit_co;
 
-layout(location = 0) rayPayloadInEXT SurfaceInteraction si;
+layout(location = 0) rayPayloadInEXT Payload payload;
 layout(location = 1) rayPayloadEXT bool isShadow;
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT accel;
 
 void main() {
-    si.barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
-    si.instance = gl_InstanceID;
-    si.primitive = gl_PrimitiveID;
-    si.valid = 1;
+    payload.valid = 1;
+    payload.barycentric = vec3(1. - hit_co.x - hit_co.y, hit_co.x, hit_co.y);
+    //payload.barycentric = vec3(1., 0., 0.);
+    payload.instance = gl_InstanceID;
+    payload.primitive = gl_PrimitiveID;
 }

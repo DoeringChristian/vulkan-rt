@@ -62,9 +62,9 @@ struct SurfaceInteraction{
 };
 
 struct Payload{
+    uint valid;
     uint instance;
     uint primitive;
-    uint valid;
     vec3 barycentric;
 };
     
