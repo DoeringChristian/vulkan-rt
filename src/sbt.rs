@@ -89,17 +89,17 @@ impl SbtBuffer {
             let mut data = Buffer::mapped_slice_mut(&mut buf);
             data.fill(0);
 
-            let rgen_handle = pipeline.group_handle(info.rgen_index)?;
+            let rgen_handle = RayTracePipeline::group_handle(pipeline, info.rgen_index)?;
             data[rgen_offset..(rgen_offset + rgen_handle.len())].copy_from_slice(rgen_handle);
 
             for (i, idx) in info.hit_indices.iter().enumerate() {
-                let handle = pipeline.group_handle(*idx)?;
+                let handle = RayTracePipeline::group_handle(pipeline, *idx)?;
                 data[hit_offset..(hit_offset + handle.len())].copy_from_slice(handle);
                 hit_offset += sbt_handle_size as usize;
             }
 
             for idx in info.miss_indices {
-                let handle = pipeline.group_handle(*idx)?;
+                let handle = RayTracePipeline::group_handle(pipeline, *idx)?;
                 data[miss_offset..(miss_offset + handle.len())].copy_from_slice(handle);
                 miss_offset += sbt_handle_size as usize;
             }

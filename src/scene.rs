@@ -11,7 +11,6 @@ pub struct Scene {
     pub positions: Vec<Vec3>,
     pub normals: Vec<Vec3>,
     pub uvs: Vec<Vec2>,
-    //pub tangents: Vec<Vec3>,
     pub textures: Vec<Arc<Image>>,
 
     pub instances: Vec<Instance>,
@@ -19,7 +18,6 @@ pub struct Scene {
     pub emitters: Vec<Emitter>,
     pub materials: Vec<Material>,
     pub cameras: Vec<Camera>,
-    // pub materials: Vec<Material>,
     pub blases: Vec<Blas<Vec3>>,
     pub tlas: Option<Tlas>,
 
@@ -32,11 +30,40 @@ pub struct Scene {
     pub index_data: Option<Array<u32>>,
     pub position_data: Option<Array<Vec3>>,
     pub normal_data: Option<Array<Vec3>>,
-    //pub tangent_data: Option<Array<Vec3>>,
     pub uv_data: Option<Array<Vec2>>,
 }
 
 impl Scene {
+    pub fn new(device: &Arc<Device>) -> Self {
+        Self {
+            device: device.clone(),
+            indices: Default::default(),
+            positions: Default::default(),
+            normals: Default::default(),
+            uvs: Default::default(),
+            textures: Default::default(),
+
+            instances: Default::default(),
+            meshes: Default::default(),
+            emitters: Default::default(),
+            materials: Default::default(),
+            cameras: Default::default(),
+
+            blases: Default::default(),
+            tlas: Default::default(),
+
+            instance_data: Default::default(),
+            mesh_data: Default::default(),
+            emitter_data: Default::default(),
+            material_data: Default::default(),
+            camera_data: Default::default(),
+
+            index_data: Default::default(),
+            position_data: Default::default(),
+            normal_data: Default::default(),
+            uv_data: Default::default(),
+        }
+    }
     pub fn upload(&mut self) {
         self.index_data = Some(Array::from_slice(
             &self.device,
@@ -55,11 +82,6 @@ impl Scene {
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.normals,
         ));
-        // self.tangent_data = Some(Array::from_slice(
-        //     &self.device,
-        //     vk::BufferUsageFlags::STORAGE_BUFFER,
-        //     &self.tangents,
-        // ));
         self.uv_data = Some(Array::from_slice(
             &self.device,
             vk::BufferUsageFlags::STORAGE_BUFFER,
