@@ -111,4 +111,7 @@ impl Camera {
 #[derive(AsStd140, Debug)]
 pub struct PushConstant {
     pub camera: u32,
+    pub max_depth: u32,
+    pub rr_depth: u32,
+    pub seed: u32,
 }
