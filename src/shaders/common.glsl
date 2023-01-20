@@ -43,26 +43,6 @@ struct Camera{
     float far_clip;
 };
 
-
-struct MaterialInfo{
-    vec3 albedo;
-    vec3 emission;
-    
-    float transmission;
-    float roughness;
-    float metallic;
-    float anisotropic;
-    float subsurface;
-    float specularTint;
-    float sheen;
-    float sheenTint;
-    float clearcoat;
-    float clearcoatRoughness;
-    float ior;
-    float ax;
-    float ay;
-};
-
 struct SurfaceInteraction{
     vec3 barycentric;
     uint instance;

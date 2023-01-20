@@ -1,8 +1,17 @@
-use crevice::std140::{Std140, WriteStd140};
+use crevice::std140::{AsStd140, Std140, WriteStd140};
 use screen_13::prelude::*;
 use std::marker::PhantomData;
 use std::mem::size_of;
 use std::sync::Arc;
+
+/// Gives the number of bytes needed to make `offset` be aligned to `alignment`.
+pub const fn align_offset(offset: usize, alignment: usize) -> usize {
+    if alignment == 0 || offset % alignment == 0 {
+        0
+    } else {
+        alignment - offset % alignment
+    }
+}
 
 pub struct Array<T> {
     pub buf: Arc<Buffer>,
@@ -38,9 +47,10 @@ impl<T: crevice::std140::WriteStd140 + Sized + crevice::std140::AsStd140> Array<
         Self::from_slice(device, vk::BufferUsageFlags::STORAGE_BUFFER, data)
     }
     pub fn from_slice(device: &Arc<Device>, usage: vk::BufferUsageFlags, data: &[T]) -> Self {
-        let size = data.std140_size();
+        let stride =
+            size_of::<T::Output>() + align_offset(size_of::<T::Output>(), T::Output::ALIGNMENT);
 
-        let mut v = Vec::with_capacity(size);
+        let mut v = Vec::with_capacity(data.std140_size());
         let mut writer = crevice::std140::Writer::new(&mut v);
         writer.write(data).unwrap();
 
@@ -51,7 +61,7 @@ impl<T: crevice::std140::WriteStd140 + Sized + crevice::std140::AsStd140> Array<
 
         Self {
             buf,
-            stride: T::Output::ALIGNMENT,
+            stride,
             count: data.len(),
             _ty: PhantomData,
         }

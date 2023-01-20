@@ -50,16 +50,18 @@ pub struct Texture {
 }
 
 impl Texture {
+    const TY_CONSTANT: u32 = 0;
+    const TY_IMAGE: u32 = 1;
     pub fn constant(val: Vec3) -> Self {
         Self {
-            ty: 0,
+            ty: Self::TY_CONSTANT,
             val,
             texture: 0,
         }
     }
     pub fn image(texture: u32) -> Self {
         Self {
-            ty: 1,
+            ty: Self::TY_IMAGE,
             val: Vec3::ZERO,
             texture,
         }

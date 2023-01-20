@@ -34,6 +34,7 @@ fn main() {
     sc13.run(|frame| {
         if i == 0 {
             scene.update(frame.device, &mut cache, frame.render_graph);
+            println!("{}", scene.material_data.as_ref().unwrap().count());
         }
         let img = cache
             .lease(ImageInfo::new_2d(

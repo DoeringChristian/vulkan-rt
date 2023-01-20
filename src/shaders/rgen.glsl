@@ -79,7 +79,7 @@ void main() {
         sample_bsdf(si, next_1d(), next_2d(), bs, bsdf_value);
         
 
-        L += eval_texture(si.material.emission, si);
+        L += f * eval_texture(si.material.emission, si);
         f *= bsdf_value;
         
         //===========================================================
@@ -101,6 +101,8 @@ void main() {
         depth += 1;
 
         // DEBUG:
+        L = vec3(1., 0., 0.);
+        break;
     }
 
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(L, 1.));
