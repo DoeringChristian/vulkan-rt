@@ -20,6 +20,8 @@ pub struct Scene {
     pub emitters: Vec<Emitter>,
     pub materials: Vec<Material>,
     pub cameras: Vec<Camera>,
+
+    // Components on GPU
     pub blases: Vec<Blas<Vec3>>,
     pub tlas: Option<Tlas>,
 

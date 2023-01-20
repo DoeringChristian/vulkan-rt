@@ -3,6 +3,7 @@ mod array;
 mod glsl;
 mod loaders;
 mod post;
+mod renderer;
 mod sbt;
 mod scene;
 
@@ -22,6 +23,7 @@ fn main() {
     let mut cache = HashPool::new(device);
 
     let presenter = screen_13_fx::GraphicPresenter::new(device).unwrap();
+    let pt_renderer = renderer::PTRenderer::create(device);
 
     let mut scene = Scene::default();
     let loader = loaders::GltfLoader::default();
