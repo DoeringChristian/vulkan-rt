@@ -23,7 +23,7 @@ fn main() {
 
     let presenter = screen_13_fx::GraphicPresenter::new(device).unwrap();
 
-    let mut scene = Scene::new(device);
+    let mut scene = Scene::default();
     let loader = loaders::GltfLoader::default();
     loader.append("assets/cornell-box.gltf", &mut scene);
 
@@ -31,7 +31,7 @@ fn main() {
 
     sc13.run(|frame| {
         if i == 0 {
-            scene.update(&mut cache, frame.render_graph);
+            scene.update(frame.device, &mut cache, frame.render_graph);
         }
         frame.render_graph.clear_color_image(frame.swapchain_image);
         i += 1;

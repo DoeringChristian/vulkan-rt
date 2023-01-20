@@ -3,15 +3,17 @@ use crate::array::Array;
 use crate::glsl::*;
 use glam::*;
 use screen_13::prelude::*;
+use screen_13_fx::ImageLoader;
 use std::sync::Arc;
 
+#[derive(Default)]
 pub struct Scene {
-    pub device: Arc<Device>,
+    //pub device: Arc<Device>,
     pub indices: Vec<u32>,
     pub positions: Vec<Vec3>,
     pub normals: Vec<Vec3>,
     pub uvs: Vec<Vec2>,
-    pub textures: Vec<Arc<Image>>,
+    pub textures: Vec<image::DynamicImage>,
 
     pub instances: Vec<Instance>,
     pub meshes: Vec<Mesh>,
@@ -31,99 +33,87 @@ pub struct Scene {
     pub position_data: Option<Array<Vec3>>,
     pub normal_data: Option<Array<Vec3>>,
     pub uv_data: Option<Array<Vec2>>,
+
+    pub textures_gpu: Option<Vec<Arc<Image>>>,
 }
 
 impl Scene {
-    pub fn new(device: &Arc<Device>) -> Self {
-        Self {
-            device: device.clone(),
-            indices: Default::default(),
-            positions: Default::default(),
-            normals: Default::default(),
-            uvs: Default::default(),
-            textures: Default::default(),
-
-            instances: Default::default(),
-            meshes: Default::default(),
-            emitters: Default::default(),
-            materials: Default::default(),
-            cameras: Default::default(),
-
-            blases: Default::default(),
-            tlas: Default::default(),
-
-            instance_data: Default::default(),
-            mesh_data: Default::default(),
-            emitter_data: Default::default(),
-            material_data: Default::default(),
-            camera_data: Default::default(),
-
-            index_data: Default::default(),
-            position_data: Default::default(),
-            normal_data: Default::default(),
-            uv_data: Default::default(),
-        }
-    }
-    pub fn upload(&mut self) {
+    pub fn upload(&mut self, device: &Arc<Device>) {
         self.index_data = Some(Array::from_slice(
-            &self.device,
+            &device,
             vk::BufferUsageFlags::STORAGE_BUFFER
                 | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                 | vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR,
             &self.indices,
         ));
         self.position_data = Some(Array::from_slice(
-            &self.device,
+            &device,
             vk::BufferUsageFlags::STORAGE_BUFFER
                 | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                 | vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR,
             &self.positions,
         ));
         self.normal_data = Some(Array::from_slice(
-            &self.device,
+            &device,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.normals,
         ));
         self.uv_data = Some(Array::from_slice(
-            &self.device,
+            &device,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.uvs,
         ));
 
         self.instance_data = Some(Array::from_slice(
-            &self.device,
+            &device,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.instances,
         ));
         self.mesh_data = Some(Array::from_slice(
-            &self.device,
+            &device,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.meshes,
         ));
         self.emitter_data = Some(Array::from_slice(
-            &self.device,
+            &device,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.emitters,
         ));
         self.material_data = Some(Array::from_slice(
-            &self.device,
+            &device,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.materials,
         ));
         self.camera_data = Some(Array::from_slice(
-            &self.device,
+            &device,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.cameras,
         ));
+
+        self.textures_gpu = Some(vec![]);
+        for texture in self.textures.iter() {
+            let mut img_loader = ImageLoader::new(device).unwrap();
+            let img = texture.as_rgba8().unwrap();
+            let img = img_loader
+                .decode_linear(
+                    0,
+                    img,
+                    screen_13_fx::ImageFormat::R8G8B8A8,
+                    img.width(),
+                    img.height(),
+                )
+                .unwrap();
+            self.textures_gpu.as_mut().unwrap().push(img);
+        }
     }
-    pub fn update(&mut self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
+    pub fn update(&mut self, device: &Arc<Device>, cache: &mut HashPool, rgraph: &mut RenderGraph) {
         // Upload to gpu
-        self.upload();
+        self.upload(device);
         // Create blases
         for instance in self.instances.iter() {
             let mesh = &self.meshes[instance.mesh as usize];
             self.blases.push(Blas::create(
-                &self.device,
+                &device,
                 self.index_data.as_ref().unwrap(),
                 mesh.indices as usize,
                 mesh.indices_count as usize / 3,
@@ -165,7 +155,7 @@ impl Scene {
             .collect::<Vec<_>>();
 
         // Create tlas from instances
-        self.tlas = Tlas::create(&self.device, &instances);
+        self.tlas = Tlas::create(&device, &instances);
 
         // Build blas and tlas
         let blas_nodes = self

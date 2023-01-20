@@ -30,17 +30,6 @@ impl Loader<Scene> for GltfLoader {
                 }
                 _ => unimplemented!(),
             };
-            let mut img_loader = ImageLoader::new(&dst.device).unwrap();
-            let img = img.as_rgba8().unwrap();
-            let img = img_loader
-                .decode_linear(
-                    0,
-                    img,
-                    screen_13_fx::ImageFormat::R8G8B8A8,
-                    img.width(),
-                    img.height(),
-                )
-                .unwrap();
             dst.textures.push(img);
         }
 
