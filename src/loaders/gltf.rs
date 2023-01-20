@@ -11,7 +11,7 @@ use super::Loader;
 pub struct GltfLoader {}
 
 impl Loader<Scene> for GltfLoader {
-    fn load(&self, path: impl AsRef<Path>, dst: &mut Scene) {
+    fn append(&self, path: impl AsRef<Path>, dst: &mut Scene) -> usize {
         let path = path.as_ref();
         let (gltf, buffers, _) = gltf::import(path).unwrap();
 
@@ -167,5 +167,6 @@ impl Loader<Scene> for GltfLoader {
                 }
             }
         }
+        instance_offset
     }
 }
