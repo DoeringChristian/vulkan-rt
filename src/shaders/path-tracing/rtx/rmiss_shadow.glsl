@@ -4,5 +4,5 @@
 layout(location = 1) rayPayloadInEXT bool shadow_payload;
 
 void main() {
-    shadow_paylod = false;
+    shadow_payload = false;
 }

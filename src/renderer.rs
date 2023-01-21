@@ -26,18 +26,21 @@ impl PTRenderer {
                             .as_slice(),
                     ),
                     Shader::new_closest_hit(
-                        inline_spirv::include_spirv!("src/shaders/rchit.glsl", rchit, vulkan1_2)
+                        inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rchit.glsl", rchit, vulkan1_2,
+                                                     I "src/shaders/path-tracing")
                             .as_slice(),
                     ),
                     Shader::new_miss(
-                        inline_spirv::include_spirv!("src/shaders/rmiss.glsl", rmiss, vulkan1_2)
+                        inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rmiss.glsl", rmiss, vulkan1_2,
+                                                     I "src/shaders/path-tracing")
                             .as_slice(),
                     ),
                     Shader::new_miss(
                         inline_spirv::include_spirv!(
-                            "src/shaders/miss_shadow.glsl",
+                            "src/shaders/path-tracing/rtx/rmiss_shadow.glsl",
                             rmiss,
-                            vulkan1_2
+                            vulkan1_2,
+                            I "src/shaders/path-tracing"
                         )
                         .as_slice(),
                     ),

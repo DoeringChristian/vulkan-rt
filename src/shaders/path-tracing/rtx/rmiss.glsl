@@ -3,7 +3,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
 #include "common.glsl"
-#include "rand.glsl"
+#include "util/rand.glsl"
 
 layout(location = 0) rayPayloadInEXT Payload payload;
 
