@@ -61,21 +61,14 @@ impl PTRenderer {
                 "shaders/path-tracing/bsdf/diffuse.glsl"
             )));
 
-        let preamble = rgen
-            .lines()
-            .enumerate()
-            .filter(|(i, line)| line.starts_with("#version") || line.starts_with("#extension"))
-            .collect::<Vec<_>>();
-        let mut rgen = rgen.lines().collect::<Vec<_>>();
-        for (i, s) in preamble.iter().rev() {
-            rgen.remove(*i);
-        }
-
-        let rgen = rgen.iter().fold(String::new(), |mut a, b| {
+        let (preamble, rgen) = rgen.lines().partition::<Vec<_>, _>(|line| {
+            line.starts_with("#version") || line.starts_with("#extension")
+        });
+        let preamble = preamble.iter().fold(String::new(), |mut a, b| {
             writeln!(a, "{b}").unwrap();
             a
         });
-        let preamble = preamble.iter().fold(String::new(), |mut a, (_, b)| {
+        let rgen = rgen.iter().fold(String::new(), |mut a, b| {
             writeln!(a, "{b}").unwrap();
             a
         });
@@ -95,20 +88,13 @@ impl PTRenderer {
         src.push_str(&integrator);
         src.push_str(&rgen);
 
-        let remove_lines = src
+        let src = src
             .lines()
-            .enumerate()
-            .filter(|(i, line)| line.starts_with("#include"))
-            .collect::<Vec<_>>();
-
-        let mut lines = src.lines().collect::<Vec<_>>();
-        for (i, _) in remove_lines.iter().rev() {
-            lines.remove(*i);
-        }
-        let src = lines.iter().fold(String::new(), |mut a, b| {
-            writeln!(a, "{b}").unwrap();
-            a
-        });
+            .filter(|line| !line.starts_with("#include"))
+            .fold(String::new(), |mut a, b| {
+                writeln!(a, "{b}").unwrap();
+                a
+            });
 
         //println!("{src}");
 
