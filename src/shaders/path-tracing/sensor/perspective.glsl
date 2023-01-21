@@ -1,17 +1,15 @@
 #ifndef PERSPECTIVE_GLSL
 #define PERSPECTIVE_GLSL
 
-#include "sampler/independent.glsl"
+#include "bindings.glsl"
 
-Ray sample_ray(vec2 pos, vec2 size){
-    vec2 sample_pos = pos + next_2d();
-    vec2 adjusted_pos = sample_pos / size;
-
+Ray sample_ray(vec2 sample_pos){
+    
     Camera camera = cameras[push_constant.camera];
 
     mat4 view_to_camera = inverse(camera.to_view);
 
-    vec3 near_p = (view_to_camera * vec4(adjusted_pos.xy, 0., 1.)).xyz;
+    vec3 near_p = (view_to_camera * vec4(sample_pos.xy, 0., 1.)).xyz;
 
     
     vec3 o = camera.to_world[3].xyz;

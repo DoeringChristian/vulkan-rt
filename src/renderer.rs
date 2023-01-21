@@ -3,9 +3,16 @@ use crate::sbt::{SbtBuffer, SbtBufferInfo};
 use crate::scene::Scene;
 use crevice::std140::AsStd140;
 use screen_13::prelude::*;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-pub struct PTRendererInfo {}
+pub struct PTRendererInfo<'a> {
+    pub integrator: Option<&'a str>,
+    pub bsdf: Option<&'a str>,
+    pub sampler: Option<&'a str>,
+    pub sensor: Option<&'a str>,
+}
 
 pub struct PTRenderer {
     device: Arc<Device>,
@@ -14,6 +21,61 @@ pub struct PTRenderer {
 }
 
 impl PTRenderer {
+    pub fn new(device: &Arc<Device>, info: &PTRendererInfo) -> Self {
+        let bindings = include_str!("shaders/path-tracing/bindings.glsl");
+        let common = include_str!("shaders/path-tracing/common.glsl");
+        let interaction = include_str!("shaders/path-tracing/interaction.glsl");
+        let trace = include_str!("shaders/path-tracing/trace.glsl");
+        let math = include_str!("shaders/path-tracing/util/math.glsl");
+        let warp = include_str!("shaders/path-tracing/util/warp.glsl");
+        let rand = include_str!("shaders/path-tracing/util/rand.glsl");
+        let rgen = include_str!("shaders/path-tracing/rtx/rgen.glsl");
+
+        let integrator = info
+            .integrator
+            .map(|path| fs::read_to_string(path).ok())
+            .flatten()
+            .unwrap_or(String::from(include_str!(
+                "shaders/path-tracing/integrator/path.glsl"
+            )));
+        let sampler = info
+            .sampler
+            .map(|path| fs::read_to_string(path).ok())
+            .flatten()
+            .unwrap_or(String::from(include_str!(
+                "shaders/path-tracing/sampler/independent.glsl"
+            )));
+        let sensor = info
+            .sensor
+            .map(|path| fs::read_to_string(path).ok())
+            .flatten()
+            .unwrap_or(String::from(include_str!(
+                "shaders/path-tracing/sensor/perspective.glsl"
+            )));
+        let bsdf = info
+            .bsdf
+            .map(|path| fs::read_to_string(path).ok())
+            .flatten()
+            .unwrap_or(String::from(include_str!(
+                "shaders/path-tracing/bsdf/diffuse.glsl"
+            )));
+
+        let mut src = String::new();
+        src.push_str(rand);
+        src.push_str(math);
+        src.push_str(warp);
+        src.push_str(common);
+        src.push_str(bindings);
+        src.push_str(interaction);
+        src.push_str(&sampler);
+        src.push_str(&bsdf);
+        src.push_str(&sensor);
+        src.push_str(trace);
+        src.push_str(&integrator);
+        src.push_str(rgen);
+
+        todo!()
+    }
     pub fn create(device: &Arc<Device>) -> Self {
         let ppl = Arc::new(
             RayTracePipeline::create(

@@ -3,6 +3,8 @@
 
 #include "interaction.glsl"
 #include "sensor/perspective.glsl"
+#include "trace.glsl"
+#include "sampler/independent.glsl"
 
 float mis_weight(float pdf_a, float pdf_b){
     float a2 = pdf_a * pdf_a;
@@ -17,8 +19,11 @@ void render(uvec2 size, uvec2 pos){
     uint idx = uint(size.x * pos.y + pos.x);
 
     pcg_init(sample_tea_32(push_constant.seed, idx));
+    
+    vec2 sample_pos = vec2(pos) + next_2d();
+    vec2 adjusted_pos = sample_pos / vec2(size);
 
-    Ray ray = sample_ray(vec2(pos), vec2(size));
+    Ray ray = sample_ray(adjusted_pos);
 
     vec3 L = vec3(0.);
     vec3 f = vec3(1.);

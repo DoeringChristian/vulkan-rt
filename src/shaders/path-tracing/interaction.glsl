@@ -73,28 +73,4 @@ void finalize_surface_interaction(inout SurfaceInteraction si, in Ray ray){
 
     si.wi = to_local(si, -ray.d);
 }
-
-SurfaceInteraction ray_intersect(in Ray ray){
-    SurfaceInteraction si;
-    traceRayEXT(accel, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
-                ray.o, ray.tmin, ray.d, ray.tmax, 0);
-
-
-    // DEBUG:
-    // L = ray.d;
-    // break;
-
-    if (payload.valid == 0){
-        si.valid = false;
-        return si;
-    }
-    si.valid = true;
-    si.instance = payload.instance;
-    si.primitive = payload.primitive;
-    si.barycentric = payload.barycentric;
-
-
-    finalize_surface_interaction(si, ray);
-    return si;
-}
 #endif //INTERACTION_GLSL
