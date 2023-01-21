@@ -108,25 +108,25 @@ SurfaceInteraction ray_intersect(in Ray ray){
     return si;
 }
 
-// bool ray_test(in Ray ray){
-//     shadow_payload = true;
-//     uint shadowRayFlags = gl_RayFlagsTerminateOnFirstHitEXT
-//         | gl_RayFlagsOpaqueEXT
-//         | gl_RayFlagsSkipClosestHitShaderEXT;
-//     traceRayEXT(
-//             accel,
-//             shadowRayFlags,
-//             0xFF, 
-//             0, 
-//             0, 
-//             1, 
-//             ray.o, 
-//             ray.tmin,
-//             ray.d, 
-//             ray.tmax,
-//             1
-//         );
-//     return shadow_payload;
-// }
+bool ray_test(in Ray ray){
+    shadow_payload = true;
+    uint shadowRayFlags = gl_RayFlagsTerminateOnFirstHitEXT
+        | gl_RayFlagsOpaqueEXT
+        | gl_RayFlagsSkipClosestHitShaderEXT;
+    traceRayEXT(
+            accel,
+            shadowRayFlags,
+            0xFF, 
+            0, 
+            0, 
+            1, 
+            ray.o, 
+            ray.tmin,
+            ray.d, 
+            ray.tmax,
+            1
+        );
+    return shadow_payload;
+}
 
 #endif //UTILS_GLSL
