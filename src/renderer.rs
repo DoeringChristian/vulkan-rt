@@ -21,7 +21,8 @@ impl PTRenderer {
                     .build(),
                 [
                     Shader::new_ray_gen(
-                        inline_spirv::include_spirv!("src/shaders/rgen.glsl", rgen, vulkan1_2)
+                        inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rgen.glsl", rgen, vulkan1_2,
+                                                     I "src/shaders/path-tracing/")
                             .as_slice(),
                     ),
                     Shader::new_closest_hit(
