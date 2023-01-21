@@ -3,10 +3,12 @@ use crate::sbt::{SbtBuffer, SbtBufferInfo};
 use crate::scene::Scene;
 use crevice::std140::AsStd140;
 use screen_13::prelude::*;
+use std::fmt::Write;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+#[derive(Default)]
 pub struct PTRendererInfo<'a> {
     pub integrator: Option<&'a str>,
     pub bsdf: Option<&'a str>,
@@ -15,7 +17,6 @@ pub struct PTRendererInfo<'a> {
 }
 
 pub struct PTRenderer {
-    device: Arc<Device>,
     sbt: SbtBuffer,
     ppl: Arc<RayTracePipeline>,
 }
@@ -60,7 +61,27 @@ impl PTRenderer {
                 "shaders/path-tracing/bsdf/diffuse.glsl"
             )));
 
+        let preamble = rgen
+            .lines()
+            .enumerate()
+            .filter(|(i, line)| line.starts_with("#version") || line.starts_with("#extension"))
+            .collect::<Vec<_>>();
+        let mut rgen = rgen.lines().collect::<Vec<_>>();
+        for (i, s) in preamble.iter().rev() {
+            rgen.remove(*i);
+        }
+
+        let rgen = rgen.iter().fold(String::new(), |mut a, b| {
+            writeln!(a, "{b}").unwrap();
+            a
+        });
+        let preamble = preamble.iter().fold(String::new(), |mut a, (_, b)| {
+            writeln!(a, "{b}").unwrap();
+            a
+        });
+
         let mut src = String::new();
+        src.push_str(&preamble);
         src.push_str(rand);
         src.push_str(math);
         src.push_str(warp);
@@ -72,9 +93,86 @@ impl PTRenderer {
         src.push_str(&sensor);
         src.push_str(trace);
         src.push_str(&integrator);
-        src.push_str(rgen);
+        src.push_str(&rgen);
 
-        todo!()
+        let remove_lines = src
+            .lines()
+            .enumerate()
+            .filter(|(i, line)| line.starts_with("#include"))
+            .collect::<Vec<_>>();
+
+        let mut lines = src.lines().collect::<Vec<_>>();
+        for (i, _) in remove_lines.iter().rev() {
+            lines.remove(*i);
+        }
+        let src = lines.iter().fold(String::new(), |mut a, b| {
+            writeln!(a, "{b}").unwrap();
+            a
+        });
+
+        //println!("{src}");
+
+        let compiler = shaderc::Compiler::new().unwrap();
+        let mut options = shaderc::CompileOptions::new().unwrap();
+        options.set_target_spirv(shaderc::SpirvVersion::V1_5);
+
+        let rgen_result = compiler
+            .compile_into_spirv(
+                &src,
+                shaderc::ShaderKind::RayGeneration,
+                "raygen.glsl",
+                "main",
+                Some(&options),
+            )
+            .unwrap();
+
+        let ppl = Arc::new(
+            RayTracePipeline::create(
+                device,
+                RayTracePipelineInfo::new()
+                    .max_ray_recursion_depth(2)
+                    .build(),
+                [
+                    Shader::new_ray_gen(
+                        rgen_result.as_binary(),
+                    ),
+                    Shader::new_closest_hit(
+                        inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rchit.glsl", rchit, vulkan1_2,
+                                                     I "src/shaders/path-tracing")
+                            .as_slice(),
+                    ),
+                    Shader::new_miss(
+                        inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rmiss.glsl", rmiss, vulkan1_2,
+                                                     I "src/shaders/path-tracing")
+                            .as_slice(),
+                    ),
+                    Shader::new_miss(
+                        inline_spirv::include_spirv!(
+                            "src/shaders/path-tracing/rtx/rmiss_shadow.glsl",
+                            rmiss,
+                            vulkan1_2,
+                            I "src/shaders/path-tracing"
+                        )
+                        .as_slice(),
+                    ),
+                ],
+                [
+                    RayTraceShaderGroup::new_general(0),
+                    RayTraceShaderGroup::new_triangles(1, None),
+                    RayTraceShaderGroup::new_general(2),
+                    //RayTraceShaderGroup::new_general(3),
+                ],
+            )
+            .unwrap(),
+        );
+        let sbt_info = SbtBufferInfo {
+            rgen_index: 0,
+            hit_indices: &[1],
+            miss_indices: &[2],
+            callable_indices: &[],
+        };
+        let sbt = SbtBuffer::create(device, sbt_info, &ppl).unwrap();
+        Self { sbt, ppl }
     }
     pub fn create(device: &Arc<Device>) -> Self {
         let ppl = Arc::new(
@@ -125,11 +223,7 @@ impl PTRenderer {
             callable_indices: &[],
         };
         let sbt = SbtBuffer::create(device, sbt_info, &ppl).unwrap();
-        Self {
-            device: device.clone(),
-            sbt,
-            ppl,
-        }
+        Self { sbt, ppl }
     }
 
     pub fn bind_and_render(

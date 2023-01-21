@@ -13,6 +13,7 @@ use std::sync::Arc;
 
 use self::loaders::Loader;
 use self::post::{Denoiser, LinearToSrgb};
+use self::renderer::{PTRenderer, PTRendererInfo};
 use self::scene::Scene;
 
 fn main() {
@@ -25,8 +26,15 @@ fn main() {
     let device = &sc13.device;
     let mut cache = HashPool::new(device);
 
+    let pt_renderer = PTRenderer::new(
+        device,
+        &PTRendererInfo {
+            ..Default::default()
+        },
+    );
+
     let presenter = screen_13_fx::GraphicPresenter::new(device).unwrap();
-    let pt_renderer = renderer::PTRenderer::create(device);
+    //let pt_renderer = renderer::PTRenderer::create(device);
     let denoiser = Denoiser::new(device, 1024, 1024);
     let linear_to_srgb = LinearToSrgb::new(device);
 
