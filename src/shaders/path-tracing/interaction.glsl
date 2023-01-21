@@ -18,6 +18,11 @@ Ray spawn_ray(in SurfaceInteraction si, vec3 wo){
     return Ray(si.p, wo, 0.001, 10000.);
 }
 
+Ray spawn_ray_to(in SurfaceInteraction si, vec3 p){
+    float dist = length(p - si.p);
+    return Ray(si.p, (p - si.p)/dist, 0.001, dist - 0.001);
+}
+
 mat3 compute_TBN(vec2 duv0, vec2 duv1, vec3 dpos0, vec3 dpos1, vec3 n){
     float r = 1./(duv0.x * duv1.y - duv0.y * duv1.x);
     vec3 t = (dpos0 * duv1.y - dpos1 * duv0.y)*r;

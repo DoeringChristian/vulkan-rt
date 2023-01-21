@@ -44,7 +44,7 @@ void emitter_sample_direciton(in Emitter emitter, SurfaceInteraction si, vec2 sa
         }
 
         //Material material = materials[instance.material];
-        val = eval_texture(emitter.iradiance, ds.uv);
+        val = eval_texture(emitter.emission, ds.uv);
     } 
 }
 
@@ -75,6 +75,12 @@ void sample_emitter_direction(in SurfaceInteraction si, vec2 sample1, out Direct
 
     ds.pdf *= pdf_emitter(emitter_idx);
     val *= emitter_weight;
+
+    bool occluded = ray_test(spawn_ray_to(si, ds.p));
+    if (occluded){
+        ds.pdf = 0.;
+        val = vec3(0.);
+    }
 }
 
 vec3 eval_emitter(in SurfaceInteraction si){
@@ -83,9 +89,9 @@ vec3 eval_emitter(in SurfaceInteraction si){
         return vec3(0., 0., 0.);
     }else{
         Emitter emitter = emitters[instance.emitter];
-        vec3 irradiance = eval_texture(emitter.iradiance, si.uv);
+        vec3 irradiance = eval_texture(emitter.emission, si.uv);
 
-        return irradiance ;
+        return irradiance;
     }
     return vec3(0., 0., 0.);
 }

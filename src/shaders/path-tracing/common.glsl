@@ -27,7 +27,7 @@ struct Instance{
     int emitter;
 };
 struct Emitter{
-    Texture iradiance;
+    Texture emission;
     uint instance;
     uint ty;
 };

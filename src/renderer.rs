@@ -79,19 +79,19 @@ impl PTRenderer {
         let mut src = String::new();
         src.push_str(&preamble);
         src.push_str(rand);
+        src.push_str(&sampler);
         src.push_str(math);
         src.push_str(warp);
         src.push_str(common);
         src.push_str(bindings);
+        src.push_str(interaction);
+        src.push_str(trace);
 
         src.push_str(texture);
-        src.push_str(interaction);
         src.push_str(instance);
         src.push_str(emitter);
-        src.push_str(&sampler);
         src.push_str(&bsdf);
         src.push_str(&sensor);
-        src.push_str(trace);
         src.push_str(&integrator);
         src.push_str(&rgen);
 
@@ -151,7 +151,7 @@ impl PTRenderer {
                     RayTraceShaderGroup::new_general(0),
                     RayTraceShaderGroup::new_triangles(1, None),
                     RayTraceShaderGroup::new_general(2),
-                    //RayTraceShaderGroup::new_general(3),
+                    RayTraceShaderGroup::new_general(3),
                 ],
             )
             .unwrap(),
@@ -159,7 +159,7 @@ impl PTRenderer {
         let sbt_info = SbtBufferInfo {
             rgen_index: 0,
             hit_indices: &[1],
-            miss_indices: &[2],
+            miss_indices: &[2, 3],
             callable_indices: &[],
         };
         inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rgen.glsl", rmiss, vulkan1_2,

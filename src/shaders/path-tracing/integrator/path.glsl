@@ -10,7 +10,7 @@
 float mis_weight(float pdf_a, float pdf_b){
     float a2 = pdf_a * pdf_a;
     if (pdf_a > 0){
-        return a2 / (pdf_a * pdf_b + a2);
+        return a2 / (pdf_b * pdf_b + a2);
     }else{
         return 0;
     }
@@ -42,8 +42,23 @@ void render(uvec2 size, uvec2 pos){
         vec3 bsdf_value;
         sample_bsdf(si, next_1d(), next_2d(), bs, bsdf_value);
 
+        DirectionSample ds;
+        vec3 em_weight;
+        sample_emitter_direction(si, next_2d(), ds, em_weight);
 
-        L += f * eval_emitter(si);
+        vec3 em_bsdf_weight;
+        float em_bsdf_pdf;
+        eval_pdf(si, to_local(si, ds.d), em_bsdf_weight, em_bsdf_pdf);
+
+        float mis_em = mis_weight(ds.pdf, bs.pdf);
+        float mis_bsdf = mis_weight(bs.pdf, ds.pdf);
+
+        if(ds.pdf > 0.){
+            L += f * em_weight * em_bsdf_weight * mis_em;
+        }
+        
+        
+        L += f * eval_emitter(si) * mis_bsdf;
         f *= bsdf_value;
 
         ray = spawn_ray(si, to_world(si, bs.wo));
@@ -68,9 +83,8 @@ void render(uvec2 size, uvec2 pos){
         depth += 1;
 
         // DEBUG:
-        //L = vec3(si.uv, 0.);
-        //L = eval_texture(si.material.base_color, si);
-        //break;
+        L = vec3(ds.uv, 0.);
+        break;
     }
     
     imageStore(image[0], ivec2(pos), vec4(L, 1.));

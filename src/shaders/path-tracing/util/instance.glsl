@@ -11,13 +11,14 @@ PositionSample instance_sample_position(in Instance instance, vec2 sample1){
     
     uint primitive_count = mesh.indices_count / 3;
 
-    float primitive_sample_scaled = sample1.x * float(primitive_count);
-    uint primitive = int(primitive_sample_scaled);
+    float primitive_sample_scaled = sample1.y * float(primitive_count);
+    uint primitive = uint(primitive_sample_scaled);
 
-    sample1.x = primitive_sample_scaled - float(primitive);
+    sample1.y = primitive_sample_scaled - float(primitive);
     
     vec2 b = square_to_uniform_triangle(sample1);
     vec3 barycentric = vec3((1. - b.x -b.y), b.x, b.y);
+    barycentric = vec3(0., 0., 1.);
 
     ps.barycentric = barycentric;
 
@@ -33,6 +34,8 @@ PositionSample instance_sample_position(in Instance instance, vec2 sample1){
 
     
     ps.p = p0 * barycentric.x + p1 * barycentric.y + p2 * barycentric.z;
+    // DEBUG:
+    ps.p = p1;
     
     ps.n = normalize(cross(p1 - p0, p2 - p0));
     
@@ -41,10 +44,15 @@ PositionSample instance_sample_position(in Instance instance, vec2 sample1){
     vec2 uv2 = uvs[mesh.uvs + triangle.z];
 
     vec2 uv = uv0 * ps.barycentric.x + uv1 * ps.barycentric.y + uv2 * ps.barycentric.z;
-    ps.uv = uv;
+    //ps.uv = uv;
         
     mat3 tbn = compute_TBN(uv1 - uv0, uv2 - uv0, p1 - p0, p2 - p0, ps.n);
     ps.tbn = tbn;
+
+    ps.pdf = 1./float(primitive_count);
+
+    // DEBUG:
+    ps.uv = sample1;
     return ps;
 }
 
