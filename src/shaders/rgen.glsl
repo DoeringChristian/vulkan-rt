@@ -41,8 +41,8 @@ void main() {
     float near_t = camera.near_clip / -d.z;
     float far_t = camera.far_clip / -d.z;
 
-    ray.tmin = near_t;
-    ray.tmax = far_t;
+    ray.tmin = 0.001;
+    ray.tmax = 10000.;
     
     
     vec3 L = vec3(0.);
@@ -51,51 +51,32 @@ void main() {
     
     // DEBUG:
     
-    payload.valid = 0;
     SurfaceInteraction si;
-
+    payload.valid = 0;
     bool ray_active = true;
 
     while (depth < push_constant.max_depth && ray_active){
-        traceRayEXT(accel, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
-                    ray.o, 0.001, ray.d, 10000.0, 0);
+        si = ray_intersect(ray);
 
-
-        if (payload.valid == 0){
-            ray_active = false;
-            break;
-        }
-        
-        // DEBUG:
-        // L = ray.d;
-        // break;
-        
-        si.instance = payload.instance;
-        si.primitive = payload.primitive;
-        si.valid = payload.valid;
-        si.barycentric = payload.barycentric;
-        
         finalize_surface_interaction(si, ray);
-        
         // DEBUG:
-
 
         BSDFSample bs;
         vec3 bsdf_value;
         sample_bsdf(si, next_1d(), next_2d(), bs, bsdf_value);
-        
+
 
         L += f * eval_texture(si.material.emission, si);
         f *= bsdf_value;
 
         ray = spawn_ray(si, to_world(si, bs.wo));
-        
+
         //===========================================================
         // Throughput Russian Roulette:
         //===========================================================
         float f_max = max(f.r, max(f.g, f.b));
         float rr_prop = f_max;
-        
+
         if (depth < push_constant.rr_depth){
             rr_prop = 1.;
         }

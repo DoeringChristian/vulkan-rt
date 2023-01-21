@@ -47,7 +47,7 @@ struct SurfaceInteraction{
     vec3 barycentric;
     uint instance;
     uint primitive;
-    uint valid;
+    bool valid;
 
     vec3 p;
     vec3 n;
