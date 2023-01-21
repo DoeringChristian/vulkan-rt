@@ -20,8 +20,10 @@ Emitter emitter(in SurfaceInteraction si){
 void emitter_sample_direciton(in Emitter emitter, SurfaceInteraction si, vec2 sample1, out DirectionSample ds, out vec3 val){
     if (emitter.ty == EMITTER_TY_AREA){
         Instance instance = instances[emitter.instance];
-
+        
         PositionSample ps = instance_sample_position(instance, sample1);
+        // //DEBUG:
+        // imageStore(image[0], ivec2(gl_LaunchIDEXT.xy), vec4(ps.uv, 0., 1.));
         
         ds.p = ps.p;
         ds.uv = ps.uv;
@@ -29,6 +31,8 @@ void emitter_sample_direciton(in Emitter emitter, SurfaceInteraction si, vec2 sa
         ds.pdf = ps.pdf;
         ds.barycentric = ps.barycentric;
         ds.tbn = ps.tbn;
+
+        //DEBUG:
         
         ds.d = ds.p - si.p;
 
@@ -64,11 +68,8 @@ void sample_emitter(float sample1, out uint emitter, out float weight, out float
 
 void sample_emitter_direction(in SurfaceInteraction si, vec2 sample1, out DirectionSample ds, out vec3 val){
     
-    uint emitter_idx;
-    float emitter_weight;
-    float sample_x_re;
-    sample_emitter(sample1.x, emitter_idx, emitter_weight, sample_x_re);
-    sample1.x = sample_x_re;
+    float emitter_weight = 1. / float(emitters.length());
+    uint emitter_idx = sample_reuse(sample1.x, emitters.length());
 
     Emitter emitter = emitters[emitter_idx];
     emitter_sample_direciton(emitter, si, sample1, ds, val);

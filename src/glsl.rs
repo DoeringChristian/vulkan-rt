@@ -31,8 +31,8 @@ pub struct Emitter {
 
 impl Emitter {
     const TY_NONE: u32 = 0;
-    const TY_AREA: u32 = 1;
-    const TY_ENV: u32 = 2;
+    const TY_ENV: u32 = 1;
+    const TY_AREA: u32 = 2;
     pub fn env(irradiance: Texture) -> Self {
         Self {
             irradiance,
@@ -44,7 +44,7 @@ impl Emitter {
         Self {
             irradiance,
             instance,
-            ty: Self::TY_NONE,
+            ty: Self::TY_AREA,
         }
     }
 }

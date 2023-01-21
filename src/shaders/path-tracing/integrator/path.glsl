@@ -48,7 +48,7 @@ void render(uvec2 size, uvec2 pos){
 
         vec3 em_bsdf_weight;
         float em_bsdf_pdf;
-        eval_pdf(si, to_local(si, ds.d), em_bsdf_weight, em_bsdf_pdf);
+        eval_pdf(si, to_local(si, -ds.d), em_bsdf_weight, em_bsdf_pdf);
 
         float mis_em = mis_weight(ds.pdf, bs.pdf);
         float mis_bsdf = mis_weight(bs.pdf, ds.pdf);
@@ -83,7 +83,7 @@ void render(uvec2 size, uvec2 pos){
         depth += 1;
 
         // DEBUG:
-        L = vec3(ds.uv, 0.);
+        L = vec3(ds.dist);
         break;
     }
     

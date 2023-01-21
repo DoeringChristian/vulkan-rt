@@ -51,5 +51,11 @@ float square_to_uniform_triangle_pdf(vec2 p){
     return 2.;
 }
 
+uint sample_reuse(inout float value, uint num){
+    float scaled_index = value * float(num);
+    uint index = uint(scaled_index);
+    value = scaled_index - floor(scaled_index);
+    return index;
+}
 
 #endif //WARP_GLSL

@@ -104,7 +104,7 @@ struct DirectionSample{
     vec2 uv;
     vec3 n;
     float pdf;
-    
+
     vec3 barycentric;
 
     mat3 tbn;
