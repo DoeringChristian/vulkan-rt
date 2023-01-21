@@ -88,7 +88,7 @@ void main() {
         L += f * eval_texture(si.material.emission, si);
         f *= bsdf_value;
 
-        ray = spawn_ray(si, bs.wo);
+        ray = spawn_ray(si, to_world(si, bs.wo));
         
         //===========================================================
         // Throughput Russian Roulette:
@@ -109,8 +109,9 @@ void main() {
         depth += 1;
 
         // DEBUG:
-        L = si.p;
-        break;
+        //L = vec3(si.uv, 0.);
+        //L = eval_texture(si.material.base_color, si);
+        //break;
     }
 
     imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(L, 1.));

@@ -7,11 +7,12 @@ mod renderer;
 mod sbt;
 mod scene;
 
+use crevice::std140::AsStd140;
 use screen_13::prelude::*;
 use std::sync::Arc;
 
 use self::loaders::Loader;
-use self::post::Denoiser;
+use self::post::{Denoiser, LinearToSrgb};
 use self::scene::Scene;
 
 fn main() {
@@ -26,7 +27,8 @@ fn main() {
 
     let presenter = screen_13_fx::GraphicPresenter::new(device).unwrap();
     let pt_renderer = renderer::PTRenderer::create(device);
-    let denoiser = Denoiser::new(device, 1000, 1000);
+    let denoiser = Denoiser::new(device, 1024, 1024);
+    let linear_to_srgb = LinearToSrgb::new(device);
 
     let mut scene = Scene::default();
     let loader = loaders::GltfLoader::default();
@@ -42,8 +44,8 @@ fn main() {
         let img = cache
             .lease(ImageInfo::new_2d(
                 vk::Format::R32G32B32A32_SFLOAT,
-                1000,
-                1000,
+                1024,
+                1024,
                 vk::ImageUsageFlags::STORAGE | vk::ImageUsageFlags::SAMPLED,
             ))
             .unwrap();
@@ -62,7 +64,21 @@ fn main() {
 
         let denoised = denoiser.denoise(img, i, frame.render_graph);
 
-        presenter.present_image(frame.render_graph, denoised, frame.swapchain_image);
+        let img_srgb = cache
+            .lease(ImageInfo::new_2d(
+                vk::Format::R32G32B32A32_SFLOAT,
+                1024,
+                1024,
+                vk::ImageUsageFlags::STORAGE
+                    | vk::ImageUsageFlags::SAMPLED
+                    | vk::ImageUsageFlags::COLOR_ATTACHMENT,
+            ))
+            .unwrap();
+        let img_srgb = frame.render_graph.bind_node(img_srgb);
+
+        linear_to_srgb.record(denoised, img_srgb, frame.render_graph);
+
+        presenter.present_image(frame.render_graph, img_srgb, frame.swapchain_image);
         //frame.render_graph.clear_color_image(frame.swapchain_image);
         i += 1;
     })

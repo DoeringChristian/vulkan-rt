@@ -98,9 +98,9 @@ impl LinearToSrgb {
     }
     pub fn record(
         &self,
-        graph: &mut RenderGraph,
         src: impl Into<AnyImageNode>,
         dst: impl Into<AnyImageNode>,
+        graph: &mut RenderGraph,
     ) {
         let src = src.into();
         let dst = dst.into();

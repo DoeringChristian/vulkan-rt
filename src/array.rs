@@ -1,5 +1,6 @@
 use crevice::std140::{AsStd140, Std140, WriteStd140};
 use screen_13::prelude::*;
+use std::any::type_name;
 use std::marker::PhantomData;
 use std::mem::size_of;
 use std::sync::Arc;
@@ -49,6 +50,8 @@ impl<T: crevice::std140::WriteStd140 + Sized + crevice::std140::AsStd140> Array<
     pub fn from_slice(device: &Arc<Device>, usage: vk::BufferUsageFlags, data: &[T]) -> Self {
         let stride =
             size_of::<T::Output>() + align_offset(size_of::<T::Output>(), T::Output::ALIGNMENT);
+        println!("{}", type_name::<T>());
+        println!("{stride}");
 
         let mut v = Vec::with_capacity(data.std140_size());
         let mut writer = crevice::std140::Writer::new(&mut v);

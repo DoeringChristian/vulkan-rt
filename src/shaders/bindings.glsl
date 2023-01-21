@@ -7,7 +7,10 @@ layout(location = 0) rayPayloadEXT Payload payload;
 layout(location = 1) rayPayloadEXT bool isShadow;
 layout(set = 0, binding = 0) uniform accelerationStructureEXT accel;
 
-layout(std140, set = 0, binding = 1) buffer Indices{
+// NOTE: std140 forces 16 byte array stride for uints.
+// AsStd140 does not reflect this and therefore I removed the std140 qualifier.
+// Additionally, why is the std140 alignment 16 byte (seems a bit excessive).
+layout(set = 0, binding = 1) buffer Indices{
     uint indices[];
 };
 layout(std140, set = 0, binding = 2) buffer Positions{
@@ -16,7 +19,7 @@ layout(std140, set = 0, binding = 2) buffer Positions{
 layout(std140, set = 0, binding = 3) buffer Normals{
     vec3 normals[];
 };
-layout(std140, set = 0, binding = 4) buffer UVs{
+layout(set = 0, binding = 4) buffer UVs{
     vec2 uvs[];
 };
     

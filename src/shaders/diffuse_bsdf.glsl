@@ -25,7 +25,7 @@ vec3 eval(in SurfaceInteraction si, in vec3 wo){
     float cos_theta_o = cos_theta(wo);
 
     if (cos_theta_i > 0. && cos_theta_o > 0.){
-        return eval_texture(si.material.base_color, si);
+        return eval_texture(si.material.base_color, si) / PI * cos_theta_o;
     }else{
         return vec3(0.);
     }
@@ -48,7 +48,7 @@ void eval_pdf(in SurfaceInteraction si, in vec3 wo, out vec3 value, out float pd
 
     if (cos_theta_i > 0. && cos_theta_o > 0.){
         pdf = square_to_cosine_hemisphere_pdf(wo);
-        value = eval_texture(si.material.base_color, si);
+        value = eval_texture(si.material.base_color, si) / PI * cos_theta_o;
     }else{
         pdf = 0.;
         value = vec3(0.);
