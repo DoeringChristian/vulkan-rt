@@ -10,15 +10,6 @@ vec3 to_world(in SurfaceInteraction si, vec3 v){
     return si.tbn * v;
 }
 
-vec3 eval_texture(in Texture tex, in SurfaceInteraction si){
-    if (tex.ty == TEXTURE_TY_CONSTANT){
-        return tex.val;
-    }else if(tex.ty == TEXTURE_TY_IMAGE){
-        return texture(textures[tex.texture], si.uv).rgb;
-    }
-    return vec3(0.);
-}
-
 float cos_theta(vec3 v){
     return v.z;
 }

@@ -1,6 +1,10 @@
 use crevice::std140::AsStd140;
 use glam::*;
 
+pub trait AsGlsl {
+    const GLSL_SOURCE: str;
+}
+
 #[derive(AsStd140, Debug)]
 pub struct Mesh {
     pub indices: u32,
@@ -26,18 +30,21 @@ pub struct Emitter {
 }
 
 impl Emitter {
+    const TY_NONE: u32 = 0;
+    const TY_AREA: u32 = 1;
+    const TY_ENV: u32 = 2;
     pub fn env(irradiance: Texture) -> Self {
         Self {
             irradiance,
             instance: 0,
-            ty: 0,
+            ty: Self::TY_ENV,
         }
     }
     pub fn area(irradiance: Texture, instance: u32) -> Self {
         Self {
             irradiance,
             instance,
-            ty: 1,
+            ty: Self::TY_NONE,
         }
     }
 }

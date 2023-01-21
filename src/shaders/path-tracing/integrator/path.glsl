@@ -5,6 +5,7 @@
 #include "sensor/perspective.glsl"
 #include "trace.glsl"
 #include "sampler/independent.glsl"
+#include "util/emitter.glsl"
 
 float mis_weight(float pdf_a, float pdf_b){
     float a2 = pdf_a * pdf_a;
@@ -42,10 +43,12 @@ void render(uvec2 size, uvec2 pos){
         sample_bsdf(si, next_1d(), next_2d(), bs, bsdf_value);
 
 
-        L += f * eval_texture(si.material.emission, si);
+        L += f * eval_emitter(si);
         f *= bsdf_value;
 
         ray = spawn_ray(si, to_world(si, bs.wo));
+        
+        uint x = emitters.length();
 
         //===========================================================
         // Throughput Russian Roulette:

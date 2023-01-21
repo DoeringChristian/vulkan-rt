@@ -35,4 +35,21 @@ float square_to_cosine_hemisphere_pdf(vec3 v){
     return 1./PI * v.z;
 }
 
+// =======================================================================
+
+vec2 square_to_uniform_triangle(vec2 s){
+    float t = sqrt(1. - s.x);
+    return vec2(1. - t, t * s.y);
+}
+
+vec2 uniform_traingle_to_square(vec2 p){
+    float t = 1. - p.x;
+    return vec2(1. - t * t, p.y / t);
+}
+
+float square_to_uniform_triangle_pdf(vec2 p){
+    return 2.;
+}
+
+
 #endif //WARP_GLSL

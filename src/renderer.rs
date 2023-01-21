@@ -25,7 +25,10 @@ impl PTRenderer {
     pub fn new(device: &Arc<Device>, info: &PTRendererInfo) -> Self {
         let bindings = include_str!("shaders/path-tracing/bindings.glsl");
         let common = include_str!("shaders/path-tracing/common.glsl");
+        let texture = include_str!("shaders/path-tracing/util/texture.glsl");
         let interaction = include_str!("shaders/path-tracing/interaction.glsl");
+        let instance = include_str!("shaders/path-tracing/util/instance.glsl");
+        let emitter = include_str!("shaders/path-tracing/util/emitter.glsl");
         let trace = include_str!("shaders/path-tracing/trace.glsl");
         let math = include_str!("shaders/path-tracing/util/math.glsl");
         let warp = include_str!("shaders/path-tracing/util/warp.glsl");
@@ -80,7 +83,11 @@ impl PTRenderer {
         src.push_str(warp);
         src.push_str(common);
         src.push_str(bindings);
+
+        src.push_str(texture);
         src.push_str(interaction);
+        src.push_str(instance);
+        src.push_str(emitter);
         src.push_str(&sampler);
         src.push_str(&bsdf);
         src.push_str(&sensor);
@@ -155,57 +162,8 @@ impl PTRenderer {
             miss_indices: &[2],
             callable_indices: &[],
         };
-        let sbt = SbtBuffer::create(device, sbt_info, &ppl).unwrap();
-        Self { sbt, ppl }
-    }
-    pub fn create(device: &Arc<Device>) -> Self {
-        let ppl = Arc::new(
-            RayTracePipeline::create(
-                device,
-                RayTracePipelineInfo::new()
-                    .max_ray_recursion_depth(2)
-                    .build(),
-                [
-                    Shader::new_ray_gen(
-                        inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rgen.glsl", rgen, vulkan1_2,
-                                                     I "src/shaders/path-tracing/")
-                            .as_slice(),
-                    ),
-                    Shader::new_closest_hit(
-                        inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rchit.glsl", rchit, vulkan1_2,
-                                                     I "src/shaders/path-tracing")
-                            .as_slice(),
-                    ),
-                    Shader::new_miss(
-                        inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rmiss.glsl", rmiss, vulkan1_2,
-                                                     I "src/shaders/path-tracing")
-                            .as_slice(),
-                    ),
-                    Shader::new_miss(
-                        inline_spirv::include_spirv!(
-                            "src/shaders/path-tracing/rtx/rmiss_shadow.glsl",
-                            rmiss,
-                            vulkan1_2,
-                            I "src/shaders/path-tracing"
-                        )
-                        .as_slice(),
-                    ),
-                ],
-                [
-                    RayTraceShaderGroup::new_general(0),
-                    RayTraceShaderGroup::new_triangles(1, None),
-                    RayTraceShaderGroup::new_general(2),
-                    //RayTraceShaderGroup::new_general(3),
-                ],
-            )
-            .unwrap(),
-        );
-        let sbt_info = SbtBufferInfo {
-            rgen_index: 0,
-            hit_indices: &[1],
-            miss_indices: &[2],
-            callable_indices: &[],
-        };
+        inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rgen.glsl", rmiss, vulkan1_2,
+                                     I "src/shaders/path-tracing");
         let sbt = SbtBuffer::create(device, sbt_info, &ppl).unwrap();
         Self { sbt, ppl }
     }

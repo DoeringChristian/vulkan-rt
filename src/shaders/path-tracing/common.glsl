@@ -24,13 +24,16 @@ struct Instance{
     mat4 to_world;
     uint mesh;
     uint material;
-    uint emitter;
+    int emitter;
 };
 struct Emitter{
     Texture iradiance;
     uint instance;
     uint ty;
 };
+#define EMITTER_TY_NONE 0
+#define EMITTER_TY_ENV 1
+#define EMITTER_TY_AREA 2
 struct Material{
     Texture base_color;
     Texture emission;
@@ -83,6 +86,32 @@ struct Ray{
 struct BSDFSample{
     vec3 wo;
     float pdf;
+};
+
+struct PositionSample{
+    vec3 p;
+    vec2 uv;
+    vec3 n;
+    float pdf;
+
+    vec3 barycentric;
+
+    mat3 tbn;
+};
+
+struct DirectionSample{
+    vec3 p;
+    vec2 uv;
+    vec3 n;
+    float pdf;
+    
+    vec3 barycentric;
+
+    mat3 tbn;
+    //
+    
+    vec3 d;
+    float dist;
 };
 
 #endif //COMMON_GLSL
