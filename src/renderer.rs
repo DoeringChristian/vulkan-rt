@@ -96,8 +96,6 @@ impl PTRenderer {
                 a
             });
 
-        //println!("{src}");
-
         let compiler = shaderc::Compiler::new().unwrap();
         let mut options = shaderc::CompileOptions::new().unwrap();
         options.set_target_spirv(shaderc::SpirvVersion::V1_5);
