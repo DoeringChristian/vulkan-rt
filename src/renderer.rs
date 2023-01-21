@@ -5,6 +5,8 @@ use crevice::std140::AsStd140;
 use screen_13::prelude::*;
 use std::sync::Arc;
 
+pub struct PTRendererInfo {}
+
 pub struct PTRenderer {
     device: Arc<Device>,
     sbt: SbtBuffer,
@@ -126,7 +128,7 @@ impl PTRenderer {
             pass = pass.read_descriptor((0, 10, [i as _]), *texture);
         }
 
-        pass = pass.write_descriptor((1, 0), image);
+        pass = pass.write_descriptor((1, 0, [0]), image);
 
         let sbt_rgen = self.sbt.rgen();
         let sbt_miss = self.sbt.miss();

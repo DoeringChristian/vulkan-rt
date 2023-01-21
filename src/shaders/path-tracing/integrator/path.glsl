@@ -65,7 +65,7 @@ void render(uvec2 size, uvec2 pos){
         //break;
     }
     
-    imageStore(image, ivec2(pos), vec4(L, 1.));
+    imageStore(image[0], ivec2(pos), vec4(L, 1.));
 }
 
 #endif // PATH_GLSL
