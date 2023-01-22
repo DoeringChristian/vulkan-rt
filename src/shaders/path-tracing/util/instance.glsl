@@ -46,6 +46,8 @@ PositionSample instance_sample_position(in Instance instance, vec2 sample1){
     ps.tbn = tbn;
 
     ps.pdf = 1./float(primitive_count);
+    // //DEBUG:
+    // imageStore(image[0], ivec2(gl_LaunchIDEXT.xy), vec4(ps.pdf, 0., 0., 1.));
 
     // DEBUG:
     //ps.uv = sample1;

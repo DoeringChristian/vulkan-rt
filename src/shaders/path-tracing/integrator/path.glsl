@@ -48,18 +48,21 @@ void render(uvec2 size, uvec2 pos){
 
         vec3 em_bsdf_weight;
         float em_bsdf_pdf;
-        eval_pdf(si, to_local(si, -ds.d), em_bsdf_weight, em_bsdf_pdf);
+        eval_pdf(si, to_local(si, ds.d), em_bsdf_weight, em_bsdf_pdf);
 
         float mis_em = mis_weight(ds.pdf, bs.pdf);
         float mis_bsdf = mis_weight(bs.pdf, ds.pdf);
 
-        if(ds.pdf > 0.){
-            L += f * em_weight * em_bsdf_weight * mis_em;
-        }
+        L += f * em_weight * em_bsdf_weight * mis_em;
+        // if(ds.pdf > 0.){
+        //     L += f * em_weight * em_bsdf_weight * mis_em;
+        // }else{
+        //     mis_bsdf = 1.;
+        // }
         
         
-        L += f * eval_emitter(si) * mis_bsdf;
-        f *= bsdf_value;
+        L += f * eval_emitter(si);
+        f *= bsdf_value * mis_bsdf;
 
         ray = spawn_ray(si, to_world(si, bs.wo));
         
@@ -83,11 +86,15 @@ void render(uvec2 size, uvec2 pos){
         depth += 1;
 
         // DEBUG:
-        L = vec3(ds.dist);
-        break;
+        //L = vec3(f * em_weight * em_bsdf_weight * mis_em);
+        //L = vec3(ds.pdf);
+        // Wierd bug: when writing in loop everrything works. when writing outside of loop I get nan artifacts.
+        // //DEBUG:
+        // imageStore(image[0], ivec2(gl_LaunchIDEXT.xy), vec4(ds.pdf, 0., 0, 1.));
     }
+    imageStore(image[0], ivec2(gl_LaunchIDEXT.xy), vec4(L, 0.));
     
-    imageStore(image[0], ivec2(pos), vec4(L, 1.));
+    //imageStore(image[0], ivec2(pos), vec4(L, 1.));
 }
 
 #endif // PATH_GLSL
