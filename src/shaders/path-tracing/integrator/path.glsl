@@ -56,6 +56,16 @@ void render(uvec2 size, uvec2 pos){
         BSDFSample bs;
         vec3 bsdf_value;
         sample_bsdf(si, next_1d(), next_2d(), bs, bsdf_value);
+        
+        //===========================================================
+        // Direct Emission:
+        //===========================================================
+
+        float em_pdf = depth == 0?0.:pdf_emitter_direction(si);
+        
+        float mis_bsdf = mis_weight(prev_bsdf_pdf, em_pdf);
+        
+        L += f * eval_emitter(si) * mis_bsdf;
 
         //===========================================================
         // Emitter Sampling:
@@ -63,8 +73,6 @@ void render(uvec2 size, uvec2 pos){
         DirectionSample ds;
         vec3 em_weight;
         sample_emitter_direction(si, next_2d(), ds, em_weight);
-
-        float em_pdf = depth == 0?0.:pdf_emitter_direction(si);
 
         vec3 em_bsdf_weight;
         float em_bsdf_pdf;
@@ -75,16 +83,11 @@ void render(uvec2 size, uvec2 pos){
         L += f * em_weight * em_bsdf_weight * mis_em;
         
         //===========================================================
-        // Direct Emission:
+        // Update Loop Variables:
         //===========================================================
         
-        float mis_bsdf = mis_weight(prev_bsdf_pdf, em_pdf);
-        
-        L += f * eval_emitter(si) * mis_bsdf;
         f *= bsdf_value;
-
         ray = spawn_ray(si, to_world(si, bs.wo));
-
         prev_bsdf_pdf = bs.pdf;
         
         //===========================================================
