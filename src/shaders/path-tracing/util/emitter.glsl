@@ -85,7 +85,7 @@ void sample_emitter_direction(in SurfaceInteraction si, vec2 sample1, out Direct
     }
 }
 
-float sample_emitter_direction_pdf(in SurfaceInteraction si){
+float pdf_emitter_direction(in SurfaceInteraction si){
     Instance instance = instances[si.instance];
     if (instance.emitter >= 0 && abs(cos_theta(si.wi)) > 0.){
         Mesh mesh = meshes[instance.mesh];

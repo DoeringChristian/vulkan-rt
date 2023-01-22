@@ -53,6 +53,8 @@ void render(uvec2 size, uvec2 pos){
         DirectionSample ds;
         vec3 em_weight;
         sample_emitter_direction(si, next_2d(), ds, em_weight);
+
+        float em_pdf = depth == 0?0.:pdf_emitter_direction(si);
         
         //DEBUG:
         //imageStore(image[0], ivec2(gl_LaunchIDEXT.xy), vec4(vec3(ds.dist * ds.dist / abs(dot(ds.n, ds.d)))/10., 1.));
@@ -64,7 +66,7 @@ void render(uvec2 size, uvec2 pos){
         eval_pdf(si, to_local(si, ds.d), em_bsdf_weight, em_bsdf_pdf);
 
         float mis_em = mis_weight(ds.pdf, em_bsdf_pdf);
-        float mis_bsdf = mis_weight(prev_bsdf_pdf, sample_emitter_direction_pdf(si));
+        float mis_bsdf = mis_weight(prev_bsdf_pdf, em_pdf);
 
         L += f * em_weight * em_bsdf_weight * mis_em;
         
@@ -76,8 +78,8 @@ void render(uvec2 size, uvec2 pos){
         prev_bsdf_pdf = bs.pdf;
         
         //DEBUG:
-        L = vec3(mis_em, mis_bsdf, 0.);
-        break;
+        // L = vec3(mis_em, mis_bsdf, 0.);
+        // break;
 
         //===========================================================
         // Throughput Russian Roulette:
