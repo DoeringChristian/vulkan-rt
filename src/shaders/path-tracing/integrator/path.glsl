@@ -43,32 +43,42 @@ void render(uvec2 size, uvec2 pos){
     while (depth < push_constant.max_depth){
         si = ray_intersect(ray);
 
-        finalize_surface_interaction(si, ray);
-        // DEBUG:
+        if (!si.valid){
+            // TODO: Constant emission
+            break;
+        }
 
+        finalize_surface_interaction(si, ray);
+
+        //===========================================================
+        // BSDF Sampling:
+        //===========================================================
         BSDFSample bs;
         vec3 bsdf_value;
         sample_bsdf(si, next_1d(), next_2d(), bs, bsdf_value);
 
+        //===========================================================
+        // Emitter Sampling:
+        //===========================================================
         DirectionSample ds;
         vec3 em_weight;
         sample_emitter_direction(si, next_2d(), ds, em_weight);
 
         float em_pdf = depth == 0?0.:pdf_emitter_direction(si);
-        
-        //DEBUG:
-        //imageStore(image[0], ivec2(gl_LaunchIDEXT.xy), vec4(vec3(ds.dist * ds.dist / abs(dot(ds.n, ds.d)))/10., 1.));
-        //imageStore(image[0], ivec2(gl_LaunchIDEXT.xy), vec4(vec3(ds.pdf)/10., 1.));
-        //break;
 
         vec3 em_bsdf_weight;
         float em_bsdf_pdf;
         eval_pdf(si, to_local(si, ds.d), em_bsdf_weight, em_bsdf_pdf);
 
         float mis_em = mis_weight(ds.pdf, em_bsdf_pdf);
-        float mis_bsdf = mis_weight(prev_bsdf_pdf, em_pdf);
 
         L += f * em_weight * em_bsdf_weight * mis_em;
+        
+        //===========================================================
+        // Direct Emission:
+        //===========================================================
+        
+        float mis_bsdf = mis_weight(prev_bsdf_pdf, em_pdf);
         
         L += f * eval_emitter(si) * mis_bsdf;
         f *= bsdf_value;
@@ -77,31 +87,23 @@ void render(uvec2 size, uvec2 pos){
 
         prev_bsdf_pdf = bs.pdf;
         
-        //DEBUG:
-        // L = vec3(mis_em, mis_bsdf, 0.);
-        // break;
+        //===========================================================
+        // Russian Roulette:
+        //===========================================================
+        float f_max = max(f.r, max(f.g, f.b));
+        float rr_prop = f_max;
 
-        //===========================================================
-        // Throughput Russian Roulette:
-        //===========================================================
-        // float f_max = max(f.r, max(f.g, f.b));
-        // float rr_prop = f_max;
-        //
-        // if (depth < push_constant.rr_depth){
-        //     rr_prop = 1.;
-        // }
-        // f *= 1. / rr_prop;
-        // bool rr_continue = next_float() < rr_prop;
-        // if (!rr_continue){
-        //     break;
-        // }
+        if (depth < push_constant.rr_depth){
+            rr_prop = 1.;
+        }
+        f *= 1. / rr_prop;
+        bool rr_continue = next_float() < rr_prop;
+        if (!rr_continue){
+            break;
+        }
 
         depth += 1;
 
-        // DEBUG:
-        //L = vec3(f * em_weight * em_bsdf_weight * mis_em);
-        //L = vec3(ds.pdf);
-        // Wierd bug: when writing in loop everrything works. when writing outside of loop I get nan artifacts.
     }
     imageStore(image[0], ivec2(gl_LaunchIDEXT.xy), vec4(L, 0.));
     

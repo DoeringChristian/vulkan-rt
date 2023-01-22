@@ -41,11 +41,8 @@ void emitter_sample_direciton(in Emitter emitter, SurfaceInteraction si, vec2 sa
         ds.d /= ds.dist;
 
         float dp = abs(dot(ds.d, ds.n));
-        if (dp > 0.0){
-            ds.pdf *= dist2/dp;
-        }else{
-            ds.pdf = 0;
-        }
+        
+        ds.pdf = (dp > 0.)?dist2/dp:0.;
 
         //Material material = materials[instance.material];
         val = eval_texture(emitter.emission, ds.uv);
