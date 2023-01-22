@@ -15,8 +15,11 @@ PositionSample instance_sample_position(in Instance instance, vec2 sample1){
     // imageStore(image[0], ivec2(gl_LaunchIDEXT.xy), vec4(instance.mesh, mesh.indices_count, primitive_count, 0.));
         
     uint primitive = sample_reuse(sample1.x, primitive_count);
+    ps.pdf = 1./float(primitive_count);
     
     vec2 b = square_to_uniform_triangle(sample1);
+    ps.pdf *= square_to_uniform_triangle_pdf(b);
+    
     vec3 barycentric = vec3((1. - b.x -b.y), b.x, b.y);
 
     ps.barycentric = barycentric;
@@ -33,7 +36,10 @@ PositionSample instance_sample_position(in Instance instance, vec2 sample1){
 
     ps.p = p0 * barycentric.x + p1 * barycentric.y + p2 * barycentric.z;
     
-    ps.n = normalize(cross(p1 - p0, p2 - p0));
+    vec3 n = cross(p1 - p0, p2 - p0);
+    float area = length(n)/2.;
+    //ps.pdf *= 1./area;
+    ps.n = normalize(n);
     
     vec2 uv0 = uvs[mesh.uvs + triangle.x];
     vec2 uv1 = uvs[mesh.uvs + triangle.y];
@@ -45,7 +51,6 @@ PositionSample instance_sample_position(in Instance instance, vec2 sample1){
     mat3 tbn = compute_TBN(uv1 - uv0, uv2 - uv0, p1 - p0, p2 - p0, ps.n);
     ps.tbn = tbn;
 
-    ps.pdf = 1./float(primitive_count);
     // //DEBUG:
     // imageStore(image[0], ivec2(gl_LaunchIDEXT.xy), vec4(ps.pdf, 0., 0., 1.));
 

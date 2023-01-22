@@ -30,6 +30,7 @@ fn main() {
     let pt_renderer = PTRenderer::new(
         device,
         &PTRendererInfo {
+            //integrator: Some("./src/shaders/path-tracing/integrator/direct.glsl"),
             ..Default::default()
         },
     );

@@ -32,7 +32,11 @@ vec3 square_to_cosine_hemisphere(vec2 s){
 }
 
 float square_to_cosine_hemisphere_pdf(vec3 v){
-    return 1./PI * v.z;
+    if (v.z > 0.){
+        return 1./PI * v.z;
+    }else{
+        return 0.;
+    }
 }
 
 // =======================================================================

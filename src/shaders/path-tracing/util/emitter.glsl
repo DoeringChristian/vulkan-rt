@@ -41,7 +41,7 @@ void emitter_sample_direciton(in Emitter emitter, SurfaceInteraction si, vec2 sa
         ds.d /= ds.dist;
 
         float dp = abs(dot(ds.d, ds.n));
-        if (dp != 0 && dist2 > 0.){
+        if (dp > 0.0001){
             ds.pdf *= dist2/dp;
         }else{
             ds.pdf = 0;
@@ -76,7 +76,7 @@ void sample_emitter_direction(in SurfaceInteraction si, vec2 sample1, out Direct
 
     ds.pdf *= pdf_emitter(emitter_idx);
     
-    val *= emitter_weight;
+    val *= emitter_weight * abs(dot(ds.n, ds.d));
 
     bool occluded = ray_test(spawn_ray_to(si, ds.p));
     if (occluded){
