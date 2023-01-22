@@ -48,28 +48,12 @@ fn main() {
             scene.update(frame.device, &mut cache, frame.render_graph);
             println!("{}", scene.material_data.as_ref().unwrap().count());
         }
-        let img = cache
-            .lease(ImageInfo::new_2d(
-                vk::Format::R32G32B32A32_SFLOAT,
-                1024,
-                1024,
-                vk::ImageUsageFlags::STORAGE | vk::ImageUsageFlags::SAMPLED,
-            ))
-            .unwrap();
-        let img = frame.render_graph.bind_node(img);
+        let scene = scene.bind(frame.render_graph);
 
-        pt_renderer.bind_and_render(
-            &scene,
-            img,
-            i,
-            1024,
-            1024,
-            0,
-            &mut cache,
-            frame.render_graph,
-        );
+        let gbuffer =
+            pt_renderer.bind_and_render(&scene, i, 1024, 1024, 0, &mut cache, frame.render_graph);
 
-        let denoised = denoiser.denoise(img, i, frame.render_graph);
+        let denoised = denoiser.denoise(gbuffer.color, i, frame.render_graph);
 
         let img_srgb = cache
             .lease(ImageInfo::new_2d(

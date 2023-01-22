@@ -1,6 +1,6 @@
 use crate::glsl::PushConstant;
 use crate::sbt::{SbtBuffer, SbtBufferInfo};
-use crate::scene::Scene;
+use crate::scene::{Scene, SceneBinding};
 use crevice::std140::AsStd140;
 use screen_13::prelude::*;
 use std::fmt::Write;
@@ -40,7 +40,7 @@ impl PTRenderer {
             .map(|path| fs::read_to_string(path).ok())
             .flatten()
             .unwrap_or(String::from(include_str!(
-                "shaders/path-tracing/integrator/path.glsl"
+                "shaders/path-tracing/integrator/path-gbuffer.glsl"
             )));
         let sampler = info
             .sampler
@@ -170,15 +170,15 @@ impl PTRenderer {
 
     pub fn bind_and_render(
         &self,
-        scene: &Scene,
-        image: impl Into<AnyImageNode>,
+        scene: &SceneBinding,
+        //image: impl Into<AnyImageNode>,
         seed: u32,
         width: u32,
         height: u32,
         camera: u32,
         cache: &mut HashPool,
         rgraph: &mut RenderGraph,
-    ) {
+    ) -> GBuffer {
         let push_constant = PushConstant {
             camera,
             seed,
@@ -186,47 +186,43 @@ impl PTRenderer {
             rr_depth: 2,
         };
 
-        let image = image.into();
+        let mut lease_img = || -> AnyImageNode {
+            let img = cache
+                .lease(ImageInfo::new_2d(
+                    vk::Format::R32G32B32A32_SFLOAT,
+                    width,
+                    height,
+                    vk::ImageUsageFlags::STORAGE | vk::ImageUsageFlags::SAMPLED,
+                ))
+                .unwrap();
+            rgraph.bind_node(img).into()
+        };
 
-        let accel = rgraph.bind_node(&scene.tlas.as_ref().unwrap().accel);
-        let indices = rgraph.bind_node(&scene.index_data.as_ref().unwrap().buf);
-        let positions = rgraph.bind_node(&scene.position_data.as_ref().unwrap().buf);
-        let normals = rgraph.bind_node(&scene.normal_data.as_ref().unwrap().buf);
-        let uvs = rgraph.bind_node(&scene.uv_data.as_ref().unwrap().buf);
-
-        let instances = rgraph.bind_node(&scene.instance_data.as_ref().unwrap().buf);
-        let meshes = rgraph.bind_node(&scene.mesh_data.as_ref().unwrap().buf);
-        let emitters = rgraph.bind_node(&scene.emitter_data.as_ref().unwrap().buf);
-        let materials = rgraph.bind_node(&scene.material_data.as_ref().unwrap().buf);
-        let cameras = rgraph.bind_node(&scene.camera_data.as_ref().unwrap().buf);
-
-        let textures = scene
-            .textures_gpu
-            .as_ref()
-            .unwrap()
-            .iter()
-            .map(|texture| rgraph.bind_node(texture))
-            .collect::<Vec<_>>();
+        let color = lease_img();
+        let position = lease_img();
+        let normal = lease_img();
 
         let mut pass = rgraph
             .begin_pass("Path Tracing Pass")
             .bind_pipeline(&self.ppl)
-            .read_descriptor((0, 0), accel)
-            .read_descriptor((0, 1), indices)
-            .read_descriptor((0, 2), positions)
-            .read_descriptor((0, 3), normals)
-            .read_descriptor((0, 4), uvs)
-            .read_descriptor((0, 5), instances)
-            .read_descriptor((0, 6), meshes)
-            .read_descriptor((0, 7), emitters)
-            .read_descriptor((0, 8), materials)
-            .read_descriptor((0, 9), cameras);
+            .read_descriptor((0, 0), scene.accel)
+            .read_descriptor((0, 1), scene.indices)
+            .read_descriptor((0, 2), scene.positions)
+            .read_descriptor((0, 3), scene.normals)
+            .read_descriptor((0, 4), scene.uvs)
+            .read_descriptor((0, 5), scene.instances)
+            .read_descriptor((0, 6), scene.meshes)
+            .read_descriptor((0, 7), scene.emitters)
+            .read_descriptor((0, 8), scene.materials)
+            .read_descriptor((0, 9), scene.cameras);
 
-        for (i, texture) in textures.iter().enumerate() {
+        for (i, texture) in scene.textures.iter().enumerate() {
             pass = pass.read_descriptor((0, 10, [i as _]), *texture);
         }
 
-        pass = pass.write_descriptor((1, 0, [0]), image);
+        pass = pass.write_descriptor((1, 0, [0]), color);
+        pass = pass.write_descriptor((1, 0, [1]), normal);
+        pass = pass.write_descriptor((1, 0, [2]), position);
 
         let sbt_rgen = self.sbt.rgen();
         let sbt_miss = self.sbt.miss();
@@ -246,6 +242,15 @@ impl PTRenderer {
             );
         });
 
-        //pass.submit_pass();
+        GBuffer {
+            color,
+            normal,
+            position,
+        }
     }
+}
+pub struct GBuffer {
+    pub color: AnyImageNode,
+    pub normal: AnyImageNode,
+    pub position: AnyImageNode,
 }

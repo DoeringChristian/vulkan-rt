@@ -53,6 +53,14 @@ void render(uvec2 size, uvec2 pos){
         //===========================================================
         // BSDF Sampling:
         //===========================================================
+        if (depth == 0){
+            imageStore(o_normal, ivec2(pos), vec4(si.n, 1.));
+            imageStore(o_position, ivec2(pos), vec4(si.p, 1.));
+        }
+
+        //===========================================================
+        // BSDF Sampling:
+        //===========================================================
         BSDFSample bs;
         vec3 bsdf_value;
         sample_bsdf(si, next_1d(), next_2d(), bs, bsdf_value);
@@ -110,7 +118,7 @@ void render(uvec2 size, uvec2 pos){
         depth += 1;
 
     }
-    imageStore(o_color, ivec2(pos), vec4(L, 1.));
+    imageStore(o_color, ivec2(pos), vec4(L, 0.));
     
     //imageStore(image[0], ivec2(pos), vec4(L, 1.));
 }

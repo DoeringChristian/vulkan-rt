@@ -173,4 +173,43 @@ impl Scene {
             .unwrap()
             .build(cache, rgraph, &blas_nodes);
     }
+
+    pub fn bind(&self, rgraph: &mut RenderGraph) -> SceneBinding {
+        SceneBinding {
+            accel: rgraph.bind_node(&self.tlas.as_ref().unwrap().accel),
+            indices: rgraph.bind_node(&self.index_data.as_ref().unwrap().buf),
+            positions: rgraph.bind_node(&self.position_data.as_ref().unwrap().buf),
+            normals: rgraph.bind_node(&self.normal_data.as_ref().unwrap().buf),
+            uvs: rgraph.bind_node(&self.uv_data.as_ref().unwrap().buf),
+
+            instances: rgraph.bind_node(&self.instance_data.as_ref().unwrap().buf),
+            meshes: rgraph.bind_node(&self.mesh_data.as_ref().unwrap().buf),
+            emitters: rgraph.bind_node(&self.emitter_data.as_ref().unwrap().buf),
+            materials: rgraph.bind_node(&self.material_data.as_ref().unwrap().buf),
+            cameras: rgraph.bind_node(&self.camera_data.as_ref().unwrap().buf),
+
+            textures: self
+                .textures_gpu
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|texture| rgraph.bind_node(texture))
+                .collect::<Vec<_>>(),
+        }
+    }
+}
+
+pub struct SceneBinding {
+    pub accel: AccelerationStructureNode,
+    pub indices: BufferNode,
+    pub positions: BufferNode,
+    pub normals: BufferNode,
+    pub uvs: BufferNode,
+    pub instances: BufferNode,
+    pub meshes: BufferNode,
+    pub emitters: BufferNode,
+    pub materials: BufferNode,
+    pub cameras: BufferNode,
+
+    pub textures: Vec<ImageNode>,
 }
