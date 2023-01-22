@@ -55,7 +55,7 @@ uint sample_reuse(inout float value, uint num){
     float scaled_index = value * float(num);
     uint index = uint(scaled_index);
     value = scaled_index - floor(scaled_index);
-    return index;
+    return index < num?index:num-1;
 }
 
 #endif //WARP_GLSL

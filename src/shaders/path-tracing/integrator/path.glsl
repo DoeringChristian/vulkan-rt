@@ -45,7 +45,7 @@ void render(uvec2 size, uvec2 pos){
 
         if (!si.valid){
             // TODO: Constant emission
-            break;
+            //break;
         }
 
         finalize_surface_interaction(si, ray);
@@ -64,8 +64,10 @@ void render(uvec2 size, uvec2 pos){
         float em_pdf = depth == 0?0.:pdf_emitter_direction(si);
         
         float mis_bsdf = mis_weight(prev_bsdf_pdf, em_pdf);
+
+        vec3 direct_emission = eval_emitter(si);
         
-        L += f * eval_emitter(si) * mis_bsdf;
+        L += f * direct_emission * mis_bsdf;
 
         //===========================================================
         // Emitter Sampling:
@@ -89,12 +91,6 @@ void render(uvec2 size, uvec2 pos){
         f *= bsdf_value;
         ray = spawn_ray(si, to_world(si, bs.wo));
         prev_bsdf_pdf = bs.pdf;
-
-        //DEBUG:
-        // if (depth == 0){
-        //     L = vec3(bs.wo);
-        //     break;
-        // }
         
         //===========================================================
         // Russian Roulette:

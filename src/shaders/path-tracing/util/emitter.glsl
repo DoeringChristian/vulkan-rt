@@ -46,7 +46,8 @@ void emitter_sample_direciton(in Emitter emitter, SurfaceInteraction si, vec2 sa
 
         //Material material = materials[instance.material];
         val = eval_texture(emitter.emission, ds.uv);
-    } 
+    } else{
+    }
 }
 
 float pdf_emitter(uint emitter){
