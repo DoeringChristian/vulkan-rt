@@ -27,3 +27,12 @@ macros = { path = "./macros" }
 winit = { version = "0.26" }
 shaderc = "0.8.2"
 hassle-rs = "0.9.0"
+
+[build-dependencies]
+#spirv-builder = {git = "https://github.com/DoeringChristian/rust-gpu.git", branch = "u_to_ptr"}
+spirv-builder = { git = "https://github.com/EmbarkStudios/rust-gpu" }
+
+[workspace]
+members = [
+"shaders/rust-shaders"
+]
