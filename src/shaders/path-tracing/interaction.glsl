@@ -48,7 +48,9 @@ void finalize_surface_interaction(inout SurfaceInteraction si, in Ray ray){
 
     si.p = p0 * si.barycentric.x + p1 * si.barycentric.y + p2 * si.barycentric.z;
     
-    si.n = normalize(cross(p1 - p0, p2 - p0));
+    si.n = cross(p1 - p0, p2 - p0);
+    si.area = length(si.n);
+    si.n = si.n / si.area;
     
     // vec3 n0 = normals[mesh.normals + triangle.x];
     // vec3 n1 = normals[mesh.normals + triangle.y];
@@ -68,5 +70,7 @@ void finalize_surface_interaction(inout SurfaceInteraction si, in Ray ray){
     si.tbn = tbn;
 
     si.wi = to_local(si, -ray.d);
+    
+    si.dist = length(si.p - ray.o);
 }
 #endif //INTERACTION_GLSL

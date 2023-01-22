@@ -8,13 +8,20 @@
 #include "util/emitter.glsl"
 
 float mis_weight(float pdf_a, float pdf_b){
-    float a2 = pdf_a * pdf_a;
     if (pdf_a > 0.){
-        return a2 / (pdf_b * pdf_b + a2);
+        return pdf_a / (pdf_a + pdf_b);
     }else{
         return 0.;
     }
 }
+// float mis_weight(float pdf_a, float pdf_b){
+//     float a2 = pdf_a * pdf_a;
+//     if (pdf_a > 0.){
+//         return a2 / (pdf_b * pdf_b + a2);
+//     }else{
+//         return 0.;
+//     }
+// }
 
 void render(uvec2 size, uvec2 pos){
     uint idx = uint(size.x * pos.y + pos.x);
@@ -29,6 +36,7 @@ void render(uvec2 size, uvec2 pos){
     vec3 L = vec3(0.);
     vec3 f = vec3(1.);
     uint depth = 0;
+    float prev_bsdf_pdf = 1.;
     
     SurfaceInteraction si;
     
@@ -55,19 +63,21 @@ void render(uvec2 size, uvec2 pos){
         float em_bsdf_pdf;
         eval_pdf(si, to_local(si, ds.d), em_bsdf_weight, em_bsdf_pdf);
 
-        float mis_em = mis_weight(ds.pdf, bs.pdf);
-        float mis_bsdf = mis_weight(bs.pdf, ds.pdf);
+        float mis_em = mis_weight(ds.pdf, em_bsdf_pdf);
+        float mis_bsdf = mis_weight(prev_bsdf_pdf, sample_emitter_direction_pdf(si));
 
-        L += f * em_weight * em_bsdf_weight * 0.5;
+        L += f * em_weight * em_bsdf_weight * mis_em;
         
-        L += f * eval_emitter(si);
-        f *= bsdf_value * 0.5;
+        L += f * eval_emitter(si) * mis_bsdf;
+        f *= bsdf_value;
 
         ray = spawn_ray(si, to_world(si, bs.wo));
+
+        prev_bsdf_pdf = bs.pdf;
         
         //DEBUG:
-        // imageStore(image[0], ivec2(gl_LaunchIDEXT.xy), vec4(vec3(ds.pdf)/10., 1.));
-        // break;
+        L = vec3(mis_em, mis_bsdf, 0.);
+        break;
 
         //===========================================================
         // Throughput Russian Roulette:

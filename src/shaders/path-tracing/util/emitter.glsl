@@ -41,7 +41,7 @@ void emitter_sample_direciton(in Emitter emitter, SurfaceInteraction si, vec2 sa
         ds.d /= ds.dist;
 
         float dp = abs(dot(ds.d, ds.n));
-        if (dp > 0.0001){
+        if (dp > 0.0){
             ds.pdf *= dist2/dp;
         }else{
             ds.pdf = 0;
@@ -82,6 +82,22 @@ void sample_emitter_direction(in SurfaceInteraction si, vec2 sample1, out Direct
     if (occluded){
         ds.pdf = 0.;
         val = vec3(0.);
+    }
+}
+
+float sample_emitter_direction_pdf(in SurfaceInteraction si){
+    Instance instance = instances[si.instance];
+    if (instance.emitter >= 0 && abs(cos_theta(si.wi)) > 0.){
+        Mesh mesh = meshes[instance.mesh];
+        
+        float pdf = (si.dist * si.dist) / abs(cos_theta(si.wi));
+        pdf *= pdf_emitter(instance.emitter);
+        pdf *= square_to_uniform_triangle_pdf(si.barycentric.yz);
+        pdf *= 1. / si.area;
+        pdf *= 1. / float(mesh.indices_count / 3);
+        return pdf;
+    }else{
+        return 0;
     }
 }
 

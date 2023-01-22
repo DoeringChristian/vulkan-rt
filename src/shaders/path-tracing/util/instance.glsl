@@ -38,7 +38,7 @@ PositionSample instance_sample_position(in Instance instance, vec2 sample1){
     
     vec3 n = cross(p1 - p0, p2 - p0);
     float area = length(n)/2.;
-    //ps.pdf *= 1./area;
+    ps.pdf *= 1./area;
     ps.n = normalize(n);
     
     vec2 uv0 = uvs[mesh.uvs + triangle.x];

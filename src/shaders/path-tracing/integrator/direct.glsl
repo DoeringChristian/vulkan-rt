@@ -48,13 +48,13 @@ void render(uvec2 size, uvec2 pos){
         L = em_weight * em_bsdf_weight + eval_emitter(si);
 
         //DEBUG:
-        float weight;
-        if (ds.pdf > 0.){
-            weight = 1./ds.pdf;
-        }else{
-            weight = 0;
-        }
-        L = vec3(weight);
+        // float weight;
+        // if (ds.pdf > 0.){
+        //     weight = 1./ds.pdf;
+        // }else{
+        //     weight = 0;
+        // }
+        // L = vec3(weight);
         
         break;
     }

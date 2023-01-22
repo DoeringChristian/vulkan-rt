@@ -58,6 +58,8 @@ struct SurfaceInteraction{
 
     vec3 p;
     vec3 n;
+    float dist;
+    float area;
     
     vec2 uv;
 
