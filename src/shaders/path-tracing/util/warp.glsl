@@ -26,23 +26,19 @@ vec2 square_to_uniform_disk_concentric(vec2 s){
 vec3 square_to_cosine_hemisphere(vec2 s){
     vec2 p = square_to_uniform_disk_concentric(s);
 
-    float z = sqrt(1. - dot(p, p));
+    float z = sqrt(max(0., 1. - dot(p, p)));
 
     return vec3(p.x, p.y, z);
 }
 
 float square_to_cosine_hemisphere_pdf(vec3 v){
-    if (v.z > 0.){
-        return 1./PI * v.z;
-    }else{
-        return 0.;
-    }
+    return v.z > 0.? (1./PI * v.z):0.;
 }
 
 // =======================================================================
 
 vec2 square_to_uniform_triangle(vec2 s){
-    float t = sqrt(1. - s.x);
+    float t = sqrt(max(0., 1. - s.x));
     return vec2(1. - t, t * s.y);
 }
 
@@ -52,7 +48,7 @@ vec2 uniform_traingle_to_square(vec2 p){
 }
 
 float square_to_uniform_triangle_pdf(vec2 p){
-    return 2.;
+    return p.x < 0. || p.y < 0. || (p.x + p.y > 1.)?0.:2.;
 }
 
 uint sample_reuse(inout float value, uint num){

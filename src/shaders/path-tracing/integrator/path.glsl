@@ -89,6 +89,12 @@ void render(uvec2 size, uvec2 pos){
         f *= bsdf_value;
         ray = spawn_ray(si, to_world(si, bs.wo));
         prev_bsdf_pdf = bs.pdf;
+
+        //DEBUG:
+        // if (depth == 0){
+        //     L = vec3(bs.wo);
+        //     break;
+        // }
         
         //===========================================================
         // Russian Roulette:
