@@ -45,6 +45,23 @@ struct Camera{
     float far_clip;
 };
 
+struct RestirSample{
+    vec3 pv;
+    vec3 nv;
+    vec3 ps;
+    vec3 ns;
+
+    vec3 Lo_hat;
+    vec3 random;
+};
+
+struct RestirReservoir{
+    RestirSample s;
+    float w;
+    float W;
+    float M;
+};
+
 // Shared between shaders
 
 struct Payload{
