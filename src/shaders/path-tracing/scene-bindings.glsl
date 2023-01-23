@@ -36,10 +36,6 @@ layout(std140, set = 0, binding = 9) buffer Cameras{
 };
 layout(set = 0, binding = 10) uniform sampler2D textures[];
 
-layout(set = 1, binding = 0, rgba32f) uniform image2D o_color;
-layout(set = 1, binding = 1, rgba32f) uniform image2D o_normal;
-layout(set = 1, binding = 2, rgba32f) uniform image2D o_position;
-
 layout(push_constant) uniform PushConstants{
     uint camera;
     uint max_depth;

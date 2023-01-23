@@ -6,10 +6,16 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
 #include "common.glsl"
-#include "bindings.glsl"
+#include "scene-bindings.glsl"
 
+// Ray Tracing Bindings
 layout(location = 0) rayPayloadEXT Payload payload;
 layout(location = 1) rayPayloadEXT bool shadow_payload;
+
+// Output Images
+layout(set = 1, binding = 0, rgba32f) uniform image2D o_color;
+layout(set = 1, binding = 1, rgba32f) uniform image2D o_normal;
+layout(set = 1, binding = 2, rgba32f) uniform image2D o_position;
 
 #include "trace.glsl"
 
