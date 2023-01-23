@@ -15,13 +15,13 @@ layout(location = 1) rayPayloadEXT bool shadow_payload;
 // Output Images
 layout(set = 1, binding = 0, rgba32f) uniform image2D o_color;
 
-// layout(set = 2, binding = 0) buffer InitialSamples{
-//     RestirSample initial_samples[];
-// };
-layout(set = 2, binding = 0) buffer TemporalReservoir{
+layout(set = 2, binding = 0) buffer InitialSamples{
+    RestirSample initial_samples[];
+};
+layout(set = 2, binding = 1) buffer TemporalReservoir{
     RestirReservoir temporal_reservoir[];
 };
-layout(set = 2, binding = 1) buffer Spatialreservoir{
+layout(set = 2, binding = 2) buffer Spatialreservoir{
     RestirReservoir spatial_reservoir[];
 };
 
@@ -31,6 +31,10 @@ layout(set = 2, binding = 1) buffer Spatialreservoir{
 #include "bsdf/diffuse.glsl"
 #include "integrator/path-restir.glsl"
 
-void main() {
+void main_initial_smapling() {
     render(uvec2(gl_LaunchSizeEXT.xy), uvec2(gl_LaunchIDEXT.xy));
+}
+
+void main_spatial_resampling(){
+    restir_spatial_resampling(uvec2(gl_LaunchSizeEXT.xy), uvec2(gl_LaunchIDEXT.xy));
 }

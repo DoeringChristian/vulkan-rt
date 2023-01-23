@@ -130,6 +130,8 @@ void render(uvec2 size, uvec2 pos){
 
     RestirSample S = RestirSample(si_v.p, si_v.n, si_s.p, si_s.n, Li); // instead of retreiving from buffer we sample in this shader
 
+    initial_samples[pixel] = S;
+
     //===========================================================
     // Temporal Resampling (Algorithm 3):
     //===========================================================
@@ -140,13 +142,24 @@ void render(uvec2 size, uvec2 pos){
 
     update(R, S, w); // l.5
 
-    R.W = R.w / (R.M); // l.6 TODO: Multiply by p^\hat(R.z)
+    R.W = R.w / (R.M); // l.6 TODO: Divide by p^\hat(R.z)
 
     temporal_reservoir[pixel] = R; // l.7
+    
+}
+
+bool restir_similarity()
+
+void restir_spatial_resampling(uvec2 size, uvec2 pos){
     
     //===========================================================
     // Temporal Resampling (Algorithm 4):
     //===========================================================
+    uint pixel = uint(size.x * pos.y + pos.x);
+    RestirSample S = initial_samples[pixel];
+
+    vec3 x_r1 = S.pv;
+    
     uint max_iterations = 9;
 
     RestirReservoir R_s = spatial_reservoir[pixel]; // l.2
@@ -155,17 +168,30 @@ void render(uvec2 size, uvec2 pos){
         vec2 pos_n = pos + uvec2(square_to_uniform_disk_concentric(next_2d()) * float(size.x) * 0.1); // l.5
         uint q_n = pos_n.y * size.x + pos_n.y; // l.5
 
-        // TODO: similarity // l.6-8
+        RestirSample S_n = initial_samples[q_n]; // l.6-8
+        if(dot(S.nv, S_n.nv) < 0.906307787) {
+            continue;
+        }
 
         RestirReservoir R_n = temporal_reservoir[q_n]; // l.9
 
-        
+        vec3 x_q1 = S_n.pv; // l.10
+        vec3 x_q2 = S_n.ps; 
+        vec3 n_q1 = S_n.nv;
+        float cos_phi_q = dot(normalize(x_q1 - x_q2), n_q1);
+        float cos_phi_r = dot(normalize(x_r1 - x_q2), n_q1);
+        float J_qn_to_q = abs(cos_phi_r) / abs(cos_phi_q) * dot(x_q1 - x_q2, x_q1 - x_q2) / dot(x_r1 - x_q2, x_r1 - x_q2);
 
-        
-        
+        float pq_hat = 1. / J_qn_to_q; // l.11 TODO: get \hat p_q(R_n.z)
+
+        if (test_ray(ray_from_to(R_n.ps, S_n.pv))){ // l.12
+            pq_hat = 0.; // l.13
+        }
+
+        merge(R_s, R_n, pq_hat);
     }
-    
-    
+
+    float Z = 0.;
 }
 
 #endif // PATH_GLSL
