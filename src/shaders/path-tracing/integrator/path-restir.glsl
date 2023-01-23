@@ -14,16 +14,7 @@ float mis_weight(float pdf_a, float pdf_b){
     }
 }
 
-void render(uvec2 size, uvec2 pos){
-    uint idx = uint(size.x * pos.y + pos.x);
-
-    pcg_init(sample_tea_32(push_constant.seed, idx));
-    
-    vec2 sample_pos = vec2(pos) + next_2d();
-    vec2 adjusted_pos = sample_pos / vec2(size);
-
-    Ray ray = sample_ray(adjusted_pos);
-
+vec3 sample_ray(in Ray ray){
     vec3 L = vec3(0.);
     vec3 f = vec3(1.);
     uint depth = 0;
@@ -37,14 +28,6 @@ void render(uvec2 size, uvec2 pos){
         if (!si.valid){
             // TODO: Constant emission
             break;
-        }
-
-        //===========================================================
-        // BSDF Sampling:
-        //===========================================================
-        if (depth == 0){
-            imageStore(o_normal, ivec2(pos), vec4(si.n, 1.));
-            imageStore(o_position, ivec2(pos), vec4(si.p, 1.));
         }
 
         //===========================================================
@@ -105,8 +88,22 @@ void render(uvec2 size, uvec2 pos){
         }
 
         depth += 1;
-
     }
+    return L;
+}
+
+void render(uvec2 size, uvec2 pos){
+    uint idx = uint(size.x * pos.y + pos.x);
+
+    pcg_init(sample_tea_32(push_constant.seed, idx));
+    
+    vec2 sample_pos = vec2(pos) + next_2d();
+    vec2 adjusted_pos = sample_pos / vec2(size);
+
+    Ray ray = sample_ray(adjusted_pos);
+
+    vec3 L = sample_ray(ray);
+
     imageStore(o_color, ivec2(pos), vec4(L, 0.));
 }
 
