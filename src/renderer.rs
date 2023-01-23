@@ -8,20 +8,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-#[derive(Default)]
-pub struct PTRendererInfo<'a> {
-    pub integrator: Option<&'a str>,
-    pub bsdf: Option<&'a str>,
-    pub sampler: Option<&'a str>,
-    pub sensor: Option<&'a str>,
-}
-
-pub struct PTRenderer {
-    sbt: SbtBuffer,
-    ppl: Arc<RayTracePipeline>,
-}
-
-impl PTRenderer {
+macro_rules! new_pt {
+    ($rgen:literal) => {
     pub fn new(device: &Arc<Device>) -> Self {
         let ppl = Arc::new(
             RayTracePipeline::create(
@@ -31,7 +19,7 @@ impl PTRenderer {
                     .build(),
                 [
                     Shader::new_ray_gen(
-                        inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rgen-diffuse.glsl", rgen, vulkan1_2,
+                        inline_spirv::include_spirv!($rgen, rgen, vulkan1_2,
                                                      I "src/shaders/path-tracing")
                         .as_slice(),
                     ),
@@ -73,7 +61,16 @@ impl PTRenderer {
         let sbt = SbtBuffer::create(device, sbt_info, &ppl).unwrap();
         Self { sbt, ppl }
     }
+    };
+}
 
+pub struct PTRenderer {
+    sbt: SbtBuffer,
+    ppl: Arc<RayTracePipeline>,
+}
+
+impl PTRenderer {
+    new_pt!("src/shaders/path-tracing/rtx/rgen-diffuse.glsl");
     pub fn bind_and_render(
         &self,
         scene: &SceneBinding,
