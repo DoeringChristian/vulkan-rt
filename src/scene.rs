@@ -47,7 +47,7 @@ impl Scene {
         if mesh_idx == self.meshes.len() - 1 {
             self.indices.len() - self.meshes[mesh_idx].indices as usize
         } else {
-            self.meshes[mesh_idx + 1].indices as usize - self.meshes[mesh_idx].indices;
+            self.meshes[mesh_idx + 1].indices as usize - self.meshes[mesh_idx].indices as usize
         }
     }
     pub fn upload(&mut self, device: &Arc<Device>) {

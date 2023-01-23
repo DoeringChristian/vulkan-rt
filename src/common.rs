@@ -1,9 +1,6 @@
 use crevice::std140::AsStd140;
 use glam::*;
-
-pub trait AsGlsl {
-    const GLSL_SOURCE: str;
-}
+use macros::ReprGlsl;
 
 #[derive(AsStd140, Debug)]
 pub struct Mesh {
@@ -123,4 +120,25 @@ pub struct PushConstant {
     pub max_depth: u32,
     pub rr_depth: u32,
     pub seed: u32,
+}
+
+#[derive(AsStd140, Debug)]
+#[allow(non_snake_case)]
+pub struct Sample {
+    pv: Vec3,
+    nv: Vec3,
+    ps: Vec3,
+    ns: Vec3,
+
+    Lo_hat: Vec3,
+    random: Vec3,
+}
+
+#[derive(AsStd140, Debug)]
+#[allow(non_snake_case)]
+pub struct Reservoir {
+    sample: Sample,
+    w: f32,
+    W: f32,
+    M: u32,
 }
