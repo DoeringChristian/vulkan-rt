@@ -8,6 +8,7 @@ use std::{collections::HashMap, sync::Arc};
 use crate::array::Array;
 
 pub struct Blas<T> {
+    device: Arc<Device>,
     pub accel: Arc<AccelerationStructure>,
     pub indices: Arc<Buffer>,
     pub positions: Arc<Buffer>,
@@ -29,11 +30,20 @@ impl<T: AsStd140> Blas<T> {
 
         let scratch_buf = rgraph.bind_node(
             cache
-                .lease(BufferInfo::new(
-                    self.size.build_size,
-                    vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
-                        | vk::BufferUsageFlags::STORAGE_BUFFER,
-                ))
+                .lease(
+                    BufferInfo::new(
+                        self.size.build_size,
+                        vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+                            | vk::BufferUsageFlags::STORAGE_BUFFER,
+                    )
+                    .alignment(
+                        self.device
+                            .accel_struct_properties
+                            .as_ref()
+                            .unwrap()
+                            .min_accel_struct_scratch_offset_alignment as _,
+                    ),
+                )
                 .unwrap(),
         );
 
@@ -109,7 +119,7 @@ impl<T: AsStd140> Blas<T> {
 
         let accel = AccelerationStructure::create(device, accel_info).unwrap();
         Self {
-            //geometry: gkey,
+            device: device.clone(),
             accel: Arc::new(accel),
             indices: indices.buf.clone(),
             positions: vertices.buf.clone(),
@@ -123,6 +133,7 @@ impl<T: AsStd140> Blas<T> {
 }
 
 pub struct Tlas {
+    device: Arc<Device>,
     instance_buf: Arc<Array<u8>>,
     pub accel: Arc<AccelerationStructure>,
     //pub instancedata_buf: TypedBuffer<GlslInstanceData>,
@@ -134,18 +145,26 @@ pub struct Tlas {
 impl Tlas {
     pub fn build(
         &self,
-        //scene: &GpuScene,
         cache: &mut HashPool,
         rgraph: &mut RenderGraph,
         blas_nodes: &[AnyAccelerationStructureNode],
     ) {
         let scratch_buf = rgraph.bind_node(
             cache
-                .lease(BufferInfo::new(
-                    self.size.build_size,
-                    vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
-                        | vk::BufferUsageFlags::STORAGE_BUFFER,
-                ))
+                .lease(
+                    BufferInfo::new(
+                        self.size.build_size,
+                        vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+                            | vk::BufferUsageFlags::STORAGE_BUFFER,
+                    )
+                    .alignment(
+                        self.device
+                            .accel_struct_properties
+                            .as_ref()
+                            .unwrap()
+                            .min_accel_struct_scratch_offset_alignment as _,
+                    ),
+                )
                 .unwrap(),
         );
         let accel_node = rgraph.bind_node(&self.accel);
@@ -181,9 +200,7 @@ impl Tlas {
     }
     pub fn create(
         device: &Arc<Device>,
-        //instances_data: &[GlslInstanceData],
         instances: &[vk::AccelerationStructureInstanceKHR],
-        //materials: &[GlslMaterial],
     ) -> Option<Self> {
         if (instances.len() == 0) {
             return None;
@@ -225,6 +242,7 @@ impl Tlas {
             size,
             geometry_info,
             accel,
+            device: device.clone(),
         })
     }
 }

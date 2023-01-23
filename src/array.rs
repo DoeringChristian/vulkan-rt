@@ -47,6 +47,61 @@ impl<T: crevice::std140::WriteStd140 + Sized + crevice::std140::AsStd140> Array<
     pub fn storage(device: &Arc<Device>, data: &[T]) -> Self {
         Self::from_slice(device, vk::BufferUsageFlags::STORAGE_BUFFER, data)
     }
+    pub fn uninitialized(device: &Arc<Device>, usage: vk::BufferUsageFlags, count: usize) -> Self {
+        let stride =
+            size_of::<T::Output>() + align_offset(size_of::<T::Output>(), T::Output::ALIGNMENT);
+
+        let buf = Arc::new(
+            Buffer::create(device, BufferInfo::new((stride * count) as _, usage)).unwrap(),
+        );
+        Self {
+            buf,
+            stride,
+            count,
+            _ty: PhantomData,
+        }
+    }
+    pub fn from_slice_staging(
+        device: &Arc<Device>,
+        cache: &mut HashPool,
+        rgraph: &mut RenderGraph,
+        usage: vk::BufferUsageFlags,
+        data: &[T],
+    ) -> Self {
+        let stride =
+            size_of::<T::Output>() + align_offset(size_of::<T::Output>(), T::Output::ALIGNMENT);
+        let size = stride * data.len();
+        let mut staging_buf = cache
+            .lease(BufferInfo::new_mappable(
+                size as _,
+                vk::BufferUsageFlags::TRANSFER_SRC,
+            ))
+            .unwrap();
+
+        let slice = Buffer::mapped_slice_mut(staging_buf.as_mut());
+
+        let mut writer = crevice::std140::Writer::new(slice);
+        writer.write(data).unwrap();
+
+        let buf = Arc::new(
+            Buffer::create(
+                device,
+                BufferInfo::new(size as _, vk::BufferUsageFlags::TRANSFER_DST | usage),
+            )
+            .unwrap(),
+        );
+
+        let buf_node = rgraph.bind_node(&buf);
+        let staging_node = rgraph.bind_node(staging_buf);
+        rgraph.copy_buffer(staging_node, buf_node);
+
+        Self {
+            buf,
+            stride,
+            count: data.len(),
+            _ty: PhantomData,
+        }
+    }
     pub fn from_slice(device: &Arc<Device>, usage: vk::BufferUsageFlags, data: &[T]) -> Self {
         let stride =
             size_of::<T::Output>() + align_offset(size_of::<T::Output>(), T::Output::ALIGNMENT);
@@ -68,59 +123,5 @@ impl<T: crevice::std140::WriteStd140 + Sized + crevice::std140::AsStd140> Array<
             count: data.len(),
             _ty: PhantomData,
         }
-    }
-}
-
-//
-// A buffer that prepends the size of the slice as the first element of a uvec4.
-// Not a safe way to do this but I have no other idea at the moment
-//
-pub struct SliceBuffer<T> {
-    pub buf: Arc<Buffer>,
-    count: usize,
-    _ty: PhantomData<T>,
-}
-impl<T: Copy + Sized> SliceBuffer<T> {
-    pub fn create(device: &Arc<Device>, data: &[T], usages: vk::BufferUsageFlags) -> Self {
-        let buf = Arc::new({
-            // SAFETY: there is no safty in this. I would love for
-            // vk::AccelerationStructureInstanceKHR to implement bytemuck.
-            let count = [data.len() as u32, 0, 0, 0];
-            let count_slice = unsafe {
-                std::slice::from_raw_parts(
-                    &count as *const _ as *const _,
-                    std::mem::size_of::<[u32; 4]>(),
-                )
-            };
-            let data = unsafe {
-                std::slice::from_raw_parts(
-                    data as *const _ as *const _,
-                    data.len() * std::mem::size_of::<T>(),
-                )
-            };
-            let mut buf = Buffer::create(
-                device,
-                BufferInfo::new_mappable(
-                    count_slice.len() as vk::DeviceSize + data.len() as vk::DeviceSize,
-                    usages,
-                ),
-            )
-            .unwrap();
-            Buffer::copy_from_slice(&mut buf, 0, count_slice);
-            if data.len() > 0 {
-                Buffer::copy_from_slice(&mut buf, count_slice.len() as _, data);
-            }
-            buf
-        });
-
-        Self {
-            buf,
-            count: data.len(),
-            _ty: PhantomData,
-        }
-    }
-    #[inline]
-    pub fn count(&self) -> usize {
-        self.count
     }
 }
