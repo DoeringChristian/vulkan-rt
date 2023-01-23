@@ -5,21 +5,21 @@
 #include "camera.glsl"
 #include "interaction.glsl"
 
-float mis_weight(float pdf_a, float pdf_b){
-    if (pdf_a > 0.){
-        return pdf_a / (pdf_a + pdf_b);
-    }else{
-        return 0.;
-    }
-}
 // float mis_weight(float pdf_a, float pdf_b){
-//     float a2 = pdf_a * pdf_a;
 //     if (pdf_a > 0.){
-//         return a2 / (pdf_b * pdf_b + a2);
+//         return pdf_a / (pdf_a + pdf_b);
 //     }else{
 //         return 0.;
 //     }
 // }
+float mis_weight(float pdf_a, float pdf_b){
+    float a2 = pdf_a * pdf_a;
+    if (pdf_a > 0.){
+        return a2 / (pdf_b * pdf_b + a2);
+    }else{
+        return 0.;
+    }
+}
 
 void render(uvec2 size, uvec2 pos){
     uint idx = uint(size.x * pos.y + pos.x);

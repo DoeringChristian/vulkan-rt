@@ -123,9 +123,9 @@ impl PTRenderer {
             pass = pass.read_descriptor((0, 10, [i as _]), *texture);
         }
 
-        pass = pass.write_descriptor((1, 0, [0]), color);
-        pass = pass.write_descriptor((1, 0, [1]), normal);
-        pass = pass.write_descriptor((1, 0, [2]), position);
+        pass = pass.write_descriptor((1, 0), color);
+        pass = pass.write_descriptor((1, 1), normal);
+        pass = pass.write_descriptor((1, 2), position);
 
         let sbt_rgen = self.sbt.rgen();
         let sbt_miss = self.sbt.miss();
