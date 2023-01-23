@@ -5,6 +5,12 @@
 #include "warp.glsl"
 #include "texture.glsl"
 
+// Sample an outgoing direction wo and evaluate the bsdf for that direction.
+//
+// value: The BSDF value f(wi, wo) divided by the probability p(wo)
+//        (multiplied by the cosinus foreshortening term cos_theta_o for non-delta components).
+//      
+
 void sample_bsdf(
     in SurfaceInteraction si, 
     in float sample1, 
@@ -20,6 +26,9 @@ void sample_bsdf(
     value = eval_texture(si.material.base_color, si.uv);
 }
 
+
+// Evaluate the bsdf including the cosinus foreshortening term.
+// f(wi, wo) * cos_theta_o
 vec3 eval(in SurfaceInteraction si, in vec3 wo){
     float cos_theta_i = cos_theta(si.wi);
     float cos_theta_o = cos_theta(wo);
@@ -31,6 +40,7 @@ vec3 eval(in SurfaceInteraction si, in vec3 wo){
     }
 }
 
+// Calculate the probability of sampling a direction wo when using the function sample_bsdf.
 float pdf(in SurfaceInteraction si, in vec3 wo){
     float cos_theta_i = cos_theta(si.wi);
     float cos_theta_o = cos_theta(wo);
@@ -42,6 +52,7 @@ float pdf(in SurfaceInteraction si, in vec3 wo){
     }
 }
 
+// Combine eval and pdf
 void eval_pdf(in SurfaceInteraction si, in vec3 wo, out vec3 value, out float pdf){
     float cos_theta_i = cos_theta(si.wi);
     float cos_theta_o = cos_theta(wo);
