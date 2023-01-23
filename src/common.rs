@@ -131,13 +131,13 @@ pub struct Sample {
     ns: Vec3,
 
     Lo_hat: Vec3,
-    random: Vec3,
+    //random: Vec3,
 }
 
 #[derive(AsStd140, Debug, Clone, Copy, Default)]
 #[allow(non_snake_case)]
 pub struct Reservoir {
-    s: Sample,
+    z: Sample,
     w: f32,
     W: f32,
     M: u32,

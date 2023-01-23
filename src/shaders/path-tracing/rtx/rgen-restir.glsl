@@ -14,8 +14,16 @@ layout(location = 1) rayPayloadEXT bool shadow_payload;
 
 // Output Images
 layout(set = 1, binding = 0, rgba32f) uniform image2D o_color;
-layout(set = 1, binding = 1, rgba32f) uniform image2D o_normal;
-layout(set = 1, binding = 2, rgba32f) uniform image2D o_position;
+
+// layout(set = 2, binding = 0) buffer InitialSamples{
+//     RestirSample initial_samples[];
+// };
+layout(set = 2, binding = 0) buffer TemporalReservoir{
+    RestirReservoir temporal_reservoir[];
+};
+layout(set = 2, binding = 1) buffer Spatialreservoir{
+    RestirReservoir spatial_reservoir[];
+};
 
 #include "trace.glsl"
 

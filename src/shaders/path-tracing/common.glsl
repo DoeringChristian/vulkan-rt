@@ -53,11 +53,11 @@ struct RestirSample{
     vec3 ns;
 
     vec3 Lo_hat;
-    vec3 random;
+    //vec3 random;
 };
 
 struct RestirReservoir{
-    RestirSample s;
+    RestirSample z;
     float w;
     float W;
     float M;
