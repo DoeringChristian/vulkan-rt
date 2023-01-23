@@ -122,7 +122,7 @@ pub struct PushConstant {
     pub seed: u32,
 }
 
-#[derive(AsStd140, Debug)]
+#[derive(AsStd140, Debug, Clone, Copy, Default)]
 #[allow(non_snake_case)]
 pub struct Sample {
     pv: Vec3,
@@ -134,10 +134,10 @@ pub struct Sample {
     random: Vec3,
 }
 
-#[derive(AsStd140, Debug)]
+#[derive(AsStd140, Debug, Clone, Copy, Default)]
 #[allow(non_snake_case)]
 pub struct Reservoir {
-    sample: Sample,
+    s: Sample,
     w: f32,
     W: f32,
     M: u32,

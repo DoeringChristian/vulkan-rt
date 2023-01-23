@@ -50,54 +50,72 @@ impl Scene {
             self.meshes[mesh_idx + 1].indices as usize - self.meshes[mesh_idx].indices as usize
         }
     }
-    pub fn upload(&mut self, device: &Arc<Device>) {
-        self.index_data = Some(Array::from_slice(
+    pub fn upload(&mut self, device: &Arc<Device>, cache: &mut HashPool, rgraph: &mut RenderGraph) {
+        self.index_data = Some(Array::from_slice_staging(
             &device,
+            cache,
+            rgraph,
             vk::BufferUsageFlags::STORAGE_BUFFER
                 | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                 | vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR,
             &self.indices,
         ));
-        self.position_data = Some(Array::from_slice(
+        self.position_data = Some(Array::from_slice_staging(
             &device,
+            cache,
+            rgraph,
             vk::BufferUsageFlags::STORAGE_BUFFER
                 | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
                 | vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR,
             &self.positions,
         ));
-        self.normal_data = Some(Array::from_slice(
+        self.normal_data = Some(Array::from_slice_staging(
             &device,
+            cache,
+            rgraph,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.normals,
         ));
-        self.uv_data = Some(Array::from_slice(
+        self.uv_data = Some(Array::from_slice_staging(
             &device,
+            cache,
+            rgraph,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.uvs,
         ));
 
-        self.instance_data = Some(Array::from_slice(
+        self.instance_data = Some(Array::from_slice_staging(
             &device,
+            cache,
+            rgraph,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.instances,
         ));
-        self.mesh_data = Some(Array::from_slice(
+        self.mesh_data = Some(Array::from_slice_staging(
             &device,
+            cache,
+            rgraph,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.meshes,
         ));
-        self.emitter_data = Some(Array::from_slice(
+        self.emitter_data = Some(Array::from_slice_staging(
             &device,
+            cache,
+            rgraph,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.emitters,
         ));
-        self.material_data = Some(Array::from_slice(
+        self.material_data = Some(Array::from_slice_staging(
             &device,
+            cache,
+            rgraph,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.materials,
         ));
-        self.camera_data = Some(Array::from_slice(
+        self.camera_data = Some(Array::from_slice_staging(
             &device,
+            cache,
+            rgraph,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             &self.cameras,
         ));
@@ -120,7 +138,7 @@ impl Scene {
     }
     pub fn update(&mut self, device: &Arc<Device>, cache: &mut HashPool, rgraph: &mut RenderGraph) {
         // Upload to gpu
-        self.upload(device);
+        self.upload(device, cache, rgraph);
         // Create blases
         for instance in self.instances.iter() {
             let mesh = &self.meshes[instance.mesh as usize];

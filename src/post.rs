@@ -99,13 +99,24 @@ impl LinearToSrgb {
     pub fn record(
         &self,
         src: impl Into<AnyImageNode>,
-        dst: impl Into<AnyImageNode>,
-        graph: &mut RenderGraph,
-    ) {
+        cache: &mut HashPool,
+        rgraph: &mut RenderGraph,
+    ) -> AnyImageNode {
         let src = src.into();
-        let dst = dst.into();
 
-        graph
+        let dst = cache
+            .lease(ImageInfo::new_2d(
+                vk::Format::R32G32B32A32_SFLOAT,
+                1024,
+                1024,
+                vk::ImageUsageFlags::STORAGE
+                    | vk::ImageUsageFlags::SAMPLED
+                    | vk::ImageUsageFlags::COLOR_ATTACHMENT,
+            ))
+            .unwrap();
+        let dst = rgraph.bind_node(dst);
+
+        rgraph
             .begin_pass("linear_to_srgb")
             .bind_pipeline(&self.ppl)
             .read_descriptor((0, 0), src)
@@ -113,5 +124,7 @@ impl LinearToSrgb {
             .record_subpass(move |subpass, _| {
                 subpass.draw(6, 1, 0, 0);
             });
+
+        dst.into()
     }
 }
