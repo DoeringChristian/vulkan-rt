@@ -53,6 +53,7 @@ struct RestirSample{
     vec3 ns;
 
     vec3 Lo_hat;
+    float p_q;
     //vec3 random;
 };
 
