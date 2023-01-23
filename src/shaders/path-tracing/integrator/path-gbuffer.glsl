@@ -43,10 +43,8 @@ void render(uvec2 size, uvec2 pos){
 
         if (!si.valid){
             // TODO: Constant emission
-            //break;
+            break;
         }
-
-        //finalize_surface_interaction(si, ray); // not needed
 
         //===========================================================
         // BSDF Sampling:
