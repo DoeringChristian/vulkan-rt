@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 use self::loaders::Loader;
 use self::post::{Denoiser, LinearToSrgb};
-use self::renderer::{PTRenderer, PTRendererInfo};
+use self::renderer::PTRenderer;
 use self::scene::Scene;
 
 fn main() {
