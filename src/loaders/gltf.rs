@@ -84,10 +84,10 @@ impl Loader<Scene> for GltfLoader {
                     mr_model.roughness_factor(),
                     0.,
                 )));
-            let emission = material
-                .emissive_texture()
-                .map(|t| Texture::image(texture_offset as u32 + t.texture().index() as u32))
-                .unwrap_or(Texture::constant(Vec3::from(material.emissive_factor())));
+            // let emission = material
+            //     .emissive_texture()
+            //     .map(|t| Texture::image(texture_offset as u32 + t.texture().index() as u32))
+            //     .unwrap_or(Texture::constant(Vec3::from(material.emissive_factor())));
             let normal = material
                 .normal_texture()
                 .map(|t| Texture::image(texture_offset as u32 + t.texture().index() as u32))
@@ -104,7 +104,6 @@ impl Loader<Scene> for GltfLoader {
             dst.materials.push(Material {
                 base_color,
                 metallic_roughness,
-                emission,
                 normal,
                 transmission,
             })

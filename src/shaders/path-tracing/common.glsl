@@ -33,9 +33,8 @@ struct Emitter{
 #define EMITTER_TY_ENV 1
 #define EMITTER_TY_AREA 2
 struct Material{
-    Texture base_color;
-    Texture emission;
     Texture normal;
+    Texture base_color;
     Texture metallic_roughness;
     Texture transmission;
 };

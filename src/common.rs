@@ -53,6 +53,16 @@ pub struct Texture {
     pub ty: u32,
 }
 
+impl Default for Texture {
+    fn default() -> Self {
+        Self {
+            val: vec3(0., 0., 0.),
+            texture: 0,
+            ty: Self::TY_CONSTANT,
+        }
+    }
+}
+
 impl Texture {
     const TY_CONSTANT: u32 = 0;
     const TY_IMAGE: u32 = 1;
@@ -72,11 +82,10 @@ impl Texture {
     }
 }
 
-#[derive(AsStd140, Debug)]
+#[derive(AsStd140, Debug, Default)]
 pub struct Material {
-    pub base_color: Texture,
-    pub emission: Texture,
     pub normal: Texture,
+    pub base_color: Texture,
     pub metallic_roughness: Texture,
     pub transmission: Texture,
 }

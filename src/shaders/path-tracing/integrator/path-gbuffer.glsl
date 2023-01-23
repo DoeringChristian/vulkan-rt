@@ -29,7 +29,9 @@ void render(uvec2 size, uvec2 pos){
     vec2 sample_pos = vec2(pos) + next_2d();
     vec2 adjusted_pos = sample_pos / vec2(size);
 
-    Ray ray = sample_ray(adjusted_pos);
+    Camera camera = cameras[push_constant.camera];
+    
+    Ray ray = sample_ray(camera, adjusted_pos);
 
     vec3 L = vec3(0.);
     vec3 f = vec3(1.);
@@ -47,7 +49,7 @@ void render(uvec2 size, uvec2 pos){
         }
 
         //===========================================================
-        // BSDF Sampling:
+        // Storing normal and position:
         //===========================================================
         if (depth == 0){
             imageStore(o_normal, ivec2(pos), vec4(si.n, 1.));
