@@ -40,6 +40,16 @@ pub struct Scene {
 }
 
 impl Scene {
+    ///
+    /// Retruns number of indices for the mesh at a given index.
+    ///
+    pub fn indices_count(&self, mesh_idx: usize) -> usize {
+        if mesh_idx == self.meshes.len() - 1 {
+            self.indices.len() - self.meshes[mesh_idx].indices as usize
+        } else {
+            self.meshes[mesh_idx + 1].indices as usize - self.meshes[mesh_idx].indices;
+        }
+    }
     pub fn upload(&mut self, device: &Arc<Device>) {
         self.index_data = Some(Array::from_slice(
             &device,
