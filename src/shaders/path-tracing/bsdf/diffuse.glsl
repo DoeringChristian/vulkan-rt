@@ -1,10 +1,9 @@
 #ifndef DIFFUSE_BSDF_GLSL
 #define DIFFUSE_BSDF_GLSL
 
-#include "bindings.glsl"
-#include "util/warp.glsl"
 #include "interaction.glsl"
-#include "util/texture.glsl"
+#include "warp.glsl"
+#include "texture.glsl"
 
 void sample_bsdf(
     in SurfaceInteraction si, 

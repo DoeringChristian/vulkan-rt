@@ -1,36 +1,24 @@
 #ifndef EMITTER_GLSL
 #define EMITTER_GLSL
 
-#include "bindings.glsl"
 #include "interaction.glsl"
-#include "util/instance.glsl"
-#include "util/texture.glsl"
+#include "records.glsl"
+#include "instance.glsl"
 
-Emitter emitter(in SurfaceInteraction si){
-    Emitter emitter;
-    Instance instance = instances[si.instance];
-    if(instance.emitter == -1){
-        emitter.ty = EMITTER_TY_NONE;
-    }else{
-        emitters[instance.emitter];
-    }
-    return emitter;
-}
-
-void emitter_sample_direciton(in Emitter emitter, SurfaceInteraction si, vec2 sample1, out DirectionSample ds, out vec3 val){
+void sample_direction(
+    in Emitter emitter, 
+    in SurfaceInteraction si, 
+    vec2 sample1, 
+    out DirectionSample ds, 
+    out vec3 val){
     if (emitter.ty == EMITTER_TY_AREA){
         Instance instance = instances[emitter.instance];
         
-        PositionSample ps = instance_sample_position(instance, sample1);
+        PositionSample ps = sample_position(instance, sample1);
         // //DEBUG:
         // imageStore(image[0], ivec2(gl_LaunchIDEXT.xy), vec4(ps.uv, 0., 1.));
         
-        ds.p = ps.p;
-        ds.uv = ps.uv;
-        ds.n = ps.n;
-        ds.pdf = ps.pdf;
-        ds.barycentric = ps.barycentric;
-        ds.tbn = ps.tbn;
+        ds = direction_sample(ps);
 
         //DEBUG:
         
@@ -47,6 +35,8 @@ void emitter_sample_direciton(in Emitter emitter, SurfaceInteraction si, vec2 sa
         //Material material = materials[instance.material];
         val = eval_texture(emitter.emission, ds.uv);
     } else{
+        val = vec3(0.);
+        ds.pdf = 0.;
     }
 }
 
@@ -54,23 +44,27 @@ float pdf_emitter(uint emitter){
     return 1. / float(emitters.length());
 }
 
-void sample_emitter(float sample1, out uint emitter, out float weight, out float sample_reuse){
-    float index_sample_scaled = sample1 * float(emitters.length());
-    uint index = uint(index_sample_scaled);
-    
-    //emitter = emitters[index];
-    emitter = index;
-    weight = float(emitters.length());
-    sample_reuse = index_sample_scaled - float(index);
-}
+// void sample_emitter(float sample1, out uint emitter, out float weight, out float sample_reuse){
+//     float index_sample_scaled = sample1 * float(emitters.length());
+//     uint index = uint(index_sample_scaled);
+//     
+//     //emitter = emitters[index];
+//     emitter = index;
+//     weight = float(emitters.length());
+//     sample_reuse = index_sample_scaled - float(index);
+// }
 
-void sample_emitter_direction(in SurfaceInteraction si, vec2 sample1, out DirectionSample ds, out vec3 val){
+void sample_emitter_direction(
+    in SurfaceInteraction si, 
+    vec2 sample1, 
+    out DirectionSample ds, 
+    out vec3 val){
     
     float emitter_weight = 1. / float(emitters.length());
     uint emitter_idx = sample_reuse(sample1.x, emitters.length());
 
     Emitter emitter = emitters[emitter_idx];
-    emitter_sample_direciton(emitter, si, sample1, ds, val);
+    sample_direction(emitter, si, sample1, ds, val);
 
     ds.pdf *= pdf_emitter(emitter_idx);
     
@@ -90,6 +84,7 @@ float pdf_emitter_direction(in SurfaceInteraction si){
         
         float pdf = (si.dist * si.dist) / abs(cos_theta(si.wi));
         pdf *= pdf_emitter(instance.emitter);
+        
         pdf *= square_to_uniform_triangle_pdf(si.barycentric.yz);
         pdf *= 1. / si.area;
         pdf *= 1. / float(mesh.indices_count / 3);
@@ -97,19 +92,6 @@ float pdf_emitter_direction(in SurfaceInteraction si){
     }else{
         return 0;
     }
-}
-
-vec3 eval_emitter(in SurfaceInteraction si){
-    Instance instance = instances[si.instance];
-    if(instance.emitter == -1){
-        return vec3(0., 0., 0.);
-    }else{
-        Emitter emitter = emitters[instance.emitter];
-        vec3 irradiance = eval_texture(emitter.emission, si.uv);
-
-        return irradiance;
-    }
-    return vec3(0., 0., 0.);
 }
 
 #endif //EMITTER_GLSL

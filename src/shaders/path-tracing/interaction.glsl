@@ -1,7 +1,28 @@
 #ifndef INTERACTION_GLSL
 #define INTERACTION_GLSL
 
-#include "bindings.glsl"
+#include "texture.glsl"
+
+struct SurfaceInteraction{
+    vec3 barycentric;
+    uint instance;
+    uint primitive;
+    bool valid;
+
+    vec3 p;
+    vec3 n;
+    float dist;
+    float area;
+    
+    vec2 uv;
+
+    mat3 tbn;
+
+    vec3 wi;
+
+    //Mesh mesh;
+    Material material;
+};
 
 vec3 to_local(in SurfaceInteraction si, vec3 v){
     return inverse(si.tbn) * v;
@@ -28,6 +49,29 @@ mat3 compute_TBN(vec2 duv0, vec2 duv1, vec3 dpos0, vec3 dpos1, vec3 n){
     vec3 t = (dpos0 * duv1.y - dpos1 * duv0.y)*r;
     vec3 b = (dpos1 * duv0.x - dpos0 * duv1.x)*r;
     return mat3(t, b, n);
+}
+
+Emitter emitter(in SurfaceInteraction si){
+    Emitter emitter;
+    Instance instance = instances[si.instance];
+    if(instance.emitter == -1){
+        emitter.ty = EMITTER_TY_NONE;
+    }else{
+        emitters[instance.emitter];
+    }
+    return emitter;
+}
+vec3 eval_emitter(in SurfaceInteraction si){
+    Instance instance = instances[si.instance];
+    if(instance.emitter == -1){
+        return vec3(0., 0., 0.);
+    }else{
+        Emitter emitter = emitters[instance.emitter];
+        vec3 emission = eval_texture(emitter.emission, si.uv);
+
+        return emission;
+    }
+    return vec3(0., 0., 0.);
 }
 
 void finalize_surface_interaction(inout SurfaceInteraction si, in Ray ray){

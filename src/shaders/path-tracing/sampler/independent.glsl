@@ -1,5 +1,5 @@
 #ifndef SAMPLER_GLSL
-#include "util/rand.glsl"
+#include "rand.glsl"
 
 #define SAMPLER_GLSL
 float next_1d(){

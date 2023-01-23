@@ -22,101 +22,7 @@ pub struct PTRenderer {
 }
 
 impl PTRenderer {
-    pub fn new(device: &Arc<Device>, info: &PTRendererInfo) -> Self {
-        let bindings = include_str!("shaders/path-tracing/bindings.glsl");
-        let common = include_str!("shaders/path-tracing/common.glsl");
-        let texture = include_str!("shaders/path-tracing/util/texture.glsl");
-        let interaction = include_str!("shaders/path-tracing/interaction.glsl");
-        let instance = include_str!("shaders/path-tracing/util/instance.glsl");
-        let emitter = include_str!("shaders/path-tracing/util/emitter.glsl");
-        let trace = include_str!("shaders/path-tracing/trace.glsl");
-        let math = include_str!("shaders/path-tracing/util/math.glsl");
-        let warp = include_str!("shaders/path-tracing/util/warp.glsl");
-        let rand = include_str!("shaders/path-tracing/util/rand.glsl");
-        let rgen = include_str!("shaders/path-tracing/rtx/rgen.glsl");
-
-        let integrator = info
-            .integrator
-            .map(|path| fs::read_to_string(path).ok())
-            .flatten()
-            .unwrap_or(String::from(include_str!(
-                "shaders/path-tracing/integrator/path-gbuffer.glsl"
-            )));
-        let sampler = info
-            .sampler
-            .map(|path| fs::read_to_string(path).ok())
-            .flatten()
-            .unwrap_or(String::from(include_str!(
-                "shaders/path-tracing/sampler/independent.glsl"
-            )));
-        let sensor = info
-            .sensor
-            .map(|path| fs::read_to_string(path).ok())
-            .flatten()
-            .unwrap_or(String::from(include_str!(
-                "shaders/path-tracing/sensor/perspective.glsl"
-            )));
-        let bsdf = info
-            .bsdf
-            .map(|path| fs::read_to_string(path).ok())
-            .flatten()
-            .unwrap_or(String::from(include_str!(
-                "shaders/path-tracing/bsdf/diffuse.glsl"
-            )));
-
-        let (preamble, rgen) = rgen.lines().partition::<Vec<_>, _>(|line| {
-            line.starts_with("#version") || line.starts_with("#extension")
-        });
-        let preamble = preamble.iter().fold(String::new(), |mut a, b| {
-            writeln!(a, "{b}").unwrap();
-            a
-        });
-        let rgen = rgen.iter().fold(String::new(), |mut a, b| {
-            writeln!(a, "{b}").unwrap();
-            a
-        });
-
-        let mut src = String::new();
-        src.push_str(&preamble);
-        src.push_str(rand);
-        src.push_str(&sampler);
-        src.push_str(math);
-        src.push_str(warp);
-        src.push_str(common);
-        src.push_str(bindings);
-        src.push_str(interaction);
-        src.push_str(trace);
-
-        src.push_str(texture);
-        src.push_str(instance);
-        src.push_str(emitter);
-        src.push_str(&bsdf);
-        src.push_str(&sensor);
-        src.push_str(&integrator);
-        src.push_str(&rgen);
-
-        let src = src
-            .lines()
-            .filter(|line| !line.starts_with("#include"))
-            .fold(String::new(), |mut a, b| {
-                writeln!(a, "{b}").unwrap();
-                a
-            });
-
-        let compiler = shaderc::Compiler::new().unwrap();
-        let mut options = shaderc::CompileOptions::new().unwrap();
-        options.set_target_spirv(shaderc::SpirvVersion::V1_5);
-
-        let rgen_result = compiler
-            .compile_into_spirv(
-                &src,
-                shaderc::ShaderKind::RayGeneration,
-                "raygen.glsl",
-                "main",
-                Some(&options),
-            )
-            .unwrap();
-
+    pub fn new(device: &Arc<Device>) -> Self {
         let ppl = Arc::new(
             RayTracePipeline::create(
                 device,
@@ -125,7 +31,9 @@ impl PTRenderer {
                     .build(),
                 [
                     Shader::new_ray_gen(
-                        rgen_result.as_binary(),
+                        inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rgen-diffuse.glsl", rgen, vulkan1_2,
+                                                     I "src/shaders/path-tracing")
+                        .as_slice(),
                     ),
                     Shader::new_closest_hit(
                         inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rchit.glsl", rchit, vulkan1_2,
@@ -162,8 +70,6 @@ impl PTRenderer {
             miss_indices: &[2, 3],
             callable_indices: &[],
         };
-        inline_spirv::include_spirv!("src/shaders/path-tracing/rtx/rgen.glsl", rmiss, vulkan1_2,
-                                     I "src/shaders/path-tracing");
         let sbt = SbtBuffer::create(device, sbt_info, &ppl).unwrap();
         Self { sbt, ppl }
     }

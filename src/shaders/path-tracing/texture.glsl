@@ -1,8 +1,6 @@
 #ifndef TEXTURE_GLSL
 #define TEXTURE_GLSL
 
-#include "bindings.glsl"
-
 vec3 eval_texture(in Texture tex, vec2 uv){
     if (tex.ty == TEXTURE_TY_CONSTANT){
         return tex.val;

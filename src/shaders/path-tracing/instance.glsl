@@ -1,11 +1,27 @@
 #ifndef MESH_GLSL
 #define MESH_GLSL
 
-#include "bindings.glsl"
-#include "common.glsl"
+#include "interaction.glsl"
 #include "warp.glsl"
 
-PositionSample instance_sample_position(in Instance instance, vec2 sample1){
+float sample_position_pdf(in Instance instance, in PositionSample ps){
+    Mesh mesh = meshes[instance.mesh];
+    float pdf = 1.;
+    pdf *= 1. / ps.area;
+    pdf *= 1. / float(mesh.indices_count / 3);
+    pdf *= square_to_uniform_triangle_pdf(ps.barycentric.yz);
+    return pdf;
+}
+float sample_position_pdf(in Instance instance, in SurfaceInteraction si){
+    Mesh mesh = meshes[instance.mesh];
+    float pdf = 1.;
+    pdf *= 1. / si.area;
+    pdf *= 1. / float(mesh.indices_count / 3);
+    pdf *= square_to_uniform_triangle_pdf(si.barycentric.yz);
+    return pdf;
+}
+
+PositionSample sample_position(in Instance instance, vec2 sample1){
     PositionSample ps;
     Mesh mesh = meshes[instance.mesh];
     
@@ -37,8 +53,8 @@ PositionSample instance_sample_position(in Instance instance, vec2 sample1){
     ps.p = p0 * barycentric.x + p1 * barycentric.y + p2 * barycentric.z;
     
     vec3 n = cross(p1 - p0, p2 - p0);
-    float area = length(n)/2.;
-    ps.pdf *= 1./area;
+    ps.area = length(n)/2.;
+    ps.pdf *= 1./ps.area;
     ps.n = normalize(n);
     
     vec2 uv0 = uvs[mesh.uvs + triangle.x];

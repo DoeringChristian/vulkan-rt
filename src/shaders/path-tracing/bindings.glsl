@@ -1,10 +1,6 @@
 #ifndef BINDINGS_GLSL
 #define BINDINGS_GLSL
 
-#include "common.glsl"
-
-layout(location = 0) rayPayloadEXT Payload payload;
-layout(location = 1) rayPayloadEXT bool shadow_payload;
 layout(set = 0, binding = 0) uniform accelerationStructureEXT accel;
 
 // NOTE: std140 forces 16 byte array stride for uints.

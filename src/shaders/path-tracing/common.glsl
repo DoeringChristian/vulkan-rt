@@ -1,8 +1,6 @@
 #ifndef COMMON_GLSL
 #define COMMON_GLSL
 
-#include "util/math.glsl"
-
 // Structs used between shader and rust
 
 struct Texture{
@@ -48,28 +46,7 @@ struct Camera{
     float far_clip;
 };
 
-
-// Internal structs
-struct SurfaceInteraction{
-    vec3 barycentric;
-    uint instance;
-    uint primitive;
-    bool valid;
-
-    vec3 p;
-    vec3 n;
-    float dist;
-    float area;
-    
-    vec2 uv;
-
-    mat3 tbn;
-
-    vec3 wi;
-
-    //Mesh mesh;
-    Material material;
-};
+// Shared between shaders
 
 struct Payload{
     uint valid;
@@ -77,43 +54,14 @@ struct Payload{
     uint primitive;
     vec3 barycentric;
 };
-    
-struct Ray{
-    vec3 o;
-    vec3 d;
-    float tmin;
-    float tmax;
-};
+
+
+// Internal structs
 
 struct BSDFSample{
     vec3 wo;
     float pdf;
 };
 
-struct PositionSample{
-    vec3 p;
-    vec2 uv;
-    vec3 n;
-    float pdf;
-
-    vec3 barycentric;
-
-    mat3 tbn;
-};
-
-struct DirectionSample{
-    vec3 p;
-    vec2 uv;
-    vec3 n;
-    float pdf;
-
-    vec3 barycentric;
-
-    mat3 tbn;
-    //
-    
-    vec3 d;
-    float dist;
-};
 
 #endif //COMMON_GLSL

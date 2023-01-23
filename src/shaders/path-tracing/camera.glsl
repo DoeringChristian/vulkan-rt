@@ -1,7 +1,7 @@
 #ifndef PERSPECTIVE_GLSL
 #define PERSPECTIVE_GLSL
 
-#include "bindings.glsl"
+#include "common.glsl"
 
 Ray sample_ray(vec2 sample_pos){
     

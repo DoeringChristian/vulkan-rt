@@ -27,13 +27,7 @@ fn main() {
     let mut cache = HashPool::new(device);
 
     let presenter = screen_13_fx::GraphicPresenter::new(device).unwrap();
-    let pt_renderer = PTRenderer::new(
-        device,
-        &PTRendererInfo {
-            //integrator: Some("./src/shaders/path-tracing/integrator/direct.glsl"),
-            ..Default::default()
-        },
-    );
+    let pt_renderer = PTRenderer::new(device);
     let denoiser = Denoiser::new(device, 1024, 1024);
     let linear_to_srgb = LinearToSrgb::new(device);
 

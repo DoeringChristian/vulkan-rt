@@ -1,7 +1,8 @@
 #ifndef TRACE_GLSL
 #define TRACE_GLSL
 
-#include "bindings.glsl"
+#include "ray.glsl"
+#include "interaction.glsl"
 
 SurfaceInteraction ray_intersect(in Ray ray){
     SurfaceInteraction si;

@@ -1,11 +1,9 @@
 #ifndef PATH_GLSL
 #define PATH_GLSL
 
+#include "emitter.glsl"
+#include "camera.glsl"
 #include "interaction.glsl"
-#include "sensor/perspective.glsl"
-#include "trace.glsl"
-#include "sampler/independent.glsl"
-#include "util/emitter.glsl"
 
 float mis_weight(float pdf_a, float pdf_b){
     if (pdf_a > 0.){
@@ -48,7 +46,7 @@ void render(uvec2 size, uvec2 pos){
             //break;
         }
 
-        finalize_surface_interaction(si, ray);
+        //finalize_surface_interaction(si, ray); // not needed
 
         //===========================================================
         // BSDF Sampling:
@@ -119,8 +117,6 @@ void render(uvec2 size, uvec2 pos){
 
     }
     imageStore(o_color, ivec2(pos), vec4(L, 0.));
-    
-    //imageStore(image[0], ivec2(pos), vec4(L, 1.));
 }
 
 #endif // PATH_GLSL
