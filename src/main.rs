@@ -1,276 +1,71 @@
-use std::ops::Deref;
-
-use bevy_ecs::prelude::*;
-use bevy_math::*;
-use {
-    bytemuck::cast_slice,
-    screen_13::prelude::*,
-    screen_13_egui::Egui,
-    std::{io::BufReader, mem::size_of, sync::Arc},
-    tobj::{load_mtl_buf, load_obj_buf, GPU_LOAD_OPTIONS},
-};
-
 mod accel;
-mod buffers;
-#[macro_use]
-mod dense_arena;
-mod model;
+mod array;
+mod common;
+mod loaders;
 mod post;
+mod renderer;
 mod sbt;
-mod world;
-use accel::*;
-use bevy_transform::prelude::Transform;
-use buffers::*;
-use model::*;
-use post::*;
-use sbt::*;
-use world::*;
+mod scene;
 
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct PushConstant {
-    camera: GlslCamera,
-}
+use crevice::std140::AsStd140;
+use screen_13::prelude::*;
+use std::sync::Arc;
 
-fn create_ray_trace_pipeline(device: &Arc<Device>) -> Result<Arc<RayTracePipeline>, DriverError> {
-    Ok(Arc::new(RayTracePipeline::create(
-        device,
-        RayTracePipelineInfo::new()
-            .max_ray_recursion_depth(3)
-            .build(),
-        [
-            Shader::new_ray_gen(
-                inline_spirv::include_spirv!("src/shaders/rgen.glsl", rgen, vulkan1_2).as_slice(),
-            ),
-            Shader::new_closest_hit(
-                inline_spirv::include_spirv!("src/shaders/rchit.glsl", rchit, vulkan1_2).as_slice(),
-            ),
-            Shader::new_miss(
-                inline_spirv::include_spirv!("src/shaders/rmiss.glsl", rmiss, vulkan1_2).as_slice(),
-            ),
-        ],
-        [
-            RayTraceShaderGroup::new_general(0),
-            RayTraceShaderGroup::new_triangles(1, None),
-            RayTraceShaderGroup::new_general(2),
-        ],
-    )?))
-}
+use self::loaders::Loader;
+use self::post::{Denoiser, LinearToSrgb};
+use self::renderer::PTRenderer;
+use self::scene::Scene;
 
-fn main() -> anyhow::Result<()> {
+fn main() {
     pretty_env_logger::init();
-
-    let event_loop = EventLoop::new()
+    let sc13 = EventLoop::new()
+        .debug(true)
         .ray_tracing(true)
-        .configure(|config| config.sync_display(true))
-        .build()?;
-    let mut cache = HashPool::new(&event_loop.device);
-    let presenter = screen_13_fx::GraphicPresenter::new(&event_loop.device).unwrap();
-    let lts = LinearToSrgb::new(&event_loop.device);
-    let mut egui = Egui::new(&event_loop.device, event_loop.window());
+        .build()
+        .unwrap();
+    let device = &sc13.device;
+    let mut cache = HashPool::new(device);
 
-    // ------------------------------------------------------------------------------------------ //
-    // Setup the ray tracing pipeline
-    // ------------------------------------------------------------------------------------------ //
-    let ray_trace_pipeline = create_ray_trace_pipeline(&event_loop.device)?;
+    let presenter = screen_13_fx::GraphicPresenter::new(device).unwrap();
+    let pt_renderer = PTRenderer::new(device);
+    let denoiser = Denoiser::new(device, 1024, 1024);
+    let linear_to_srgb = LinearToSrgb::new(device);
 
-    // Setup the Shader Binding Table
-    let sbt_info = SbtBufferInfo {
-        rgen_index: 0,
-        hit_indices: &[1],
-        miss_indices: &[2],
-        callable_indices: &[],
-    };
+    let mut scene = Scene::default();
+    let loader = loaders::GltfLoader::default();
+    loader.append("assets/cornell-box.gltf", &mut scene);
 
-    let sbt = SbtBuffer::create(&event_loop.device, sbt_info, &ray_trace_pipeline)?;
+    let mut i = 0;
 
-    // ------------------------------------------------------------------------------------------ //
-    // Load the .obj cube scene
-    // ------------------------------------------------------------------------------------------ //
+    sc13.run(|frame| {
+        if i == 0 {
+            scene.update(frame.device, &mut cache, frame.render_graph);
+            println!("{}", scene.material_data.as_ref().unwrap().count());
+        }
+        let scene = scene.bind(frame.render_graph);
 
-    /*
-    let mut scene = Scene::new();
-    scene.load_gltf(&event_loop.device);
-    let mut gpu_scene = GpuScene::create(&event_loop.device, &mut scene);
-    */
-    let mut gpu_scene = GpuScene::new();
-    gpu_scene.append_gltf(&event_loop.device);
-    //gpu_scene.upload_data(&event_loop.device);
+        let gbuffer =
+            pt_renderer.bind_and_render(&scene, i, 1024, 1024, 0, &mut cache, frame.render_graph);
 
-    let img = Arc::new(
-        Image::create(
-            &event_loop.device,
-            ImageInfo::new_2d(
-                //vk::Format::R8G8B8A8_UNORM,
+        let denoised = denoiser.denoise(gbuffer.color, i, frame.render_graph);
+
+        let img_srgb = cache
+            .lease(ImageInfo::new_2d(
                 vk::Format::R32G32B32A32_SFLOAT,
-                1000,
-                1000,
+                1024,
+                1024,
                 vk::ImageUsageFlags::STORAGE
-                    | vk::ImageUsageFlags::TRANSFER_SRC
-                    | vk::ImageUsageFlags::TRANSFER_DST
-                    | vk::ImageUsageFlags::SAMPLED,
-            ),
-        )
-        .unwrap(),
-    );
+                    | vk::ImageUsageFlags::SAMPLED
+                    | vk::ImageUsageFlags::COLOR_ATTACHMENT,
+            ))
+            .unwrap();
+        let img_srgb = frame.render_graph.bind_node(img_srgb);
 
-    let mut fc = 0;
-    let mut angle: f32 = 0.;
+        linear_to_srgb.record(denoised, img_srgb, frame.render_graph);
 
-    event_loop.run(|mut frame| {
-        //gpu_scene.update_stage(frame.device);
-        if fc == 3 {
-            gpu_scene.instances.values_mut().next().unwrap().status = ResourceStatus::Recreated;
-            for blas in gpu_scene.blases.values_mut() {
-                blas.status = ResourceStatus::Recreated
-            }
-            //gpu_scene.insert_instance(inst);
-        }
-        //gpu_scene.build_accels(&mut cache, &mut frame.render_graph);
-        gpu_scene.recreate_stage(frame.device);
-        gpu_scene.build_stage(&mut cache, &mut frame.render_graph);
-        gpu_scene.cleanup_stage();
-
-        let image_node = frame.render_graph.bind_node(&img);
-
-        let blas_nodes = gpu_scene
-            .blases
-            .iter()
-            .map(|(_, b)| frame.render_graph.bind_node(&b.accel))
-            .collect::<Vec<_>>();
-        let material_node = frame
-            .render_graph
-            .bind_node(&gpu_scene.material_buf.as_ref().unwrap().buf);
-        let instancedata_nodes = frame
-            .render_graph
-            .bind_node(&gpu_scene.instancedata_buf.as_ref().unwrap().buf);
-        let tlas_node = frame
-            .render_graph
-            .bind_node(&gpu_scene.tlas.as_ref().unwrap().accel);
-        let sbt_node = frame.render_graph.bind_node(sbt.buffer());
-        let texture_nodes = gpu_scene
-            .textures
-            .values()
-            .enumerate()
-            .map(|(i, tex)| frame.render_graph.bind_node(tex))
-            .collect::<Vec<_>>();
-        let mesh_nodes = gpu_scene
-            .mesh_bufs
-            .values()
-            .enumerate()
-            .map(|(i, mesh)| {
-                (
-                    frame.render_graph.bind_node(&mesh.indices.buf),
-                    frame.render_graph.bind_node(&mesh.vertices.buf),
-                )
-            })
-            .collect::<Vec<_>>();
-
-        let push_constant = PushConstant {
-            camera: *gpu_scene.camera,
-        };
-        gpu_scene.camera.fc += 1;
-
-        let sbt_rgen = sbt.rgen();
-        let sbt_miss = sbt.miss();
-        let sbt_hit = sbt.hit();
-        let sbt_callable = sbt.callable();
-
-        trace!("blas_count: {}", blas_nodes.len());
-
-        let mut pass: PipelinePassRef<RayTracePipeline> = frame
-            .render_graph
-            .begin_pass("basic ray tracer")
-            .bind_pipeline(&ray_trace_pipeline);
-        for blas_node in blas_nodes {
-            pass = pass.access_node(
-                blas_node,
-                AccessType::RayTracingShaderReadAccelerationStructure,
-            );
-        }
-        pass = pass
-            .access_node(sbt_node, AccessType::RayTracingShaderReadOther)
-            .access_descriptor(
-                (0, 0),
-                tlas_node,
-                AccessType::RayTracingShaderReadAccelerationStructure,
-            )
-            .write_descriptor((0, 1), image_node)
-            .read_descriptor((0, 2), instancedata_nodes)
-            .read_descriptor((0, 3), material_node);
-
-        //pass = pass.read_descriptor((0, 4, [0]), index_nodes[0]);
-        for (i, (indices, vertices)) in mesh_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((0, 4, [i as _]), *indices);
-            pass = pass.read_descriptor((0, 5, [i as _]), *vertices);
-        }
-        for (i, node) in texture_nodes.iter().enumerate() {
-            pass = pass.read_descriptor((0, 6, [i as _]), *node);
-        }
-        trace!("fc: {}", fc);
-        pass.record_ray_trace(move |ray_trace| {
-            ray_trace.push_constants(cast_slice(&[push_constant]));
-            ray_trace.trace_rays(&sbt_rgen, &sbt_miss, &sbt_hit, &sbt_callable, 1000, 1000, 2);
-        });
-
-        let tmp_image_node = frame.render_graph.bind_node(
-            cache
-                .lease(ImageInfo::new_2d(
-                    vk::Format::R8G8B8A8_UNORM,
-                    1000,
-                    1000,
-                    vk::ImageUsageFlags::TRANSFER_SRC
-                        | vk::ImageUsageFlags::TRANSFER_DST
-                        | vk::ImageUsageFlags::COLOR_ATTACHMENT
-                        | vk::ImageUsageFlags::SAMPLED,
-                ))
-                .unwrap(),
-        );
-        lts.exec(frame.render_graph, image_node, tmp_image_node);
-
-        presenter.present_image(frame.render_graph, tmp_image_node, frame.swapchain_image);
-
-        let mut recreate_frame = false;
-        egui.run(
-            frame.window,
-            frame.events,
-            frame.swapchain_image,
-            &mut frame.render_graph,
-            |ctx| {
-                egui::Window::new("Test").show(&ctx, |ui| {
-                    recreate_frame |= ui
-                        .add(egui::Slider::new(&mut gpu_scene.camera.pos[0], -10.0..=10.))
-                        .changed();
-                    recreate_frame |= ui
-                        .add(egui::Slider::new(&mut gpu_scene.camera.pos[1], -10.0..=10.))
-                        .changed();
-                    recreate_frame |= ui
-                        .add(egui::Slider::new(&mut gpu_scene.camera.pos[2], -10.0..=10.))
-                        .changed();
-                    recreate_frame |= ui
-                        .add(egui::Slider::new(&mut angle, -10.0..=10.0))
-                        .changed();
-                    recreate_frame |= ui
-                        .add(egui::Slider::new(&mut gpu_scene.camera.depth, 0..=16))
-                        .changed();
-                    if ui.button("Add instance").clicked() {
-                        let mut inst = gpu_scene.instances.values().next().unwrap().deref().clone();
-                        inst.transform = Transform::from_xyz(0., 0., 0.);
-                        gpu_scene.insert_instance(inst);
-                    }
-                });
-            },
-        );
-        if recreate_frame {
-            let v = Vec3::new(angle.sin(), 0., angle.cos());
-            gpu_scene.camera.up = [v.x, v.y, v.z, 1.];
-            //println!("{:#?}", gpu_scene.camera.right);
-            gpu_scene.camera.fc = 0;
-        }
-
-        fc += 1;
-        //frame.exit();
-    })?;
-
-    Ok(())
+        presenter.present_image(frame.render_graph, img_srgb, frame.swapchain_image);
+        //frame.render_graph.clear_color_image(frame.swapchain_image);
+        i += 1;
+    })
+    .unwrap();
 }

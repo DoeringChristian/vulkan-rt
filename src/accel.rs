@@ -1,49 +1,30 @@
-use bevy_ecs::prelude::*;
+use crevice::std140::{AsStd140, Std140};
 use screen_13::prelude::*;
-use slotmap::DefaultKey;
-use std::{
-    collections::HashMap,
-    sync::{Arc, Weak},
-};
+use std::marker::PhantomData;
+use std::mem::size_of;
+use std::ops::Range;
+use std::{collections::HashMap, sync::Arc};
 
-use crate::{
-    model::{Index, Vertex},
-    world::GpuScene,
-};
+use crate::array::Array;
 
-use super::buffers::*;
-
-pub struct BlasInfo<'a> {
-    pub indices: &'a Arc<TypedBuffer<Index>>,
-    pub positions: &'a Arc<TypedBuffer<Vertex>>,
-}
-
-pub struct Blas {
+pub struct Blas<T> {
     pub accel: Arc<AccelerationStructure>,
-    // Not sure about the use of weaks.
-    pub indices: Weak<TypedBuffer<Index>>,
-    pub positions: Weak<TypedBuffer<Vertex>>,
+    pub indices: Arc<Buffer>,
+    pub positions: Arc<Buffer>,
+    primitive_count: usize,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
+    primitive_offset: usize,
+    _ty: PhantomData<T>,
 }
 
-impl Blas {
-    pub fn build(
-        &self,
-        cache: &mut HashPool,
-        rgraph: &mut RenderGraph,
-    ) -> AnyAccelerationStructureNode {
+impl<T: AsStd140> Blas<T> {
+    pub fn build(&self, cache: &mut HashPool, rgraph: &mut RenderGraph) {
         //let geometry = scene.geometries.get(self.geometry).unwrap();
-        let indices = self
-            .indices
-            .upgrade()
-            .expect("The Indices referenced by this blas have been droped.");
-        let positions = self
-            .positions
-            .upgrade()
-            .expect("The Positions referenced by this blas have been droped.");
-        let index_node = rgraph.bind_node(&indices.buf);
-        let vertex_node = rgraph.bind_node(&positions.buf);
+        let indices = self.indices.clone();
+        let positions = self.positions.clone();
+        let index_node = rgraph.bind_node(&indices);
+        let vertex_node = rgraph.bind_node(&positions);
         let accel_node = rgraph.bind_node(&self.accel);
 
         let scratch_buf = rgraph.bind_node(
@@ -56,8 +37,10 @@ impl Blas {
                 .unwrap(),
         );
 
-        let triangle_count = indices.count() / 3;
+        let triangle_count = self.primitive_count;
         let geometry_info = self.geometry_info.clone();
+        let primitive_offset = self.primitive_offset;
+        let primitive_count = self.primitive_count;
 
         rgraph
             .begin_pass("Build BLAS")
@@ -65,46 +48,54 @@ impl Blas {
             .read_node(vertex_node)
             .write_node(accel_node)
             .write_node(scratch_buf)
-            .record_acceleration(move |accel| {
+            .record_acceleration(move |accel, _| {
                 accel.build_structure(
                     accel_node,
                     scratch_buf,
-                    geometry_info,
+                    &geometry_info,
                     &[vk::AccelerationStructureBuildRangeInfoKHR {
                         first_vertex: 0,
-                        primitive_count: triangle_count as u32,
+                        primitive_count: primitive_count as u32,
                         primitive_offset: 0,
                         transform_offset: 0,
                     }],
                 )
             });
-        AnyAccelerationStructureNode::AccelerationStructure(accel_node)
+        //AnyAccelerationStructureNode::AccelerationStructure(accel_node)
     }
-    // Maybee blas should safe the index of the indices/positions.
-    pub fn create(device: &Arc<Device>, info: &BlasInfo) -> Self {
+    pub fn create(
+        device: &Arc<Device>,
+        indices: &Array<u32>,
+        indices_offset: usize,
+        primitive_count: usize,
+        vertices: &Array<T>,
+        vertices_offset: usize,
+    ) -> Self {
         //let triangle_count = geometry.indices.count() / 3;
-        let triangle_count = info.indices.count() / 3;
-        let vertex_count = info.positions.count();
+        let vertex_count = vertices.count() as u64;
+        let vertex_stride = vertices.stride() as u64;
         //let vertex_count = geometry.positions.count();
 
         let geometry_info = AccelerationStructureGeometryInfo {
             ty: vk::AccelerationStructureTypeKHR::BOTTOM_LEVEL,
             flags: vk::BuildAccelerationStructureFlagsKHR::empty(),
             geometries: vec![AccelerationStructureGeometry {
-                max_primitive_count: triangle_count as _,
+                max_primitive_count: primitive_count as _,
                 flags: vk::GeometryFlagsKHR::OPAQUE,
                 geometry: AccelerationStructureGeometryData::Triangles {
-                    index_data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(
-                        &info.indices.buf,
-                    )),
+                    index_data: DeviceOrHostAddress::DeviceAddress(
+                        screen_13::prelude::Buffer::device_address(&indices.buf)
+                            + (indices_offset * indices.stride()) as u64,
+                    ),
                     index_type: vk::IndexType::UINT32,
                     transform_data: None,
                     max_vertex: vertex_count as _,
-                    vertex_data: DeviceOrHostAddress::DeviceAddress(Buffer::device_address(
-                        &info.positions.buf,
-                    )),
+                    vertex_data: DeviceOrHostAddress::DeviceAddress(
+                        screen_13::prelude::Buffer::device_address(&vertices.buf)
+                            + (vertices_offset * vertices.stride()) as u64,
+                    ),
                     vertex_format: vk::Format::R32G32B32_SFLOAT,
-                    vertex_stride: std::mem::size_of::<Vertex>() as _,
+                    vertex_stride: vertex_stride,
                 },
             }],
         };
@@ -120,21 +111,24 @@ impl Blas {
         Self {
             //geometry: gkey,
             accel: Arc::new(accel),
-            indices: Arc::downgrade(&info.indices),
-            positions: Arc::downgrade(&info.positions),
+            indices: indices.buf.clone(),
+            positions: vertices.buf.clone(),
             geometry_info,
+            primitive_count,
             size: accel_size,
+            primitive_offset: indices_offset,
+            _ty: PhantomData::default(),
         }
     }
 }
 
 pub struct Tlas {
-    instance_buf: TypedBuffer<vk::AccelerationStructureInstanceKHR>,
-    //pub material_buf: TypedBuffer<GlslMaterial>,
+    instance_buf: Arc<Array<u8>>,
     pub accel: Arc<AccelerationStructure>,
     //pub instancedata_buf: TypedBuffer<GlslInstanceData>,
     geometry_info: AccelerationStructureGeometryInfo,
     size: AccelerationStructureSize,
+    instance_count: usize,
 }
 
 impl Tlas {
@@ -159,7 +153,7 @@ impl Tlas {
         let tlas_node = rgraph.bind_node(&self.accel);
         let geometry_info = self.geometry_info.clone();
         //let primitive_count = scene.blases.len();
-        let primitive_count = self.instance_buf.count();
+        let primitive_count = self.instance_count;
 
         let mut pass = rgraph.begin_pass("Build TLAS");
         for blas_node in blas_nodes {
@@ -167,14 +161,14 @@ impl Tlas {
             pass = pass.access_node(*blas_node, AccessType::AccelerationStructureBuildRead);
         }
         //pass.read_node(instance_node)
-        pass.access_node(instance_node, AccessType::AccelerationStructureBuildRead)
+        pass.read_node(instance_node)
             .write_node(scratch_buf)
             .write_node(tlas_node)
-            .record_acceleration(move |accel| {
+            .record_acceleration(move |accel, _| {
                 accel.build_structure(
                     accel_node,
                     scratch_buf,
-                    geometry_info,
+                    &geometry_info,
                     &[vk::AccelerationStructureBuildRangeInfoKHR {
                         primitive_count: primitive_count as _,
                         primitive_offset: 0,
@@ -190,14 +184,17 @@ impl Tlas {
         //instances_data: &[GlslInstanceData],
         instances: &[vk::AccelerationStructureInstanceKHR],
         //materials: &[GlslMaterial],
-    ) -> Self {
+    ) -> Option<Self> {
+        if (instances.len() == 0) {
+            return None;
+        }
         // gl_CustomIndexEXT should index into attributes.
-        let instance_buf = TypedBuffer::create(
+        let instance_buf = Arc::new(Array::from_slice_u8(
             device,
-            &instances,
             vk::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
                 | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS,
-        );
+            AccelerationStructure::instance_slice(instances),
+        ));
         let geometry_info = AccelerationStructureGeometryInfo {
             ty: vk::AccelerationStructureTypeKHR::TOP_LEVEL,
             flags: vk::BuildAccelerationStructureFlagsKHR::empty(),
@@ -222,13 +219,12 @@ impl Tlas {
 
         let accel = Arc::new(AccelerationStructure::create(device, info).unwrap());
 
-        Self {
-            //instancedata_buf,
+        Some(Self {
             instance_buf,
-            //material_buf,
+            instance_count: instances.len(),
             size,
             geometry_info,
             accel,
-        }
+        })
     }
 }
