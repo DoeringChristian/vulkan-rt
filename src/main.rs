@@ -1,6 +1,6 @@
 mod accel;
 mod array;
-mod glsl;
+mod common;
 mod loaders;
 mod post;
 mod renderer;

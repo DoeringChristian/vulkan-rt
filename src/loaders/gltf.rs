@@ -1,4 +1,4 @@
-use crate::glsl::*;
+use crate::common::*;
 use glam::*;
 use screen_13_fx::ImageLoader;
 use std::path::Path;

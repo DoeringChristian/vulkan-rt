@@ -1,6 +1,6 @@
 use crate::accel::{Blas, Tlas};
 use crate::array::Array;
-use crate::glsl::*;
+use crate::common::*;
 use glam::*;
 use screen_13::prelude::*;
 use screen_13_fx::ImageLoader;

@@ -1,4 +1,4 @@
-use crate::glsl::PushConstant;
+use crate::common::PushConstant;
 use crate::sbt::{SbtBuffer, SbtBufferInfo};
 use crate::scene::{Scene, SceneBinding};
 use crevice::std140::AsStd140;
