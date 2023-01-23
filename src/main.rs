@@ -48,19 +48,7 @@ fn main() {
 
         let denoised = denoiser.denoise(gbuffer.color, i, frame.render_graph);
 
-        let img_srgb = cache
-            .lease(ImageInfo::new_2d(
-                vk::Format::R32G32B32A32_SFLOAT,
-                1024,
-                1024,
-                vk::ImageUsageFlags::STORAGE
-                    | vk::ImageUsageFlags::SAMPLED
-                    | vk::ImageUsageFlags::COLOR_ATTACHMENT,
-            ))
-            .unwrap();
-        let img_srgb = frame.render_graph.bind_node(img_srgb);
-
-        linear_to_srgb.record(denoised, img_srgb, frame.render_graph);
+        let img_srgb = linear_to_srgb.record(denoised, &mut cache, frame.render_graph);
 
         presenter.present_image(frame.render_graph, img_srgb, frame.swapchain_image);
         //frame.render_graph.clear_color_image(frame.swapchain_image);
