@@ -124,19 +124,19 @@ impl PTRenderer {
         let mut pass = rgraph
             .begin_pass("Path Tracing Pass")
             .bind_pipeline(&self.ppl.ppl)
-            .read_descriptor((0, 0), scene.accel)
-            .read_descriptor((0, 1), scene.indices)
-            .read_descriptor((0, 2), scene.positions)
-            .read_descriptor((0, 3), scene.normals)
-            .read_descriptor((0, 4), scene.uvs)
-            .read_descriptor((0, 5), scene.instances)
-            .read_descriptor((0, 6), scene.meshes)
-            .read_descriptor((0, 7), scene.emitters)
-            .read_descriptor((0, 8), scene.materials)
-            .read_descriptor((0, 9), scene.cameras);
+            .read_descriptor((0, 0), scene.indices)
+            .read_descriptor((0, 1), scene.positions)
+            .read_descriptor((0, 2), scene.normals)
+            .read_descriptor((0, 3), scene.uvs)
+            .read_descriptor((0, 4), scene.instances)
+            .read_descriptor((0, 5), scene.meshes)
+            .read_descriptor((0, 6), scene.emitters)
+            .read_descriptor((0, 7), scene.materials)
+            .read_descriptor((0, 8), scene.cameras)
+            .read_descriptor((0, 10), scene.accel);
 
         for (i, texture) in scene.textures.iter().enumerate() {
-            pass = pass.read_descriptor((0, 10, [i as _]), *texture);
+            pass = pass.read_descriptor((0, 9, [i as _]), *texture);
         }
 
         pass = pass.write_descriptor((1, 0), color);
@@ -261,24 +261,24 @@ impl RestirRenderer{
         let spatial_reservoir = rgraph.bind_node(&self.spatial_reservoir.buf);
 
         let mut pass = rgraph
-            .begin_pass("Path Tracing Pass")
+            .begin_pass("ReSTIR Initial Pass")
             .bind_pipeline(&self.initial_ppl.ppl)
-            .read_descriptor((0, 0), scene.accel)
-            .read_descriptor((0, 1), scene.indices)
-            .read_descriptor((0, 2), scene.positions)
-            .read_descriptor((0, 3), scene.normals)
-            .read_descriptor((0, 4), scene.uvs)
-            .read_descriptor((0, 5), scene.instances)
-            .read_descriptor((0, 6), scene.meshes)
-            .read_descriptor((0, 7), scene.emitters)
-            .read_descriptor((0, 8), scene.materials)
-            .read_descriptor((0, 9), scene.cameras)
+            .read_descriptor((0, 0), scene.indices)
+            .read_descriptor((0, 1), scene.positions)
+            .read_descriptor((0, 2), scene.normals)
+            .read_descriptor((0, 3), scene.uvs)
+            .read_descriptor((0, 4), scene.instances)
+            .read_descriptor((0, 5), scene.meshes)
+            .read_descriptor((0, 6), scene.emitters)
+            .read_descriptor((0, 7), scene.materials)
+            .read_descriptor((0, 8), scene.cameras)
+            .read_descriptor((0, 10), scene.accel)
             .write_descriptor((1, 0), initial_sample)
             .write_descriptor((1, 1), temporal_reservoir)
             .write_descriptor((1, 2), temporal_reservoir);
 
         for (i, texture) in scene.textures.iter().enumerate() {
-            pass = pass.read_descriptor((0, 10, [i as _]), *texture);
+            pass = pass.read_descriptor((0, 9, [i as _]), *texture);
         }
 
         let sbt_rgen = self.initial_ppl.sbt.rgen();
@@ -300,24 +300,24 @@ impl RestirRenderer{
         });
         
         let mut pass = rgraph
-            .begin_pass("Path Tracing Pass")
+            .begin_pass("ReSTIR Temporal Resampling Pass")
             .bind_pipeline(&self.temporal_ppl.ppl)
-            .read_descriptor((0, 0), scene.accel)
-            .read_descriptor((0, 1), scene.indices)
-            .read_descriptor((0, 2), scene.positions)
-            .read_descriptor((0, 3), scene.normals)
-            .read_descriptor((0, 4), scene.uvs)
-            .read_descriptor((0, 5), scene.instances)
-            .read_descriptor((0, 6), scene.meshes)
-            .read_descriptor((0, 7), scene.emitters)
-            .read_descriptor((0, 8), scene.materials)
-            .read_descriptor((0, 9), scene.cameras)
+            .read_descriptor((0, 0), scene.indices)
+            .read_descriptor((0, 1), scene.positions)
+            .read_descriptor((0, 2), scene.normals)
+            .read_descriptor((0, 3), scene.uvs)
+            .read_descriptor((0, 4), scene.instances)
+            .read_descriptor((0, 5), scene.meshes)
+            .read_descriptor((0, 6), scene.emitters)
+            .read_descriptor((0, 7), scene.materials)
+            .read_descriptor((0, 8), scene.cameras)
+            .read_descriptor((0, 10), scene.accel)
             .write_descriptor((1, 0), initial_sample)
             .write_descriptor((1, 1), temporal_reservoir)
             .write_descriptor((1, 2), temporal_reservoir);
 
         for (i, texture) in scene.textures.iter().enumerate() {
-            pass = pass.read_descriptor((0, 10, [i as _]), *texture);
+            pass = pass.read_descriptor((0, 9, [i as _]), *texture);
         }
 
         let sbt_rgen = self.initial_ppl.sbt.rgen();
@@ -339,24 +339,24 @@ impl RestirRenderer{
         });
         
         let mut pass = rgraph
-            .begin_pass("Path Tracing Pass")
+            .begin_pass("ReSTIR Spatial Resampling Pass")
             .bind_pipeline(&self.spatial_ppl.ppl)
-            .read_descriptor((0, 0), scene.accel)
-            .read_descriptor((0, 1), scene.indices)
-            .read_descriptor((0, 2), scene.positions)
-            .read_descriptor((0, 3), scene.normals)
-            .read_descriptor((0, 4), scene.uvs)
-            .read_descriptor((0, 5), scene.instances)
-            .read_descriptor((0, 6), scene.meshes)
-            .read_descriptor((0, 7), scene.emitters)
-            .read_descriptor((0, 8), scene.materials)
-            .read_descriptor((0, 9), scene.cameras)
+            .read_descriptor((0, 0), scene.indices)
+            .read_descriptor((0, 1), scene.positions)
+            .read_descriptor((0, 2), scene.normals)
+            .read_descriptor((0, 3), scene.uvs)
+            .read_descriptor((0, 4), scene.instances)
+            .read_descriptor((0, 5), scene.meshes)
+            .read_descriptor((0, 6), scene.emitters)
+            .read_descriptor((0, 7), scene.materials)
+            .read_descriptor((0, 8), scene.cameras)
+            .read_descriptor((0, 10), scene.accel)
             .write_descriptor((1, 0), initial_sample)
             .write_descriptor((1, 1), temporal_reservoir)
             .write_descriptor((1, 2), temporal_reservoir);
 
         for (i, texture) in scene.textures.iter().enumerate() {
-            pass = pass.read_descriptor((0, 10, [i as _]), *texture);
+            pass = pass.read_descriptor((0, 9, [i as _]), *texture);
         }
 
         let sbt_rgen = self.initial_ppl.sbt.rgen();
@@ -378,25 +378,25 @@ impl RestirRenderer{
         });
         
         let mut pass = rgraph
-            .begin_pass("Path Tracing Pass")
+            .begin_pass("ReSTIR Output Pass")
             .bind_pipeline(&self.output_ppl)
-            .read_descriptor((0, 0), scene.accel)
-            .read_descriptor((0, 1), scene.indices)
-            .read_descriptor((0, 2), scene.positions)
-            .read_descriptor((0, 3), scene.normals)
-            .read_descriptor((0, 4), scene.uvs)
-            .read_descriptor((0, 5), scene.instances)
-            .read_descriptor((0, 6), scene.meshes)
-            .read_descriptor((0, 7), scene.emitters)
-            .read_descriptor((0, 8), scene.materials)
-            .read_descriptor((0, 9), scene.cameras)
+            .read_descriptor((0, 0), scene.indices)
+            .read_descriptor((0, 1), scene.positions)
+            .read_descriptor((0, 2), scene.normals)
+            .read_descriptor((0, 3), scene.uvs)
+            .read_descriptor((0, 4), scene.instances)
+            .read_descriptor((0, 5), scene.meshes)
+            .read_descriptor((0, 6), scene.emitters)
+            .read_descriptor((0, 7), scene.materials)
+            .read_descriptor((0, 8), scene.cameras)
+            //.read_descriptor((0, 10), scene.accel)
             .write_descriptor((1, 0), initial_sample)
             .write_descriptor((1, 1), temporal_reservoir)
             .write_descriptor((1, 2), temporal_reservoir)
             .write_descriptor((1, 3), color);
 
         for (i, texture) in scene.textures.iter().enumerate() {
-            pass = pass.read_descriptor((0, 10, [i as _]), *texture);
+            pass = pass.read_descriptor((0, 9, [i as _]), *texture);
         }
 
         pass.record_compute(move |compute, _|{

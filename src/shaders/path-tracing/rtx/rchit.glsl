@@ -13,7 +13,7 @@ hitAttributeEXT vec2 hit_co;
 layout(location = 0) rayPayloadInEXT Payload payload;
 layout(location = 1) rayPayloadEXT bool isShadow;
 
-layout(set = 0, binding = 0) uniform accelerationStructureEXT accel;
+layout(set = 0, binding = 10) uniform accelerationStructureEXT accel;
 
 void main() {
     payload.valid = 1;
