@@ -27,8 +27,6 @@ uvec2 sample_tea_32(uint v0, uint v1) {
 }
 
 // PCG PRNG
-uint64_t _state;
-uint64_t _inc;
 
 /*
 Pcg Hashing algorithm copied from https://www.shadertoy.com/view/XlGcRh.
@@ -41,18 +39,22 @@ uint pcg(uint v)
 	return (word >> 22u) ^ word;
 }
 
-void pcg_init(uint64_t seed, uint64_t seq){
-    _state = seed;
-    _inc = (seq << 1) | 1;
+struct PCG{
+    uint64_t state;
+    uint64_t inc;
+};
+
+PCG pcg(uint64_t seed, uint64_t seq){
+    return PCG(seed, (seq << 1) | 1);
 }
 
-void pcg_init(uvec2 seed_seq){
-    pcg_init(uint64_t(seed_seq.x), uint64_t(seed_seq.y));
+PCG pcg(uvec2 seed_seq){
+    return pcg(uint64_t(seed_seq.x), uint64_t(seed_seq.y));
 }
 
-uint64_t next_u64(){
-    uint64_t old_state = _state;
-    _state = old_state * INCREMENTOR + _inc;
+uint64_t next_u64(inout PCG self){
+    uint64_t old_state = self.state;
+    self.state = old_state * INCREMENTOR + self.inc;
 
     uint64_t xor_shifted = (old_state >> 18) ^ old_state >> 27;
 
@@ -60,11 +62,11 @@ uint64_t next_u64(){
     return (xor_shifted >> rot) | (xor_shifted << ((-rot) & 31));
 }
 
-uint next_u32(){
-    return uint(next_u64());
+uint next_u32(inout PCG self){
+    return uint(next_u64(self));
 }
-float next_float(){
-    return float(next_u32())/float(0xffffffffu);
+float next_float(inout PCG self){
+    return float(next_u32(self))/float(0xffffffffu);
 }
 
 #endif //RAND_GLSL

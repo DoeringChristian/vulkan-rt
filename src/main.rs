@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 use self::loaders::Loader;
 use self::post::{Denoiser, LinearToSrgb};
-use self::renderer::{PTRenderer, RestirRenderer};
+use self::renderer::PTRenderer;
 use self::scene::Scene;
 
 fn main() {
@@ -27,7 +27,7 @@ fn main() {
     let mut cache = HashPool::new(device);
 
     let presenter = screen_13_fx::GraphicPresenter::new(device).unwrap();
-    let pt_renderer = RestirRenderer::new(device, 1024, 1024);
+    let pt_renderer = PTRenderer::new(device);
     let denoiser = Denoiser::new(device, 1024, 1024);
     let linear_to_srgb = LinearToSrgb::new(device);
 
@@ -44,7 +44,8 @@ fn main() {
         }
         let scene = scene.bind(frame.render_graph);
 
-        let gbuffer = pt_renderer.bind_and_render(&scene, i, 0, &mut cache, frame.render_graph);
+        let gbuffer =
+            pt_renderer.bind_and_render(&scene, i, 1024, 1024, 0, &mut cache, frame.render_graph);
 
         let denoised = denoiser.denoise(gbuffer.color, i, frame.render_graph);
 

@@ -47,13 +47,16 @@ struct Camera{
 };
 
 struct RestirSample{
-    vec3 pv;
-    vec3 nv;
-    vec3 ps;
-    vec3 ns;
+    vec3 x_v;
+    vec3 n_v;
+    vec3 x_s;
+    vec3 n_s;
 
-    vec3 Lo_hat;
-    float p_q;
+    vec3 L_o; // Outgoing radiance at x_s
+    float p_q; // bsdf_pdf at x_v
+    vec3 f; // bsdf_value at x_v
+    //uint mat_idx;
+    //vec3 col;
     //vec3 random;
 };
 
