@@ -12,13 +12,13 @@
 layout(location = 0) rayPayloadEXT Payload payload;
 layout(location = 1) rayPayloadEXT bool shadow_payload;
 
-layout(set = 2, binding = 0) buffer InitialSamples{
+layout(set = 1, binding = 0) buffer InitialSamples{
     RestirSample initial_samples[];
 };
-layout(set = 2, binding = 1) buffer TemporalReservoir{
+layout(set = 1, binding = 1) buffer TemporalReservoir{
     RestirReservoir temporal_reservoir[];
 };
-layout(set = 2, binding = 2) buffer Spatialreservoir{
+layout(set = 1, binding = 2) buffer Spatialreservoir{
     RestirReservoir spatial_reservoir[];
 };
 

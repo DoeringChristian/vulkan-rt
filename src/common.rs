@@ -114,7 +114,7 @@ impl Camera {
     }
 }
 
-#[derive(AsStd140, Debug)]
+#[derive(AsStd140, Debug, Clone, Copy)]
 pub struct PushConstant {
     pub camera: u32,
     pub max_depth: u32,
