@@ -1,5 +1,5 @@
 use crate::array::Array;
-use crate::common::{PushConstant, Reservoir, Sample};
+use crate::common::{PushConstant, RestirReservoir, RestirSample};
 use crate::sbt::{SbtBuffer, SbtBufferInfo};
 use crate::scene::{Scene, SceneBinding};
 use crevice::std140::AsStd140;
@@ -165,6 +165,58 @@ impl PTRenderer {
             color,
             normal,
             position,
+        }
+    }
+}
+
+pub struct RestirRenderer{
+    initial_ppl: RTPipeline,
+    temporal_ppl: RTPipeline,
+    spatial_ppl: RTPipeline,
+    output_ppl: Arc<ComputePipeline>,
+    initial_sample: Array<RestirSample>,
+    temporal_reservoir: Array<RestirReservoir>,
+    spatial_reservoir: Array<RestirReservoir>,
+}
+impl RestirRenderer{
+    pub fn new(device: &Arc<Device>, width: usize, height: usize) -> Self{
+
+        let initial_ppl = RTPipeline::new(device,
+                                          inline_spirv::include_spirv!("src/shaders/path-tracing/integrator/restir-gi/restir-initial.glsl",
+                                                                       rgen, vulkan1_2, 
+                                                                       I "src/shaders/path-tracing").as_slice(),
+                                                                       );
+        let temporal_ppl = RTPipeline::new(device,
+                                           inline_spirv::include_spirv!("src/shaders/path-tracing/integrator/restir-gi/restir-temporal.glsl",
+                                                                        rgen, vulkan1_2, 
+                                                                        I "src/shaders/path-tracing").as_slice(),
+                                                                        );
+        let spatial_ppl = RTPipeline::new(device,
+                                          inline_spirv::include_spirv!("src/shaders/path-tracing/integrator/restir-gi/restir-spatial.glsl",
+                                                                       rgen, vulkan1_2, 
+                                                                       I "src/shaders/path-tracing").as_slice(),
+                                                                       );
+
+        let output_ppl = Arc::new(ComputePipeline::create(device, ComputePipelineInfo::default(),
+        Shader::new_compute(
+            inline_spirv::include_spirv!("src/shaders/path-tracing/integrator/restir-gi/restir-output.glsl",
+                                             comp, vulkan1_2, 
+                                             I "src/shaders/path-tracing",
+                                             D COMPUTE).as_slice()
+                    )).unwrap());
+        
+        let initial_sample = Array::uninitialized(device, vk::BufferUsageFlags::STORAGE_BUFFER, width * height);
+        let temporal_reservoir = Array::uninitialized(device, vk::BufferUsageFlags::STORAGE_BUFFER, width * height);
+        let spatial_reservoir = Array::uninitialized(device, vk::BufferUsageFlags::STORAGE_BUFFER, width * height);
+
+        Self{
+            initial_ppl,
+            temporal_ppl,
+            spatial_ppl,
+            output_ppl,
+            initial_sample,
+            temporal_reservoir,
+            spatial_reservoir
         }
     }
 }

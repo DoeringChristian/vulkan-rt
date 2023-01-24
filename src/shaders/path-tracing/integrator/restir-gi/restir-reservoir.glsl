@@ -4,14 +4,14 @@
 void update(inout RestirReservoir self, RestirSample snew, float wnew, float sample1d){
     self.w = self.w + wnew;
     self.M += 1;
-    if sample1d < wnew/self.w{
+    if (sample1d < wnew/self.w){
         self.z = snew;
     }
 }
 
-void merge(inout RestirReservoir self, RestirReservoir r, float p_hat){
+void merge(inout RestirReservoir self, RestirReservoir r, float p_hat, float sample1d){
     uint M_0 = self.M;
-    update(self, r.z, p_hat * r.W * r.M);
+    update(self, r.z, p_hat * r.W * r.M, sample1d);
     self.M = M_0 + r.M;
 }
 

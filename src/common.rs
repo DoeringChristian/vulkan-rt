@@ -124,7 +124,7 @@ pub struct PushConstant {
 
 #[derive(AsStd140, Debug, Clone, Copy, Default)]
 #[allow(non_snake_case)]
-pub struct Sample {
+pub struct RestirSample {
     pv: Vec3,
     nv: Vec3,
     ps: Vec3,
@@ -137,8 +137,8 @@ pub struct Sample {
 
 #[derive(AsStd140, Debug, Clone, Copy, Default)]
 #[allow(non_snake_case)]
-pub struct Reservoir {
-    z: Sample,
+pub struct RestirReservoir {
+    z: RestirSample,
     w: f32,
     W: f32,
     M: u32,

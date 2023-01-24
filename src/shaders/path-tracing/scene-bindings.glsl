@@ -1,7 +1,9 @@
 #ifndef BINDINGS_GLSL
 #define BINDINGS_GLSL
 
+#ifndef COMPUTE
 layout(set = 0, binding = 0) uniform accelerationStructureEXT accel;
+#endif
 
 // NOTE: std140 forces 16 byte array stride for uints.
 // AsStd140 does not reflect this and therefore I removed the std140 qualifier.

@@ -64,7 +64,7 @@ struct RestirReservoir{
     RestirSample z;
     float w;
     float W;
-    float M;
+    uint M;
 };
 
 // Shared between shaders
