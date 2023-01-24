@@ -21,7 +21,7 @@ layout(set = 1, binding = 0) buffer InitialSamples{
 layout(set = 1, binding = 1) buffer TemporalReservoir{
     RestirReservoir temporal_reservoir[];
 };
-layout(set = 1, binding = 2) buffer Spatialreservoir{
+layout(set = 1, binding = 2) buffer SpatialReservoir{
     RestirReservoir spatial_reservoir[];
 };
 

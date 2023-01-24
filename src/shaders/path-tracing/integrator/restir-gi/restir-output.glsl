@@ -5,7 +5,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
 #include "common.glsl"
-#include "push-constant.glsl"
+#include "scene-bindings.glsl"
 
 layout(set = 1, binding = 0) buffer InitialSamples{
     RestirSample initial_samples[];
@@ -13,7 +13,7 @@ layout(set = 1, binding = 0) buffer InitialSamples{
 layout(set = 1, binding = 1) buffer TemporalReservoir{
     RestirReservoir temporal_reservoir[];
 };
-layout(set = 1, binding = 2) buffer Spatialreservoir{
+layout(set = 1, binding = 2) buffer SpatialReservoir{
     RestirReservoir spatial_reservoir[];
 };
 
@@ -21,7 +21,7 @@ layout(set = 1, binding = 2) buffer Spatialreservoir{
 
 #include "restir-reservoir.glsl"
 
-layout(set = 2, binding = 0, rgba32f) uniform image2D o_color;
+layout(set = 1, binding = 3, rgba32f) uniform image2D o_color;
 
 uint pixel_idx = (gl_NumWorkGroups.y * gl_GlobalInvocationID.x + gl_GlobalInvocationID.x);
 
