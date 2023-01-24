@@ -1,9 +1,10 @@
 #ifndef PERSPECTIVE_GLSL
 #define PERSPECTIVE_GLSL
 
-#include "common.glsl"
+Ray sample_ray(vec2 sample_pos){
+    
+    Camera camera = cameras[push_constant.camera];
 
-Ray sample_ray(in Camera self, vec2 sample_pos){
 
     mat4 view_to_camera = inverse(self.to_view);
 

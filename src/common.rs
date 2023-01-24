@@ -123,7 +123,7 @@ impl Camera {
     }
 }
 
-#[derive(AsStd140, Debug)]
+#[derive(AsStd140, Debug, Clone, Copy)]
 pub struct PushConstant {
     pub camera: u32,
     pub max_depth: u32,
@@ -133,20 +133,21 @@ pub struct PushConstant {
 
 #[derive(AsStd140, Debug, Clone, Copy, Default)]
 #[allow(non_snake_case)]
-pub struct Sample {
+pub struct RestirSample {
     pv: Vec3,
     nv: Vec3,
     ps: Vec3,
     ns: Vec3,
 
     Lo_hat: Vec3,
-    random: Vec3,
+    p_q: f32,
+    //random: Vec3,
 }
 
 #[derive(AsStd140, Debug, Clone, Copy, Default)]
 #[allow(non_snake_case)]
-pub struct Reservoir {
-    s: Sample,
+pub struct RestirReservoir {
+    z: RestirSample,
     w: f32,
     W: f32,
     M: u32,
