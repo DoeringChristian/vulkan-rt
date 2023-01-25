@@ -42,7 +42,9 @@ void main(){
     vec2 sample_pos = vec2(pixel_pos) + next_2d(sample_generator);
     vec2 adjusted_pos = sample_pos / vec2(gl_LaunchSizeEXT.xy);
 
-    Ray ray = sample_ray(adjusted_pos);
+    Camera camera = cameras[push_constant.camera];
+    
+    Ray ray = sample_ray(camera, adjusted_pos);
 
 
     RestirSample S;

@@ -1,7 +1,7 @@
 #ifndef PERSPECTIVE_GLSL
 #define PERSPECTIVE_GLSL
 
-Ray sample_ray(vec2 sample_pos){
+Ray sample_ray(in Camera self, vec2 sample_pos){
     
     Camera camera = cameras[push_constant.camera];
 
