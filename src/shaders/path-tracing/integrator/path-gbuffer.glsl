@@ -7,6 +7,12 @@
 
 #include "common.glsl"
 #include "scene-bindings.glsl"
+layout(push_constant) uniform PushConstants{
+    uint camera;
+    uint max_depth;
+    uint rr_depth;
+    uint seed;
+}push_constant;
 
 // Ray Tracing Bindings
 layout(location = 0) rayPayloadEXT Payload payload;

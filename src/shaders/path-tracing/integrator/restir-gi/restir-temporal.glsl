@@ -7,6 +7,7 @@
 
 #include "common.glsl"
 #include "scene-bindings.glsl"
+#include "restir-pushconstant.glsl"
 
 // Ray Tracing Bindings
 layout(location = 0) rayPayloadEXT Payload payload;
@@ -48,6 +49,10 @@ void main(){
     RestirReservoir R = temporal_reservoir[pixel_idx];
 
     if (length(S.n_s) == 0){
+        init(R);
+        init(spatial_reservoir[pixel_idx]);
+    }
+    if (push_constant.do_spatiotemporal == 0){
         init(R);
         init(spatial_reservoir[pixel_idx]);
     }

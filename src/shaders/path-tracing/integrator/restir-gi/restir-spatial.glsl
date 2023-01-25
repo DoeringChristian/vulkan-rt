@@ -7,6 +7,7 @@
 
 #include "common.glsl"
 #include "scene-bindings.glsl"
+#include "restir-pushconstant.glsl"
 
 // Ray Tracing Bindings
 layout(location = 0) rayPayloadEXT Payload payload;

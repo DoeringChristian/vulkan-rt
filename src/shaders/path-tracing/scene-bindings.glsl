@@ -38,12 +38,12 @@ layout(std140, set = 0, binding = 8) buffer Cameras{
 };
 layout(set = 0, binding = 9) uniform sampler2D textures[];
 
-layout(push_constant) uniform PushConstants{
-    uint camera;
-    uint max_depth;
-    uint rr_depth;
-    uint seed;
-}push_constant;
+// layout(push_constant) uniform PushConstants{
+//     uint camera;
+//     uint max_depth;
+//     uint rr_depth;
+//     uint seed;
+// }push_constant;
 
 
 #endif //BINDINGS_GLSL

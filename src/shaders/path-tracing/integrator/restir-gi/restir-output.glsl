@@ -6,6 +6,7 @@
 
 #include "common.glsl"
 #include "scene-bindings.glsl"
+#include "restir-pushconstant.glsl"
 
 layout(set = 1, binding = 0) buffer InitialSamples{
     RestirSample initial_samples[];
@@ -30,7 +31,7 @@ void main(){
 
     vec3 color = vec3(0);
 
-    RestirReservoir R = spatial_reservoir[pixel_idx];
+    RestirReservoir R = temporal_reservoir[pixel_idx];
     if (R.W > 0){
         RestirSample S = R.z;
         color += S.f * S.L_o * R.W;

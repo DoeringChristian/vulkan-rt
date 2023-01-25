@@ -27,7 +27,7 @@ fn main() {
     let mut cache = HashPool::new(device);
 
     let presenter = screen_13_fx::GraphicPresenter::new(device).unwrap();
-    let pt_renderer = RestirRenderer::new(device, 1024, 1024);
+    let mut pt_renderer = RestirRenderer::new(device, 1024, 1024);
     let denoiser = Denoiser::new(device, 1024, 1024);
     let linear_to_srgb = LinearToSrgb::new(device);
 
