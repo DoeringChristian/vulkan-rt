@@ -333,7 +333,7 @@ impl RestirRenderer{
             .read_descriptor((0, 10), scene.accel)
             .read_descriptor((1, 0), initial_sample)
             .write_descriptor((1, 1), temporal_reservoir)
-            .write_descriptor((1, 2), temporal_reservoir);
+            .write_descriptor((1, 2), spatial_reservoir);
 
         for (i, texture) in scene.textures.iter().enumerate() {
             pass = pass.read_descriptor((0, 9, [i as _]), *texture);
@@ -372,7 +372,7 @@ impl RestirRenderer{
             .read_descriptor((0, 10), scene.accel)
             .read_descriptor((1, 0), initial_sample)
             .write_descriptor((1, 1), temporal_reservoir)
-            .write_descriptor((1, 2), temporal_reservoir);
+            .write_descriptor((1, 2), spatial_reservoir);
 
         for (i, texture) in scene.textures.iter().enumerate() {
             pass = pass.read_descriptor((0, 9, [i as _]), *texture);
