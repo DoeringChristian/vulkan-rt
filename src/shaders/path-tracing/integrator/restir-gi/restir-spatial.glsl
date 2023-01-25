@@ -13,13 +13,13 @@
 layout(location = 0) rayPayloadEXT Payload payload;
 layout(location = 1) rayPayloadEXT bool shadow_payload;
 
-layout(set = 1, binding = 0) buffer InitialSamples{
+layout(std140, set = 1, binding = 0) buffer InitialSamples{
     RestirSample initial_samples[];
 };
-layout(set = 1, binding = 1) buffer TemporalReservoir{
+layout(std140, set = 1, binding = 1) buffer TemporalReservoir{
     RestirReservoir temporal_reservoir[];
 };
-layout(set = 1, binding = 2) buffer SpatialReservoir{
+layout(std140, set = 1, binding = 2) buffer SpatialReservoir{
     RestirReservoir spatial_reservoir[];
 };
 
@@ -87,6 +87,14 @@ void main(){
     uint q_cnt = 0;
 
     RestirReservoir R;
+    R.w = 0;
+    R.W = 0;
+    R.M = 0;
+    float factor = push_constant.do_spatiotemporal == 0 ? 0 : R_s.M * R_s.W * p_hat(R_s.z.L_o);
+    if (factor > 0){
+        update(R, R_s.z, factor, next_1d(sample_generator));
+    }
+    
 
     RestirSample q = initial_samples[pixel_idx];
     RestirSample q_n;

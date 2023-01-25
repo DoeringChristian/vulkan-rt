@@ -46,7 +46,7 @@ fn main() {
 
         let img = pt_renderer.bind_and_render(&scene, i, 0, &mut cache, frame.render_graph);
 
-        //let denoised = denoiser.denoise(gbuffer, i, frame.render_graph);
+        //let denoised = denoiser.denoise(img, i, frame.render_graph);
 
         let img_srgb = linear_to_srgb.record(img, &mut cache, frame.render_graph);
 

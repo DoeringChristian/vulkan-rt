@@ -8,13 +8,13 @@
 #include "scene-bindings.glsl"
 #include "restir-pushconstant.glsl"
 
-layout(set = 1, binding = 0) buffer InitialSamples{
+layout(std140, set = 1, binding = 0) buffer InitialSamples{
     RestirSample initial_samples[];
 };
-layout(set = 1, binding = 1) buffer TemporalReservoir{
+layout(std140, set = 1, binding = 1) buffer TemporalReservoir{
     RestirReservoir temporal_reservoir[];
 };
-layout(set = 1, binding = 2) buffer SpatialReservoir{
+layout(std140, set = 1, binding = 2) buffer SpatialReservoir{
     RestirReservoir spatial_reservoir[];
 };
 
@@ -31,7 +31,7 @@ void main(){
 
     vec3 color = vec3(0);
 
-    RestirReservoir R = temporal_reservoir[pixel_idx];
+    RestirReservoir R = spatial_reservoir[pixel_idx];
     if (R.W > 0){
         RestirSample S = R.z;
         color += S.f * S.L_o * R.W;

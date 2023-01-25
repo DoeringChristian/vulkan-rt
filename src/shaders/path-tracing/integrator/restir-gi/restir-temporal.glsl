@@ -13,13 +13,13 @@
 layout(location = 0) rayPayloadEXT Payload payload;
 layout(location = 1) rayPayloadEXT bool shadow_payload;
 
-layout(set = 1, binding = 0) buffer InitialSamples{
+layout(std140, set = 1, binding = 0) buffer InitialSamples{
     RestirSample initial_samples[];
 };
-layout(set = 1, binding = 1) buffer TemporalReservoir{
+layout(std140, set = 1, binding = 1) buffer TemporalReservoir{
     RestirReservoir temporal_reservoir[];
 };
-layout(set = 1, binding = 2) buffer SpatialReservoir{
+layout(std140, set = 1, binding = 2) buffer SpatialReservoir{
     RestirReservoir spatial_reservoir[];
 };
 
@@ -32,6 +32,8 @@ layout(set = 1, binding = 2) buffer SpatialReservoir{
 
 #include "restir-path.glsl"
 #include "restir-reservoir.glsl"
+
+#define M_MAX 500
 
 uint pixel_idx = (gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x);
 
@@ -56,11 +58,29 @@ void main(){
         init(R);
         init(spatial_reservoir[pixel_idx]);
     }
-    
+
+    RestirReservoir R_new;
+    R_new.w = 0;
+    R_new.W = 0;
+    R_new.M = 0;
     float phat = p_hat(S.L_o);
     float w = phat / S.p_q;
-    update(R, S, w, next_1d(sample_generator));
-    R.W = phat == 0 ? 0 : R.w / (R.M * phat);
+    update(R_new, S, w, next_1d(sample_generator));
+    R_new.W = phat == 0 ? 0 : R_new.w / (R_new.M * phat);
 
-    temporal_reservoir[pixel_idx] = R;
+    RestirReservoir R_t;
+    R_t.w = 0;
+    R_t.W = 0;
+    R_t.M = 0;
+    update(R_t, R_new.z, R_new.M * R_new.W * phat, next_1d(sample_generator));
+    update(R_t, R.z, R.M * R.W * p_hat(R.z.L_o), next_1d(sample_generator));
+    uint mval = R.M;
+    float new_phat = p_hat(R_t.z.L_o);
+    if (new_phat > 0){
+        mval ++;
+    }
+    R_t.M = min(R.M + 1, M_MAX);
+    R_t.W = new_phat * mval == 0 ? 0 : R_t.w / (mval * new_phat);
+    
+    temporal_reservoir[pixel_idx] = R_t;
 }

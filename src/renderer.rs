@@ -253,9 +253,9 @@ impl RestirRenderer{
 
         let width = self.width as u32;
         let height = self.height as u32;
-        let push_constant = PushConstant {
+        let mut push_constant = PushConstant {
             camera,
-            seed,
+            seed: seed * 3,
             max_depth: 8,
             rr_depth: 2,
             do_spatiotemporal: if self.do_spatiotemporal {1} else {0},
@@ -318,6 +318,8 @@ impl RestirRenderer{
             );
         });
 
+        push_constant.seed += 1;
+
         let mut pass = rgraph
             .begin_pass("ReSTIR Temporal Resampling Pass")
             .bind_pipeline(&self.temporal_ppl.ppl)
@@ -356,6 +358,8 @@ impl RestirRenderer{
                 1,
             );
         });
+        
+        push_constant.seed += 1;
 
         let mut pass = rgraph
             .begin_pass("ReSTIR Spatial Resampling Pass")
@@ -395,6 +399,8 @@ impl RestirRenderer{
                 1,
             );
         });
+        
+        push_constant.seed += 1;
         
         let mut pass = rgraph
             .begin_pass("ReSTIR Output Pass")
