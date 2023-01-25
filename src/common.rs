@@ -141,6 +141,7 @@ pub struct RestirSample {
 
     Lo_hat: Vec3,
     p_q: f32,
+    f: f32,
     //random: Vec3,
 }
 
