@@ -35,7 +35,7 @@ void main(){
     if (R.W > 0){
         RestirSample S = R.z;
         vec3 wi = normalize(S.x_s - S.x_v);
-        color += S.f * S.L_o * abs(dot(wi, S.n_v)) * R.W;
+        color += S.f * S.L_o * R.W;
     }
     imageStore(o_color, ivec2(coords), vec4(color, 1.));
 }

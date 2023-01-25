@@ -60,8 +60,8 @@ void main(){
     sample_bsdf(si, next_1d(sample_generator), next_2d(sample_generator), bs, bsdf_value);
 
     S.p_q = bs.pdf;
-    S.f = bsdf_value;
-    //S.f = eval(si, bs.wo);
+    //S.f = bsdf_value;
+    S.f = eval(si, bs.wo);
 
     ray = spawn_ray(si, to_world(si, bs.wo));
 
