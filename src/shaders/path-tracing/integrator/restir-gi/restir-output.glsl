@@ -34,7 +34,8 @@ void main(){
     RestirReservoir R = spatial_reservoir[pixel_idx];
     if (R.W > 0){
         RestirSample S = R.z;
-        color += S.f * S.L_o * R.W;
+        vec3 wi = normalize(S.x_s - S.x_v);
+        color += S.f * S.L_o * abs(dot(wi, S.n_v)) * R.W;
     }
     imageStore(o_color, ivec2(coords), vec4(color, 1.));
 }
