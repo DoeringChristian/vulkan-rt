@@ -27,7 +27,7 @@ fn main() {
     let mut cache = HashPool::new(device);
 
     let presenter = screen_13_fx::GraphicPresenter::new(device).unwrap();
-    let pt_renderer = PTRenderer::new(device);
+    let pt_renderer = RestirRenderer::new(device, 1024, 1024);
     let denoiser = Denoiser::new(device, 1024, 1024);
     let linear_to_srgb = LinearToSrgb::new(device);
 
@@ -44,12 +44,11 @@ fn main() {
         }
         let scene = scene.bind(frame.render_graph);
 
-        let gbuffer =
-            pt_renderer.bind_and_render(&scene, i, 1024, 1024, 0, &mut cache, frame.render_graph);
+        let img = pt_renderer.bind_and_render(&scene, i, 0, &mut cache, frame.render_graph);
 
-        let denoised = denoiser.denoise(gbuffer.color, i, frame.render_graph);
+        //let denoised = denoiser.denoise(gbuffer, i, frame.render_graph);
 
-        let img_srgb = linear_to_srgb.record(denoised, &mut cache, frame.render_graph);
+        let img_srgb = linear_to_srgb.record(img, &mut cache, frame.render_graph);
 
         presenter.present_image(frame.render_graph, img_srgb, frame.swapchain_image);
         //frame.render_graph.clear_color_image(frame.swapchain_image);

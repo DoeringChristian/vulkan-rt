@@ -298,7 +298,7 @@ impl RestirRenderer{
                 1,
             );
         });
-        
+
         let mut pass = rgraph
             .begin_pass("ReSTIR Temporal Resampling Pass")
             .bind_pipeline(&self.temporal_ppl.ppl)
@@ -312,7 +312,7 @@ impl RestirRenderer{
             .read_descriptor((0, 7), scene.materials)
             .read_descriptor((0, 8), scene.cameras)
             .read_descriptor((0, 10), scene.accel)
-            .write_descriptor((1, 0), initial_sample)
+            .read_descriptor((1, 0), initial_sample)
             .write_descriptor((1, 1), temporal_reservoir)
             .write_descriptor((1, 2), temporal_reservoir);
 
@@ -320,10 +320,10 @@ impl RestirRenderer{
             pass = pass.read_descriptor((0, 9, [i as _]), *texture);
         }
 
-        let sbt_rgen = self.initial_ppl.sbt.rgen();
-        let sbt_miss = self.initial_ppl.sbt.miss();
-        let sbt_hit = self.initial_ppl.sbt.hit();
-        let sbt_callable = self.initial_ppl.sbt.callable();
+        let sbt_rgen = self.temporal_ppl.sbt.rgen();
+        let sbt_miss = self.temporal_ppl.sbt.miss();
+        let sbt_hit = self.temporal_ppl.sbt.hit();
+        let sbt_callable = self.temporal_ppl.sbt.callable();
 
         pass.record_ray_trace(move |ray_trace, _| {
             ray_trace.push_constants(push_constant.as_std140().as_bytes());
@@ -337,7 +337,7 @@ impl RestirRenderer{
                 1,
             );
         });
-        
+
         let mut pass = rgraph
             .begin_pass("ReSTIR Spatial Resampling Pass")
             .bind_pipeline(&self.spatial_ppl.ppl)
@@ -351,7 +351,7 @@ impl RestirRenderer{
             .read_descriptor((0, 7), scene.materials)
             .read_descriptor((0, 8), scene.cameras)
             .read_descriptor((0, 10), scene.accel)
-            .write_descriptor((1, 0), initial_sample)
+            .read_descriptor((1, 0), initial_sample)
             .write_descriptor((1, 1), temporal_reservoir)
             .write_descriptor((1, 2), temporal_reservoir);
 
@@ -359,10 +359,10 @@ impl RestirRenderer{
             pass = pass.read_descriptor((0, 9, [i as _]), *texture);
         }
 
-        let sbt_rgen = self.initial_ppl.sbt.rgen();
-        let sbt_miss = self.initial_ppl.sbt.miss();
-        let sbt_hit = self.initial_ppl.sbt.hit();
-        let sbt_callable = self.initial_ppl.sbt.callable();
+        let sbt_rgen = self.spatial_ppl.sbt.rgen();
+        let sbt_miss = self.spatial_ppl.sbt.miss();
+        let sbt_hit = self.spatial_ppl.sbt.hit();
+        let sbt_callable = self.spatial_ppl.sbt.callable();
 
         pass.record_ray_trace(move |ray_trace, _| {
             ray_trace.push_constants(push_constant.as_std140().as_bytes());
@@ -390,9 +390,9 @@ impl RestirRenderer{
             .read_descriptor((0, 7), scene.materials)
             .read_descriptor((0, 8), scene.cameras)
             //.read_descriptor((0, 10), scene.accel)
-            .write_descriptor((1, 0), initial_sample)
-            .write_descriptor((1, 1), temporal_reservoir)
-            .write_descriptor((1, 2), temporal_reservoir)
+            .read_descriptor((1, 0), initial_sample)
+            .read_descriptor((1, 1), temporal_reservoir)
+            .read_descriptor((1, 2), temporal_reservoir)
             .write_descriptor((1, 3), color);
 
         for (i, texture) in scene.textures.iter().enumerate() {

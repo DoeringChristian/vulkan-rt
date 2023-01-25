@@ -23,7 +23,7 @@ layout(set = 1, binding = 2) buffer SpatialReservoir{
 
 layout(set = 1, binding = 3, rgba32f) uniform image2D o_color;
 
-uint pixel_idx = (gl_NumWorkGroups.y * gl_GlobalInvocationID.x + gl_GlobalInvocationID.x);
+uint pixel_idx = (gl_NumWorkGroups.y * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x);
 
 void main(){
     ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
