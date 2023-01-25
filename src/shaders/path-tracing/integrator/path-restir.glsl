@@ -20,6 +20,7 @@ float mis_weight(float pdf_a, float pdf_b){
 // Sample outgoing radiance at point si.p towards si.wi
 // Returns: L_o(si.p, si.wi)
 vec3 sample_outgoing(in SurfaceInteraction si){
+
     vec3 L = vec3(0.);
     vec3 f = vec3(1.);
     uint depth = 0;
