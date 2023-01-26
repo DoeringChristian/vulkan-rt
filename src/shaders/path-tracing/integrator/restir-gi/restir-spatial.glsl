@@ -72,7 +72,7 @@ void combine_reservoir(inout RestirReservoir r1, const RestirReservoir r2, const
 
 
 void main(){
-    const float max_r = 1;
+    const float max_r = 3;
     const float dist_threshold = 0.01;
     const float angle_threshold = 25 * PI / 180;
     

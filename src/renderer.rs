@@ -299,7 +299,7 @@ impl RestirRenderer{
             .read_descriptor((0, 10), scene.accel)
             .write_descriptor((1, 0), initial_sample)
             .write_descriptor((1, 1), temporal_reservoir)
-            .write_descriptor((1, 2), temporal_reservoir)
+            .write_descriptor((1, 2), spatial_reservoir)
             .write_descriptor((1, 3), emittance);
 
         for (i, texture) in scene.textures.iter().enumerate() {
