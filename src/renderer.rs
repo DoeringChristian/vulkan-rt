@@ -8,6 +8,7 @@ use std::fmt::Write;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use glam;
 
 pub struct GBuffer {
     pub color: AnyImageNode,
@@ -184,6 +185,7 @@ pub struct RestirRenderer{
     initial_sample: Array<RestirSample>,
     temporal_reservoir: Array<RestirReservoir>,
     spatial_reservoir: Array<RestirReservoir>,
+    emittance: Array<glam::Vec4>,
     width: usize,
     height: usize,
     do_spatiotemporal: bool,
@@ -218,6 +220,7 @@ impl RestirRenderer{
         let initial_sample = Array::uninitialized(device, vk::BufferUsageFlags::STORAGE_BUFFER, width * height);
         let temporal_reservoir = Array::uninitialized(device, vk::BufferUsageFlags::STORAGE_BUFFER, width * height);
         let spatial_reservoir = Array::uninitialized(device, vk::BufferUsageFlags::STORAGE_BUFFER, width * height);
+        let emittance = Array::uninitialized(device, vk::BufferUsageFlags::STORAGE_BUFFER, width * height);
 
         Self{
             initial_ppl,
@@ -227,6 +230,7 @@ impl RestirRenderer{
             initial_sample,
             temporal_reservoir,
             spatial_reservoir,
+            emittance,
             width: width as _,
             height: height as _,
             do_spatiotemporal: false,
@@ -278,6 +282,7 @@ impl RestirRenderer{
         let initial_sample = rgraph.bind_node(&self.initial_sample.buf);
         let temporal_reservoir = rgraph.bind_node(&self.temporal_reservoir.buf);
         let spatial_reservoir = rgraph.bind_node(&self.spatial_reservoir.buf);
+        let emittance = rgraph.bind_node(&self.emittance.buf);
 
         let mut pass = rgraph
             .begin_pass("ReSTIR Initial Pass")
@@ -294,7 +299,8 @@ impl RestirRenderer{
             .read_descriptor((0, 10), scene.accel)
             .write_descriptor((1, 0), initial_sample)
             .write_descriptor((1, 1), temporal_reservoir)
-            .write_descriptor((1, 2), temporal_reservoir);
+            .write_descriptor((1, 2), temporal_reservoir)
+            .write_descriptor((1, 3), emittance);
 
         for (i, texture) in scene.textures.iter().enumerate() {
             pass = pass.read_descriptor((0, 9, [i as _]), *texture);
@@ -418,7 +424,8 @@ impl RestirRenderer{
             .read_descriptor((1, 0), initial_sample)
             .read_descriptor((1, 1), temporal_reservoir)
             .read_descriptor((1, 2), temporal_reservoir)
-            .write_descriptor((1, 3), color);
+            .read_descriptor((1, 3), emittance)
+            .write_descriptor((2, 0), color);
 
         for (i, texture) in scene.textures.iter().enumerate() {
             pass = pass.read_descriptor((0, 9, [i as _]), *texture);

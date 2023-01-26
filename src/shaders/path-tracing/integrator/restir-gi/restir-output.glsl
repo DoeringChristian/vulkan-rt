@@ -17,12 +17,15 @@ layout(std140, set = 1, binding = 1) buffer TemporalReservoir{
 layout(std140, set = 1, binding = 2) buffer SpatialReservoir{
     RestirReservoir spatial_reservoir[];
 };
+layout(set = 1, binding = 3) buffer Emittance{
+    vec4 emittance[];
+};
 
 #include "sampler/independent.glsl"
 
 #include "restir-reservoir.glsl"
 
-layout(set = 1, binding = 3, rgba32f) uniform image2D o_color;
+layout(set = 2, binding = 0, rgba32f) uniform image2D o_color;
 
 uint pixel_idx = (gl_GlobalInvocationID.y * gl_NumWorkGroups.x  + gl_GlobalInvocationID.x);
 
@@ -35,7 +38,9 @@ void main(){
     if (R.W > 0){
         RestirSample S = R.z;
         vec3 wi = normalize(S.x_s - S.x_v);
-        color += S.f * S.L_o * R.W;
+        color += S.f * S.L_o * R.W + emittance[pixel_idx].xyz;
     }
+    // RestirSample S = initial_samples[pixel_idx];
+    // color = S.f * S.L_o;
     imageStore(o_color, ivec2(coords), vec4(color, 1.));
 }

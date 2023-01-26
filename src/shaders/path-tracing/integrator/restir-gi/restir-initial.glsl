@@ -22,6 +22,9 @@ layout(set = 1, binding = 1) buffer TemporalReservoir{
 layout(set = 1, binding = 2) buffer SpatialReservoir{
     RestirReservoir spatial_reservoir[];
 };
+layout(set = 1, binding = 3) buffer Emittance{
+    vec4 emittance[];
+};
 
 #include "trace.glsl"
 
@@ -54,6 +57,8 @@ void main(){
 
     S.x_v = si.p;
     S.n_v = si.n;
+
+    emittance[pixel_idx] = vec4(eval_emitter(si), 1.);
 
     BSDFSample bs;
     vec3 bsdf_value;
