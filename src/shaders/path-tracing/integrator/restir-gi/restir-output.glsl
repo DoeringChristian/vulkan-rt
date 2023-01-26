@@ -34,7 +34,7 @@ void main(){
 
     vec3 color = vec3(0);
 
-    if (coords.x < gl_NumWorkGroups.x / 3.){
+    if (coords.x < gl_NumWorkGroups.x){
         RestirReservoir R = spatial_reservoir[pixel_idx];
         if (R.W > 0){
             RestirSample S = R.z;

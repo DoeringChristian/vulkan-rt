@@ -9,7 +9,7 @@ void update(inout RestirReservoir self, RestirSample snew, float wnew, float sam
     }
 }
 
-void merge(inout RestirReservoir self, RestirReservoir r, float p_hat, float sample1d){
+void merge(inout RestirReservoir self, const RestirReservoir r, float p_hat, float sample1d){
     uint M_0 = self.M;
     update(self, r.z, p_hat * r.W * r.M, sample1d);
     self.M = M_0 + r.M;
