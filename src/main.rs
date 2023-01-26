@@ -10,11 +10,13 @@ mod scene;
 use crevice::std140::AsStd140;
 use screen_13::prelude::*;
 use std::sync::Arc;
+use winit::event::DeviceEvent;
 
 use self::loaders::Loader;
 use self::post::{Denoiser, LinearToSrgb};
 use self::renderer::{PTRenderer, RestirRenderer};
 use self::scene::Scene;
+use glam::*;
 
 fn main() {
     pretty_env_logger::init();
@@ -36,12 +38,32 @@ fn main() {
     loader.append("assets/cornell-box.gltf", &mut scene);
 
     let mut i = 0;
+    let mut pitch = 0.;
+    let mut yaw = 0.;
 
     sc13.run(|frame| {
         if i == 0 {
             scene.update(frame.device, &mut cache, frame.render_graph);
             println!("{}", scene.material_data.as_ref().unwrap().count());
         }
+
+        for event in frame.events {
+            match event {
+                Event::DeviceEvent { device_id, event } => match event {
+                    DeviceEvent::MouseMotion { delta } => {
+                        pitch += delta.0 as f32 * 0.01;
+                        yaw += delta.1 as f32 * 0.01;
+                        scene.cameras[0].to_world = scene.cameras[0].to_world
+                            * glam::Mat4::from_rotation_y(delta.0 as f32 * 0.01)
+                            * glam::Mat4::from_rotation_x(-delta.1 as f32 * 0.01);
+                        scene.update_camera(frame.device, &mut cache, frame.render_graph);
+                    }
+                    _ => {}
+                },
+                _ => {}
+            }
+        }
+
         let scene = scene.bind(frame.render_graph);
 
         let img = pt_renderer.bind_and_render(&scene, i, 0, &mut cache, frame.render_graph);

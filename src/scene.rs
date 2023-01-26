@@ -50,6 +50,20 @@ impl Scene {
             self.meshes[mesh_idx + 1].indices as usize - self.meshes[mesh_idx].indices as usize
         }
     }
+    pub fn update_camera(
+        &mut self,
+        device: &Arc<Device>,
+        cache: &mut HashPool,
+        rgraph: &mut RenderGraph,
+    ) {
+        self.camera_data = Some(Array::from_slice_staging(
+            &device,
+            cache,
+            rgraph,
+            vk::BufferUsageFlags::STORAGE_BUFFER,
+            &self.cameras,
+        ));
+    }
     pub fn upload(&mut self, device: &Arc<Device>, cache: &mut HashPool, rgraph: &mut RenderGraph) {
         self.index_data = Some(Array::from_slice_staging(
             &device,
