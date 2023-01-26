@@ -61,6 +61,30 @@ impl<T: crevice::std140::WriteStd140 + Sized + crevice::std140::AsStd140> Array<
             _ty: PhantomData,
         }
     }
+    pub fn copy_from_slice(
+        &self,
+        device: &Arc<Device>,
+        cache: &mut HashPool,
+        rgraph: &mut RenderGraph,
+        data: &[T],
+    ) {
+        assert!(data.len() == self.count());
+        let size = self.stride() * data.len();
+        let mut staging_buf = cache
+            .lease(BufferInfo::new_mappable(
+                size as _,
+                vk::BufferUsageFlags::TRANSFER_SRC,
+            ))
+            .unwrap();
+        let slice = Buffer::mapped_slice_mut(staging_buf.as_mut());
+
+        let mut writer = crevice::std140::Writer::new(slice);
+        writer.write(data).unwrap();
+
+        let buf_node = rgraph.bind_node(&self.buf);
+        let staging_node = rgraph.bind_node(staging_buf);
+        rgraph.copy_buffer(staging_node, buf_node);
+    }
     pub fn from_slice_staging(
         device: &Arc<Device>,
         cache: &mut HashPool,
