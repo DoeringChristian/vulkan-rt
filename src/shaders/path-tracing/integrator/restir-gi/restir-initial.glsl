@@ -66,7 +66,7 @@ void main(){
 
     S.p_q = bs.pdf;
     //S.f = bsdf_value;
-    S.f = eval(si, bs.wo);
+    S.f = eval_bsdf(si, bs.wo);
 
     ray = spawn_ray(si, to_world(si, bs.wo));
 

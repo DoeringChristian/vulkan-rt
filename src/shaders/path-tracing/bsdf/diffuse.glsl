@@ -29,7 +29,7 @@ void sample_bsdf(
 
 // Evaluate the bsdf including the cosinus foreshortening term.
 // f(wi, wo) * cos_theta_o
-vec3 eval(in SurfaceInteraction si, in vec3 wo){
+vec3 eval_bsdf(in SurfaceInteraction si, in vec3 wo){
     float cos_theta_i = cos_theta(si.wi);
     float cos_theta_o = cos_theta(wo);
 
@@ -41,7 +41,7 @@ vec3 eval(in SurfaceInteraction si, in vec3 wo){
 }
 
 // Calculate the probability of sampling a direction wo when using the function sample_bsdf.
-float pdf(in SurfaceInteraction si, in vec3 wo){
+float bsdf_pdf(in SurfaceInteraction si, in vec3 wo){
     float cos_theta_i = cos_theta(si.wi);
     float cos_theta_o = cos_theta(wo);
 
@@ -53,7 +53,7 @@ float pdf(in SurfaceInteraction si, in vec3 wo){
 }
 
 // Combine eval and pdf
-void eval_pdf(in SurfaceInteraction si, in vec3 wo, out vec3 value, out float pdf){
+void bsdf_eval_pdf(in SurfaceInteraction si, in vec3 wo, out vec3 value, out float pdf){
     float cos_theta_i = cos_theta(si.wi);
     float cos_theta_o = cos_theta(wo);
 

@@ -58,7 +58,7 @@ vec3 sample_outgoing(in SurfaceInteraction si, inout SampleGenerator sample_gene
 
         vec3 em_bsdf_weight;
         float em_bsdf_pdf;
-        eval_pdf(si, to_local(si, ds.d), em_bsdf_weight, em_bsdf_pdf);
+        bsdf_eval_pdf(si, to_local(si, ds.d), em_bsdf_weight, em_bsdf_pdf);
 
         float mis_em = mis_weight(ds.pdf, em_bsdf_pdf);
 
