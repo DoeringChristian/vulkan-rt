@@ -423,7 +423,7 @@ impl RestirRenderer{
             //.read_descriptor((0, 10), scene.accel)
             .read_descriptor((1, 0), initial_sample)
             .read_descriptor((1, 1), temporal_reservoir)
-            .read_descriptor((1, 2), temporal_reservoir)
+            .read_descriptor((1, 2), spatial_reservoir)
             .read_descriptor((1, 3), emittance)
             .write_descriptor((2, 0), color);
 

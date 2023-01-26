@@ -34,13 +34,24 @@ void main(){
 
     vec3 color = vec3(0);
 
-    RestirReservoir R = spatial_reservoir[pixel_idx];
-    if (R.W > 0){
-        RestirSample S = R.z;
-        vec3 wi = normalize(S.x_s - S.x_v);
-        color += S.f * S.L_o * R.W + emittance[pixel_idx].xyz;
+    if (coords.x < gl_NumWorkGroups.x / 3.){
+        RestirReservoir R = spatial_reservoir[pixel_idx];
+        if (R.W > 0){
+            RestirSample S = R.z;
+            vec3 wi = normalize(S.x_s - S.x_v);
+            color += S.f * S.L_o * R.W + emittance[pixel_idx].xyz;
+        }
     }
-    // RestirSample S = initial_samples[pixel_idx];
-    // color = S.f * S.L_o;
+    else if (coords.x < gl_NumWorkGroups.x * 2./3.){
+        RestirReservoir R = temporal_reservoir[pixel_idx];
+        if (R.W > 0){
+            RestirSample S = R.z;
+            vec3 wi = normalize(S.x_s - S.x_v);
+            color += S.f * S.L_o * R.W + emittance[pixel_idx].xyz;
+        }
+    }else{
+        RestirSample S = initial_samples[pixel_idx];
+        color = S.f * S.L_o + emittance[pixel_idx].xyz;
+    }
     imageStore(o_color, ivec2(coords), vec4(color, 1.));
 }

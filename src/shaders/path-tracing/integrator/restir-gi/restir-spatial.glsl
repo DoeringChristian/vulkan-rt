@@ -45,9 +45,9 @@ float p_hat(const vec3 f){
 void combine_reservoir(inout RestirReservoir r1, const RestirReservoir r2, const RestirSample q, const RestirSample q_n, float sample1d, out bool gt){
     const uint r2_m = min(r2.M, M_MAX);
     float r2_hat = p_hat(r2.z.L_o);
-    bool visible = !ray_test(ray_from_to(q.x_v, r2.z.x_s));
+    bool shadowed = ray_test(ray_from_to(q.x_v, r2.z.x_s));
 
-    if (!visible){
+    if (shadowed){
         r2_hat = 0;
     }else{
         vec3 w_qq = q.x_v - q.x_s;
@@ -72,13 +72,19 @@ void combine_reservoir(inout RestirReservoir r1, const RestirReservoir r2, const
 
 
 void main(){
-    const float max_r = 5;
+    const float max_r = 1;
     const float dist_threshold = 0.01;
     const float angle_threshold = 25 * PI / 180;
     
     SampleGenerator sample_generator = sample_generator(push_constant.seed, pixel_idx); // TODO: maybe init from sample
     
-    RestirReservoir R_s = spatial_reservoir[pixel_idx];
+    RestirReservoir R_s;
+    
+    if (push_constant.do_spatiotemporal == 0){
+        init(R_s);
+    }else{
+        R_s = spatial_reservoir[pixel_idx];
+    }
 
     const uint max_iter = R_s.M < M_MAX / 2 ? 9 : 3;
     vec3 Q[9] = vec3[9](vec3(0), vec3(0), vec3(0), vec3(0), vec3(0), vec3(0),
@@ -104,7 +110,9 @@ void main(){
 
     for (uint i = 0; i < max_iter; i++){
         // Chose neighbor pixel;
-        ivec2 offset = ivec2(square_to_uniform_disk_concentric(next_2d(sample_generator)) * max_r);
+        float randa = next_1d(sample_generator) * 2 * PI;
+        float randr = next_1d(sample_generator) * max_r;
+        ivec2 offset = ivec2(floor(cos(randa) * randr), floor(sin(randa) * randr));
         const ivec2 coords = clamp(ivec2(pixel_pos) + offset, ivec2(0), ivec2(gl_LaunchSizeEXT.xy)-1);
         const uint coords_idx = coords.y * gl_LaunchSizeEXT.x + coords.x;
 

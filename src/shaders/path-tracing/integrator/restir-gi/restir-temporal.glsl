@@ -52,11 +52,10 @@ void main(){
 
     if (length(S.n_s) == 0){
         init(R);
-        init(spatial_reservoir[pixel_idx]);
+        //init(spatial_reservoir[pixel_idx]);
     }
     if (push_constant.do_spatiotemporal == 0){
         init(R);
-        init(spatial_reservoir[pixel_idx]);
     }
 
     RestirReservoir R_new;
