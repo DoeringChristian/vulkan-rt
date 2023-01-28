@@ -177,7 +177,12 @@ impl PTRenderer {
     }
 }
 
+#[derive(AsStd140, Debug, Clone, Copy)]
+struct RestirUBO{
+    pub prev_to_view: glam::Mat4,
+}
 pub struct RestirRenderer{
+    device: Arc<Device>,
     initial_ppl: RTPipeline,
     temporal_ppl: RTPipeline,
     spatial_ppl: RTPipeline,
@@ -186,6 +191,7 @@ pub struct RestirRenderer{
     temporal_reservoir: Array<RestirReservoir>,
     spatial_reservoir: Array<RestirReservoir>,
     emittance: Array<glam::Vec4>,
+    ubo: Array<RestirUBO>,
     width: usize,
     height: usize,
     do_spatiotemporal: bool,
@@ -221,8 +227,12 @@ impl RestirRenderer{
         let temporal_reservoir = Array::uninitialized(device, vk::BufferUsageFlags::STORAGE_BUFFER, width * height);
         let spatial_reservoir = Array::uninitialized(device, vk::BufferUsageFlags::STORAGE_BUFFER, width * height);
         let emittance = Array::uninitialized(device, vk::BufferUsageFlags::STORAGE_BUFFER, width * height);
+        let ubo = Array::from_slice(device, vk::BufferUsageFlags::UNIFORM_BUFFER, &[RestirUBO{
+            prev_to_view: glam::Mat4::IDENTITY,
+        }]);
 
         Self{
+            device: device.clone(),
             initial_ppl,
             temporal_ppl,
             spatial_ppl,
@@ -231,6 +241,7 @@ impl RestirRenderer{
             temporal_reservoir,
             spatial_reservoir,
             emittance,
+            ubo,
             width: width as _,
             height: height as _,
             do_spatiotemporal: false,

@@ -33,7 +33,7 @@ layout(std140, set = 1, binding = 2) buffer SpatialReservoir{
 #include "restir-path.glsl"
 #include "restir-reservoir.glsl"
 
-#define M_MAX 500
+#define M_MAX 30
 
 uint pixel_idx = (gl_LaunchIDEXT.y * gl_LaunchSizeEXT.x + gl_LaunchIDEXT.x);
 
