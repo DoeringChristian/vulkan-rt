@@ -42,28 +42,28 @@ float p_hat(const vec3 f){
     return length(f);
 }
 
-void combine_reservoir(inout RestirReservoir r1, const RestirReservoir r2, const RestirSample q, const RestirSample q_n, float sample1d){
-    const uint r2_m = min(r2.M, M_MAX);
-    float r2_hat = p_hat(r2.z.L_o);
-    bool shadowed = ray_test(ray_from_to(q.x_v, r2.z.x_s));
+void combine_reservoir(inout RestirReservoir Rs, const RestirReservoir Rn, const RestirSample q, const RestirSample q_n, float sample1d){
+    const uint Rn_m = min(r2.M, M_MAX);
+    float Rn_hat = p_hat(r2.z.L_o);
+    bool shadowed = ray_test(ray_from_to(q.x_v, Rn.z.x_s));
 
     if (shadowed){
-        r2_hat = 0;
+        Rn_hat = 0;
     }else{
         vec3 w_qq = q.x_v - q.x_s;
         const float w_qq_len = length(w_qq);
         w_qq /= w_qq_len;
-        vec3 w_rq = r2.z.x_v - q.x_s;
+        vec3 w_rq = Rn.z.x_v - q.x_s;
         const float w_rq_len = length(w_rq);
         w_rq /= w_rq_len;
         const float qq = w_qq_len * w_qq_len;
         const float rq = w_rq_len * w_rq_len;
         const float div = rq * abs(dot(w_qq, q.n_s));
         const float j = div == 0 ? 0 : abs(dot(w_rq, q.n_s)) * qq / div;
-        r2_hat *= j;
+        Rn_hat = j == 0 ? 0 : Rn_hat / j;
     }
 
-    const float factor = r2_hat * r2_m * r2.W;
+    const float factor = Rn_hat * Rn_m * Rn.W;
     if (factor > 0){
         update(r1, r2.z, factor, sample1d);
     }

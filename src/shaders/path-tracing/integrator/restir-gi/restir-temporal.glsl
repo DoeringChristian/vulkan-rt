@@ -46,40 +46,46 @@ void main(){
 
     SampleGenerator sample_generator = sample_generator(push_constant.seed, pixel_idx); // TODO: maybe init from sample
 
-    RestirSample S = initial_samples[pixel_idx];
+    RestirSample S = initial_samples[pixel_idx]; // l.2
 
-    RestirReservoir R = temporal_reservoir[pixel_idx];
+    RestirReservoir R = temporal_reservoir[pixel_idx]; // l.3
 
     if (length(S.n_s) == 0){
         init(R);
-        //init(spatial_reservoir[pixel_idx]);
     }
     if (push_constant.do_spatiotemporal == 0){
         init(R);
     }
 
-    RestirReservoir R_new;
-    R_new.w = 0;
-    R_new.W = 0;
-    R_new.M = 0;
-    float phat = p_hat(S.L_o);
-    float w = phat / S.p_q;
-    update(R_new, S, w, next_1d(sample_generator));
-    R_new.W = phat == 0 ? 0 : R_new.w / (R_new.M * phat);
-
-    RestirReservoir R_t;
-    R_t.w = 0;
-    R_t.W = 0;
-    R_t.M = 0;
-    update(R_t, R_new.z, R_new.M * R_new.W * phat, next_1d(sample_generator));
-    update(R_t, R.z, R.M * R.W * p_hat(R.z.L_o), next_1d(sample_generator));
-    uint mval = R.M;
-    float new_phat = p_hat(R_t.z.L_o);
-    if (new_phat > 0){
-        mval ++;
-    }
-    R_t.M = min(R.M + 1, M_MAX);
-    R_t.W = new_phat * mval == 0 ? 0 : R_t.w / (mval * new_phat);
+    float w = p_hat(S.L_o)/S.p_q; // l.4
+    update(R, S, w, next_1d(sample_generator)); // l.5
+    float phat = p_hat(R.z.L_o);
+    R.W = phat == 0 ? 0 : R.w / (R.M * phat); // l.6
     
-    temporal_reservoir[pixel_idx] = R_t;
+    temporal_reservoir[pixel_idx] = R; // l.7
+
+    // RestirReservoir R_new;
+    // R_new.w = 0;
+    // R_new.W = 0;
+    // R_new.M = 0;
+    // float phat = p_hat(S.L_o);
+    // float w = phat / S.p_q;
+    // update(R_new, S, w, next_1d(sample_generator));
+    // R_new.W = phat == 0 ? 0 : R_new.w / (R_new.M * phat);
+
+    // RestirReservoir R_t;
+    // R_t.w = 0;
+    // R_t.W = 0;
+    // R_t.M = 0;
+    // update(R_t, R_new.z, R_new.M * R_new.W * phat, next_1d(sample_generator));
+    // update(R_t, R.z, R.M * R.W * p_hat(R.z.L_o), next_1d(sample_generator));
+    // uint mval = R.M;
+    // float new_phat = p_hat(R_t.z.L_o);
+    // if (new_phat > 0){
+    //     mval ++;
+    // }
+    // R_t.M = min(R.M + 1, M_MAX);
+    // R_t.W = new_phat * mval == 0 ? 0 : R_t.w / (mval * new_phat);
+    
+    // temporal_reservoir[pixel_idx] = R_s;
 }
