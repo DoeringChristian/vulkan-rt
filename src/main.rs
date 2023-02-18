@@ -29,7 +29,7 @@ fn main() {
     let mut cache = HashPool::new(device);
 
     let presenter = screen_13_fx::GraphicPresenter::new(device).unwrap();
-    let mut pt_renderer = RestirRenderer::new(device, 1024, 1024);
+    let mut pt_renderer = PTRenderer::new(device);
     let denoiser = Denoiser::new(device, 1024, 1024);
     let linear_to_srgb = LinearToSrgb::new(device);
 
@@ -47,30 +47,31 @@ fn main() {
             println!("{}", scene.material_data.as_ref().unwrap().count());
         }
 
-        for event in frame.events {
-            match event {
-                Event::DeviceEvent { device_id, event } => match event {
-                    DeviceEvent::MouseMotion { delta } => {
-                        pitch += delta.0 as f32 * 0.01;
-                        yaw += delta.1 as f32 * 0.01;
-                        scene.cameras[0].to_world = scene.cameras[0].to_world
-                            * glam::Mat4::from_rotation_y(delta.0 as f32 * 0.01)
-                            * glam::Mat4::from_rotation_x(-delta.1 as f32 * 0.01);
-                        scene.update_camera(frame.device, &mut cache, frame.render_graph);
-                    }
-                    _ => {}
-                },
-                _ => {}
-            }
-        }
+        // for event in frame.events {
+        //     match event {
+        //         Event::DeviceEvent { device_id, event } => match event {
+        //             DeviceEvent::MouseMotion { delta } => {
+        //                 pitch += delta.0 as f32 * 0.01;
+        //                 yaw += delta.1 as f32 * 0.01;
+        //                 scene.cameras[0].to_world = scene.cameras[0].to_world
+        //                     * glam::Mat4::from_rotation_y(delta.0 as f32 * 0.01)
+        //                     * glam::Mat4::from_rotation_x(-delta.1 as f32 * 0.01);
+        //                 scene.update_camera(frame.device, &mut cache, frame.render_graph);
+        //             }
+        //             _ => {}
+        //         },
+        //         _ => {}
+        //     }
+        // }
 
         let scene = scene.bind(frame.render_graph);
 
-        let img = pt_renderer.bind_and_render(&scene, i, 0, &mut cache, frame.render_graph);
+        let gbuffer =
+            pt_renderer.bind_and_render(&scene, i, 1024, 1024, 0, &mut cache, frame.render_graph);
 
-        //let denoised = denoiser.denoise(img, i, frame.render_graph);
+        let denoised = denoiser.denoise(gbuffer.color, i, frame.render_graph);
 
-        let img_srgb = linear_to_srgb.record(img, &mut cache, frame.render_graph);
+        let img_srgb = linear_to_srgb.record(denoised, &mut cache, frame.render_graph);
 
         presenter.present_image(frame.render_graph, img_srgb, frame.swapchain_image);
         //frame.render_graph.clear_color_image(frame.swapchain_image);
