@@ -43,8 +43,8 @@ float p_hat(const vec3 f){
 }
 
 void combine_reservoir(inout RestirReservoir Rs, const RestirReservoir Rn, const RestirSample q, const RestirSample q_n, float sample1d){
-    const uint Rn_m = min(r2.M, M_MAX);
-    float Rn_hat = p_hat(r2.z.L_o);
+    const uint Rn_m = min(Rn.M, M_MAX);
+    float Rn_hat = p_hat(Rn.z.L_o);
     bool shadowed = ray_test(ray_from_to(q.x_v, Rn.z.x_s));
 
     if (shadowed){
@@ -65,13 +65,13 @@ void combine_reservoir(inout RestirReservoir Rs, const RestirReservoir Rn, const
 
     const float factor = Rn_hat * Rn_m * Rn.W;
     if (factor > 0){
-        update(r1, r2.z, factor, sample1d);
+        update(Rs, Rn.z, factor, sample1d);
     }
 }
 
 
 void main(){
-    const float max_r = 10;
+    const float max_r = 100;
     const float dist_threshold = 0.01;
     const float angle_threshold = 25 * PI / 180;
     
@@ -83,6 +83,7 @@ void main(){
     }else{
         R_s = spatial_reservoir[pixel_idx];
     }
+    
     const uint max_iter = R_s.M < M_MAX / 2 ? 9 : 3;
     
     RestirSample q = initial_samples[pixel_idx];
