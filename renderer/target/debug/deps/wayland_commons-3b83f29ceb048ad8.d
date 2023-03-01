@@ -1,0 +1,11 @@
+/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/deps/wayland_commons-3b83f29ceb048ad8.rmeta: /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/lib.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/debug.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/filter.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/map.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/socket.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/user_data.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/wire.rs
+
+/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/deps/wayland_commons-3b83f29ceb048ad8.d: /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/lib.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/debug.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/filter.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/map.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/socket.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/user_data.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/wire.rs
+
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/lib.rs:
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/debug.rs:
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/filter.rs:
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/map.rs:
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/socket.rs:
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/user_data.rs:
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/wayland-commons-0.29.5/src/wire.rs:

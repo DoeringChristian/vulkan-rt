@@ -1,0 +1,12 @@
+/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/deps/crossfont-262d3b3e84ed6a51.rmeta: /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/lib.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/mod.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/mod.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/config.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/font_set.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/object_set.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/char_set.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/pattern.rs
+
+/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/deps/crossfont-262d3b3e84ed6a51.d: /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/lib.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/mod.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/mod.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/config.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/font_set.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/object_set.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/char_set.rs /home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/pattern.rs
+
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/lib.rs:
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/mod.rs:
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/mod.rs:
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/config.rs:
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/font_set.rs:
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/object_set.rs:
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/char_set.rs:
+/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/crossfont-0.5.1/src/ft/fc/pattern.rs:

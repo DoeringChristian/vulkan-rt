@@ -1,0 +1,107 @@
+cargo:rerun-if-env-changed=EXPAT_NO_PKG_CONFIG
+cargo:rerun-if-env-changed=PKG_CONFIG_x86_64-unknown-linux-gnu
+cargo:rerun-if-env-changed=PKG_CONFIG_x86_64_unknown_linux_gnu
+cargo:rerun-if-env-changed=HOST_PKG_CONFIG
+cargo:rerun-if-env-changed=PKG_CONFIG
+cargo:rerun-if-env-changed=EXPAT_STATIC
+cargo:rerun-if-env-changed=EXPAT_DYNAMIC
+cargo:rerun-if-env-changed=PKG_CONFIG_ALL_STATIC
+cargo:rerun-if-env-changed=PKG_CONFIG_ALL_DYNAMIC
+cargo:rerun-if-env-changed=PKG_CONFIG_PATH_x86_64-unknown-linux-gnu
+cargo:rerun-if-env-changed=PKG_CONFIG_PATH_x86_64_unknown_linux_gnu
+cargo:rerun-if-env-changed=HOST_PKG_CONFIG_PATH
+cargo:rerun-if-env-changed=PKG_CONFIG_PATH
+cargo:rerun-if-env-changed=PKG_CONFIG_LIBDIR_x86_64-unknown-linux-gnu
+cargo:rerun-if-env-changed=PKG_CONFIG_LIBDIR_x86_64_unknown_linux_gnu
+cargo:rerun-if-env-changed=HOST_PKG_CONFIG_LIBDIR
+cargo:rerun-if-env-changed=PKG_CONFIG_LIBDIR
+cargo:rerun-if-env-changed=PKG_CONFIG_SYSROOT_DIR_x86_64-unknown-linux-gnu
+cargo:rerun-if-env-changed=PKG_CONFIG_SYSROOT_DIR_x86_64_unknown_linux_gnu
+cargo:rerun-if-env-changed=HOST_PKG_CONFIG_SYSROOT_DIR
+cargo:rerun-if-env-changed=PKG_CONFIG_SYSROOT_DIR
+CMAKE_TOOLCHAIN_FILE_x86_64-unknown-linux-gnu = None
+CMAKE_TOOLCHAIN_FILE_x86_64_unknown_linux_gnu = None
+HOST_CMAKE_TOOLCHAIN_FILE = None
+CMAKE_TOOLCHAIN_FILE = None
+CMAKE_GENERATOR_x86_64-unknown-linux-gnu = None
+CMAKE_GENERATOR_x86_64_unknown_linux_gnu = None
+HOST_CMAKE_GENERATOR = None
+CMAKE_GENERATOR = None
+CMAKE_PREFIX_PATH_x86_64-unknown-linux-gnu = None
+CMAKE_PREFIX_PATH_x86_64_unknown_linux_gnu = None
+HOST_CMAKE_PREFIX_PATH = None
+CMAKE_PREFIX_PATH = None
+CMAKE_x86_64-unknown-linux-gnu = None
+CMAKE_x86_64_unknown_linux_gnu = None
+HOST_CMAKE = None
+CMAKE = None
+running: cd "/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out/build" && CMAKE_PREFIX_PATH="" "cmake" "/home/doeringc/.cargo/registry/src/github.com-1ecc6299db9ec823/expat-sys-2.1.6/expat" "-DBUILD_shared=OFF" "-DBUILD_tools=OFF" "-DBUILD_examples=OFF" "-DBUILD_tests=OFF" "-DCMAKE_INSTALL_PREFIX=/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out" "-DCMAKE_C_FLAGS= -ffunction-sections -fdata-sections -fPIC -m64" "-DCMAKE_C_COMPILER=/usr/bin/cc" "-DCMAKE_CXX_FLAGS= -ffunction-sections -fdata-sections -fPIC -m64" "-DCMAKE_CXX_COMPILER=/usr/bin/c++" "-DCMAKE_ASM_FLAGS= -ffunction-sections -fdata-sections -fPIC -m64" "-DCMAKE_ASM_COMPILER=/usr/bin/cc" "-DCMAKE_BUILD_TYPE=Debug"
+-- The C compiler identification is GNU 12.2.1
+-- The CXX compiler identification is GNU 12.2.1
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Looking for dlfcn.h
+-- Looking for dlfcn.h - found
+-- Looking for fcntl.h
+-- Looking for fcntl.h - found
+-- Looking for inttypes.h
+-- Looking for inttypes.h - found
+-- Looking for memory.h
+-- Looking for memory.h - found
+-- Looking for stdint.h
+-- Looking for stdint.h - found
+-- Looking for stdlib.h
+-- Looking for stdlib.h - found
+-- Looking for strings.h
+-- Looking for strings.h - found
+-- Looking for string.h
+-- Looking for string.h - found
+-- Looking for sys/stat.h
+-- Looking for sys/stat.h - found
+-- Looking for sys/types.h
+-- Looking for sys/types.h - found
+-- Looking for unistd.h
+-- Looking for unistd.h - found
+-- Looking for getpagesize
+-- Looking for getpagesize - found
+-- Looking for bcopy
+-- Looking for bcopy - found
+-- Looking for memmove
+-- Looking for memmove - found
+-- Looking for mmap
+-- Looking for mmap - found
+-- Looking for 4 include files stdlib.h, ..., float.h
+-- Looking for 4 include files stdlib.h, ..., float.h - found
+-- Looking for off_t
+-- Looking for off_t - not found
+-- Looking for size_t
+-- Looking for size_t - not found
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out/build
+running: cd "/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out/build" && MAKEFLAGS="-j --jobserver-fds=10,11 --jobserver-auth=10,11" "cmake" "--build" "." "--target" "install" "--config" "Debug"
+[ 16%] Building C object CMakeFiles/expat.dir/lib/xmlparse.c.o
+[ 33%] Building C object CMakeFiles/expat.dir/lib/xmlrole.c.o
+[ 50%] Building C object CMakeFiles/expat.dir/lib/xmltok.c.o
+[ 66%] Building C object CMakeFiles/expat.dir/lib/xmltok_impl.c.o
+[ 83%] Building C object CMakeFiles/expat.dir/lib/xmltok_ns.c.o
+[100%] Linking C static library libexpat.a
+[100%] Built target expat
+Install the project...
+-- Install configuration: "Debug"
+-- Installing: /home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out/lib/libexpat.a
+-- Installing: /home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out/include/expat.h
+-- Installing: /home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out/include/expat_external.h
+-- Installing: /home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out/lib/pkgconfig/expat.pc
+cargo:root=/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out
+cargo:rustc-link-search=native=/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out/lib
+cargo:rustc-link-lib=static=expat
+cargo:outdir=/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out

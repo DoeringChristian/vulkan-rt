@@ -1,0 +1,4 @@
+/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out/lib/libexpat.a
+/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out/include/expat.h
+/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out/include/expat_external.h
+/home/doeringc/workspace/rust/vulkan-rt/renderer/target/debug/build/expat-sys-9cb020c72adfc025/out/lib/pkgconfig/expat.pc
