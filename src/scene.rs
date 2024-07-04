@@ -1,6 +1,6 @@
 use crate::accel::{Blas, Tlas};
 use crate::array::Array;
-use crate::common::*;
+use crate::common::{self, *};
 use glam::*;
 use screen_13::prelude::*;
 use screen_13_fx::ImageLoader;
@@ -15,7 +15,7 @@ pub struct Scene {
     pub uvs: Vec<Vec2>,
     pub textures: Vec<image::DynamicImage>,
 
-    pub instances: Vec<Instance>,
+    pub instances: Vec<common::Instance>,
     pub meshes: Vec<Mesh>,
     pub emitters: Vec<Emitter>,
     pub materials: Vec<Material>,
@@ -25,7 +25,7 @@ pub struct Scene {
     pub blases: Vec<Blas<Vec3>>,
     pub tlas: Option<Tlas>,
 
-    pub instance_data: Option<Array<Instance>>,
+    pub instance_data: Option<Array<common::Instance>>,
     pub mesh_data: Option<Array<Mesh>>,
     pub emitter_data: Option<Array<Emitter>>,
     pub material_data: Option<Array<Material>>,
@@ -140,6 +140,7 @@ impl Scene {
             let img = texture.as_rgba8().unwrap();
             let img = img_loader
                 .decode_linear(
+                    0,
                     0,
                     img,
                     screen_13_fx::ImageFormat::R8G8B8A8,

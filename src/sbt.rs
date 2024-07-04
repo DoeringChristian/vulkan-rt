@@ -42,15 +42,16 @@ impl SbtBuffer {
         info: SbtBufferInfo<'a>,
         pipeline: &RayTracePipeline,
     ) -> Result<Self, DriverError> {
-        let &PhysicalDeviceRayTracePipelineProperties {
+        let &RayTraceProperties {
             shader_group_base_alignment,
             shader_group_handle_alignment,
             shader_group_handle_size,
             ..
         } = device
-            .ray_tracing_pipeline_properties
+            .physical_device
+            .ray_trace_properties
             .as_ref()
-            .ok_or(DriverError::Unsupported)?;
+            .unwrap();
 
         let sbt_handle_size = align_up(shader_group_handle_size, shader_group_handle_alignment);
         let sbt_rgen_size = align_up(sbt_handle_size, shader_group_base_alignment);

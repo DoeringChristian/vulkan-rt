@@ -38,6 +38,7 @@ impl<T: AsStd140> Blas<T> {
                     )
                     .alignment(
                         self.device
+                            .physical_device
                             .accel_struct_properties
                             .as_ref()
                             .unwrap()
@@ -112,10 +113,7 @@ impl<T: AsStd140> Blas<T> {
 
         let accel_size = AccelerationStructure::size_of(device, &geometry_info);
 
-        let accel_info = AccelerationStructureInfo {
-            ty: vk::AccelerationStructureTypeKHR::BOTTOM_LEVEL,
-            size: accel_size.create_size,
-        };
+        let accel_info = AccelerationStructureInfo::blas(accel_size.create_size);
 
         let accel = AccelerationStructure::create(device, accel_info).unwrap();
         Self {
@@ -159,6 +157,7 @@ impl Tlas {
                     )
                     .alignment(
                         self.device
+                            .physical_device
                             .accel_struct_properties
                             .as_ref()
                             .unwrap()
@@ -229,10 +228,7 @@ impl Tlas {
 
         let size = AccelerationStructure::size_of(device, &geometry_info);
 
-        let info = AccelerationStructureInfo {
-            ty: vk::AccelerationStructureTypeKHR::TOP_LEVEL,
-            size: size.create_size,
-        };
+        let info = AccelerationStructureInfo::tlas(size.create_size);
 
         let accel = Arc::new(AccelerationStructure::create(device, info).unwrap());
 
